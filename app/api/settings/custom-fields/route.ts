@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getApiAuthContext } from "@/lib/auth";
 import prisma from "@/lib/db";
+import { Prisma } from "@prisma/client";
 import { createCustomFieldSchema } from "@/lib/validation/schemas";
 
 // GET /api/settings/custom-fields - List custom fields
@@ -86,8 +87,12 @@ export async function POST(request: NextRequest) {
         fieldKey: data.fieldKey,
         fieldType: data.fieldType,
         required: data.required,
-        options: data.options,
-        defaultValue: data.defaultValue,
+        options: data.options 
+          ? (data.options as Prisma.InputJsonValue) 
+          : undefined,
+        defaultValue: data.defaultValue !== undefined 
+          ? (data.defaultValue as Prisma.InputJsonValue) 
+          : undefined,
         placeholder: data.placeholder,
         helpText: data.helpText,
         displayOrder: (maxOrder._max.displayOrder || 0) + 1,

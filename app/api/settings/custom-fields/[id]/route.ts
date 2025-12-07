@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getApiAuthContext } from "@/lib/auth";
 import prisma from "@/lib/db";
+import { Prisma } from "@prisma/client";
 import { updateCustomFieldSchema } from "@/lib/validation/schemas";
 
 interface RouteParams {
@@ -66,10 +67,38 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Custom field not found" }, { status: 404 });
     }
 
+    // Build update data with proper JSON handling
+    const updateData: Prisma.CustomFieldDefinitionUpdateInput = {
+      fieldName: data.fieldName,
+      fieldType: data.fieldType,
+      required: data.required,
+      placeholder: data.placeholder,
+      helpText: data.helpText,
+      displayOrder: data.displayOrder,
+    };
+
+    // Handle options JSON field
+    if (data.options !== undefined) {
+      updateData.options = data.options === null 
+        ? Prisma.JsonNull 
+        : data.options 
+          ? (data.options as Prisma.InputJsonValue) 
+          : undefined;
+    }
+
+    // Handle defaultValue JSON field
+    if (data.defaultValue !== undefined) {
+      updateData.defaultValue = data.defaultValue === null 
+        ? Prisma.JsonNull 
+        : data.defaultValue !== undefined 
+          ? (data.defaultValue as Prisma.InputJsonValue) 
+          : undefined;
+    }
+
     // Update
     const updated = await prisma.customFieldDefinition.update({
       where: { id },
-      data,
+      data: updateData,
     });
 
     return NextResponse.json(updated);
