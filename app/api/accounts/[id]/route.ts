@@ -132,10 +132,10 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       data: {
         ...data,
         customFields: data.customFields
-          ? {
+          ? ({
               ...(existingAccount.customFields as object),
               ...data.customFields,
-            }
+            } as Record<string, unknown>)
           : undefined,
       },
     });
