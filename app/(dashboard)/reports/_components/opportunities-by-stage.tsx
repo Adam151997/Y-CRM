@@ -12,10 +12,10 @@ interface Stage {
 
 interface StageData {
   stageId: string;
-  _count: number;
+  _count: number | boolean | Record<string, number> | undefined;
   _sum: {
-    value: number | null;
-  };
+    value: unknown; // Prisma Decimal
+  } | null;
 }
 
 interface OpportunitiesByStageProps {
@@ -28,8 +28,11 @@ export function OpportunitiesByStage({ data, stages }: OpportunitiesByStageProps
   const stageMap = new Map(data.map((d) => [d.stageId, d]));
   
   // Calculate total value for percentage
-  const totalValue = data.reduce((sum, d) => sum + Number(d._sum.value || 0), 0);
-  const totalCount = data.reduce((sum, d) => sum + d._count, 0);
+  const totalValue = data.reduce((sum, d) => sum + Number(d._sum?.value || 0), 0);
+  const totalCount = data.reduce((sum, d) => {
+    const count = typeof d._count === 'number' ? d._count : 0;
+    return sum + count;
+  }, 0);
 
   // Sort stages by order
   const sortedStages = [...stages].sort((a, b) => a.order - b.order);
@@ -54,8 +57,8 @@ export function OpportunitiesByStage({ data, stages }: OpportunitiesByStageProps
           <div className="space-y-4">
             {sortedStages.map((stage) => {
               const stageData = stageMap.get(stage.id);
-              const count = stageData?._count || 0;
-              const value = Number(stageData?._sum.value || 0);
+              const count = typeof stageData?._count === 'number' ? stageData._count : 0;
+              const value = Number(stageData?._sum?.value || 0);
               const percentage = totalValue > 0 ? (value / totalValue) * 100 : 0;
 
               return (
