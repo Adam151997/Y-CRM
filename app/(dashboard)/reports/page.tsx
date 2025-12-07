@@ -267,16 +267,19 @@ const getGroupedData = cache(async (orgId: string) => {
     prisma.lead.groupBy({
       by: ["source"],
       where: { orgId },
+      orderBy: { source: "asc" },
       _count: true,
     }),
     prisma.lead.groupBy({
       by: ["status"],
       where: { orgId },
+      orderBy: { status: "asc" },
       _count: true,
     }),
     prisma.opportunity.groupBy({
       by: ["stageId"],
       where: { orgId },
+      orderBy: { stageId: "asc" },
       _count: true,
       _sum: { value: true },
     }),
