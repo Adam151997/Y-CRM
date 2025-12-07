@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Filter and clean messages - Gemini requires non-empty content
-    const messages: CoreMessage[] = rawMessages
+    const messages = rawMessages
       .filter((m) => {
         // Must have content
         if (!m.content) return false;
@@ -73,11 +73,7 @@ export async function POST(request: NextRequest) {
           return m.content.length > 0;
         }
         return true;
-      })
-      .map((m) => ({
-        role: m.role,
-        content: m.content,
-      }));
+      }) as CoreMessage[];
 
     // Ensure we have at least one message
     if (messages.length === 0) {
