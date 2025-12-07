@@ -107,8 +107,6 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export const config = {
-  api: {
-    bodyParser: false, // Disable body parser for file uploads
-  },
-};
+// Route segment config for file uploads
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
