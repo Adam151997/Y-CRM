@@ -127,18 +127,38 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       data.customFields = customFieldValidation.data;
     }
 
+    // Build update data with proper JSON handling
+    const updateData: Prisma.AccountUpdateInput = {
+      name: data.name,
+      type: data.type,
+      industry: data.industry,
+      website: data.website,
+      phone: data.phone,
+      description: data.description,
+      annualRevenue: data.annualRevenue,
+      employeeCount: data.employeeCount,
+      rating: data.rating,
+    };
+
+    // Handle address JSON field
+    if (data.address !== undefined) {
+      updateData.address = data.address === null 
+        ? Prisma.JsonNull 
+        : (data.address as Prisma.InputJsonValue);
+    }
+
+    // Handle customFields JSON field
+    if (data.customFields) {
+      updateData.customFields = {
+        ...(existingAccount.customFields as object),
+        ...data.customFields,
+      } as Prisma.InputJsonValue;
+    }
+
     // Update account
     const updatedAccount = await prisma.account.update({
       where: { id },
-      data: {
-        ...data,
-        customFields: data.customFields
-          ? ({
-              ...(existingAccount.customFields as object),
-              ...data.customFields,
-            } as Prisma.InputJsonValue)
-          : undefined,
-      },
+      data: updateData,
     });
 
     // Audit log
