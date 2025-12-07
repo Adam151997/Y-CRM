@@ -2,6 +2,7 @@ import { auth, currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 import prisma from "./db";
+import { Prisma } from "@prisma/client";
 
 export interface AuthContext {
   userId: string;
@@ -169,6 +170,6 @@ export async function updateOrganizationSettings(
 ) {
   return prisma.organization.update({
     where: { id: orgId },
-    data: { settings },
+    data: { settings: settings as Prisma.InputJsonValue },
   });
 }
