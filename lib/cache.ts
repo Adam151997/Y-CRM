@@ -60,6 +60,9 @@ export const getCachedRecentLeads = unstable_cache(
       where: { orgId },
       orderBy: { createdAt: "desc" },
       take: 5,
+      include: {
+        pipelineStage: { select: { name: true, color: true } },
+      },
     });
   },
   ["recent-leads"],
