@@ -26,7 +26,7 @@ interface CustomField {
   fieldKey: string;
   fieldType: string;
   required: boolean;
-  options: string[] | null;
+  options: unknown; // Prisma JsonValue
   displayOrder: number;
   isActive: boolean;
 }
