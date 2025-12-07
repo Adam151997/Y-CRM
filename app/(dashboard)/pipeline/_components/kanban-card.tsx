@@ -9,7 +9,7 @@ import { format, isPast, differenceInDays } from "date-fns";
 interface Opportunity {
   id: string;
   name: string;
-  value: number;
+  value: unknown; // Prisma Decimal
   currency: string;
   probability: number;
   expectedCloseDate: Date | null;
@@ -31,13 +31,14 @@ interface KanbanCardProps {
 }
 
 export function KanbanCard({ opportunity, onDragStart, onDragEnd }: KanbanCardProps) {
-  const formatCurrency = (value: number, currency: string) => {
+  const formatCurrency = (value: unknown, currency: string) => {
+    const num = typeof value === "string" ? parseFloat(value) : Number(value);
     return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency,
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
-    }).format(value);
+    }).format(isNaN(num) ? 0 : num);
   };
 
   const getCloseDateStatus = () => {
