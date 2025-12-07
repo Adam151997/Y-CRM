@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getApiAuthContext } from "@/lib/auth";
 import prisma from "@/lib/db";
+import { Prisma } from "@prisma/client";
 import { createAuditLog } from "@/lib/audit";
 import { createAccountSchema } from "@/lib/validation/schemas";
 import { validateCustomFields } from "@/lib/validation/custom-fields";
@@ -137,13 +138,19 @@ export async function POST(request: NextRequest) {
         industry: data.industry,
         website: data.website,
         phone: data.phone,
-        address: data.address,
+        address: data.address === null 
+          ? Prisma.JsonNull 
+          : data.address === undefined 
+            ? undefined 
+            : (data.address as Prisma.InputJsonValue),
         annualRevenue: data.annualRevenue,
         employeeCount: data.employeeCount,
         type: data.type,
         rating: data.rating,
         assignedToId: data.assignedToId || auth.userId,
-        customFields: data.customFields || {},
+        customFields: data.customFields 
+          ? (data.customFields as Prisma.InputJsonValue) 
+          : {},
       },
     });
 
