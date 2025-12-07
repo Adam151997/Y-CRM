@@ -42,7 +42,7 @@ interface Account {
   phone: string | null;
   type: string | null;
   rating: string | null;
-  annualRevenue: string | number | null;
+  annualRevenue: unknown; // Prisma Decimal
   employeeCount: number | null;
   createdAt: Date;
   _count: {
@@ -72,13 +72,14 @@ const ratingColors: Record<string, string> = {
   COLD: "bg-slate-500/10 text-slate-500 border-slate-500/20",
 };
 
-function formatRevenue(value: string | number | null): string {
+function formatRevenue(value: unknown): string {
   if (!value) return "-";
-  const num = typeof value === "string" ? parseFloat(value) : value;
-  if (num >= 1000000000) return `$${(num / 1000000000).toFixed(1)}B`;
-  if (num >= 1000000) return `$${(num / 1000000).toFixed(1)}M`;
-  if (num >= 1000) return `$${(num / 1000).toFixed(0)}K`;
-  return `$${num.toLocaleString()}`;
+  const num = typeof value === "string" ? parseFloat(value) : Number(value);
+  if (isNaN(num)) return "-";
+  if (num >= 1000000000) return "$" + (num / 1000000000).toFixed(1) + "B";
+  if (num >= 1000000) return "$" + (num / 1000000).toFixed(1) + "M";
+  if (num >= 1000) return "$" + (num / 1000).toFixed(0) + "K";
+  return "$" + num.toLocaleString();
 }
 
 export function AccountsTable({
