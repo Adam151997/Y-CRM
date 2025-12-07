@@ -1,0 +1,127 @@
+"use client";
+
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { MessageSquare, Plus, Loader2 } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
+import { toast } from "sonner";
+
+interface Note {
+  id: string;
+  content: string;
+  createdById: string;
+  createdByType: string;
+  createdAt: Date;
+}
+
+interface LeadNotesProps {
+  notes: Note[];
+  leadId: string;
+  orgId: string;
+  userId: string;
+}
+
+export function LeadNotes({ notes, leadId, orgId, userId }: LeadNotesProps) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const [isAdding, setIsAdding] = useState(false);
+  const [newNote, setNewNote] = useState("");
+
+  const handleAddNote = async () => {
+    if (!newNote.trim()) return;
+
+    setIsAdding(true);
+    try {
+      const response = await fetch("/api/notes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          content: newNote,
+          leadId,
+        }),
+      });
+
+      if (!response.ok) throw new Error("Failed to add note");
+
+      setNewNote("");
+      toast.success("Note added successfully");
+      startTransition(() => {
+        router.refresh();
+      });
+    } catch (error) {
+      toast.error("Failed to add note");
+    } finally {
+      setIsAdding(false);
+    }
+  };
+
+  return (
+    <Card>
+      <CardContent className="pt-6 space-y-4">
+        {/* Add Note Form */}
+        <div className="space-y-3">
+          <Textarea
+            placeholder="Add a note..."
+            value={newNote}
+            onChange={(e) => setNewNote(e.target.value)}
+            rows={3}
+          />
+          <div className="flex justify-end">
+            <Button
+              onClick={handleAddNote}
+              disabled={!newNote.trim() || isAdding}
+              size="sm"
+            >
+              {isAdding ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Plus className="h-4 w-4 mr-2" />
+              )}
+              Add Note
+            </Button>
+          </div>
+        </div>
+
+        {/* Notes List */}
+        {notes.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
+            <p>No notes yet</p>
+            <p className="text-sm">Add a note to keep track of important information</p>
+          </div>
+        ) : (
+          <div className="space-y-4 pt-4 border-t">
+            {notes.map((note) => (
+              <div key={note.id} className="flex gap-3">
+                <Avatar className="h-8 w-8">
+                  <AvatarFallback className="text-xs">
+                    {note.createdByType === "AI_AGENT" ? "AI" : "U"}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-sm font-medium">
+                      {note.createdByType === "AI_AGENT" ? "AI Agent" : "You"}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {formatDistanceToNow(new Date(note.createdAt), {
+                        addSuffix: true,
+                      })}
+                    </span>
+                  </div>
+                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                    {note.content}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}

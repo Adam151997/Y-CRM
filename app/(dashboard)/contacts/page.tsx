@@ -1,0 +1,113 @@
+import { Suspense } from "react";
+import Link from "next/link";
+import { getAuthContext } from "@/lib/auth";
+import prisma from "@/lib/db";
+import { Button } from "@/components/ui/button";
+import { Plus, Upload, Download } from "lucide-react";
+import { ContactsTable } from "./_components/contacts-table";
+import { ContactsFilters } from "./_components/contacts-filters";
+
+interface ContactsPageProps {
+  searchParams: Promise<{
+    page?: string;
+    accountId?: string;
+    query?: string;
+    sortBy?: string;
+    sortOrder?: string;
+  }>;
+}
+
+export default async function ContactsPage({ searchParams }: ContactsPageProps) {
+  const { orgId } = await getAuthContext();
+  const params = await searchParams;
+
+  const page = parseInt(params.page || "1");
+  const limit = 20;
+  const sortBy = params.sortBy || "createdAt";
+  const sortOrder = (params.sortOrder || "desc") as "asc" | "desc";
+
+  // Build where clause
+  const where: Record<string, unknown> = { orgId };
+  if (params.accountId) where.accountId = params.accountId;
+  if (params.query) {
+    where.OR = [
+      { firstName: { contains: params.query, mode: "insensitive" } },
+      { lastName: { contains: params.query, mode: "insensitive" } },
+      { email: { contains: params.query, mode: "insensitive" } },
+      { title: { contains: params.query, mode: "insensitive" } },
+    ];
+  }
+
+  // Fetch contacts and accounts for filter
+  const [contacts, total, accounts] = await Promise.all([
+    prisma.contact.findMany({
+      where,
+      orderBy: { [sortBy]: sortOrder },
+      skip: (page - 1) * limit,
+      take: limit,
+      include: {
+        account: {
+          select: { id: true, name: true },
+        },
+        _count: {
+          select: { notes: true, tasks: true },
+        },
+      },
+    }),
+    prisma.contact.count({ where }),
+    prisma.account.findMany({
+      where: { orgId },
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    }),
+  ]);
+
+  const totalPages = Math.ceil(total / limit);
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">Contacts</h2>
+          <p className="text-muted-foreground">
+            Manage your business contacts and relationships
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm">
+            <Upload className="h-4 w-4 mr-2" />
+            Import
+          </Button>
+          <Button variant="outline" size="sm">
+            <Download className="h-4 w-4 mr-2" />
+            Export
+          </Button>
+          <Button asChild>
+            <Link href="/contacts/new">
+              <Plus className="h-4 w-4 mr-2" />
+              Add Contact
+            </Link>
+          </Button>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <ContactsFilters
+        accounts={accounts}
+        currentAccountId={params.accountId}
+        currentQuery={params.query}
+      />
+
+      {/* Table */}
+      <Suspense fallback={<div>Loading contacts...</div>}>
+        <ContactsTable
+          contacts={contacts}
+          page={page}
+          totalPages={totalPages}
+          total={total}
+        />
+      </Suspense>
+    </div>
+  );
+}

@@ -1,0 +1,458 @@
+// Y CRM - Prisma Schema
+// PostgreSQL Database
+
+generator client {
+  provider        = "prisma-client-js"
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+}
+
+// =============================================================================
+// AUDIT TRAIL - Tracks ALL changes, including AI actions
+// =============================================================================
+
+model AuditLog {
+  id            String   @id @default(uuid())
+  orgId         String
+
+  // What happened
+  action        String   // CREATE, UPDATE, DELETE, VOICE_COMMAND, AI_EXECUTION
+  module        String   // LEAD, CONTACT, ACCOUNT, TASK, NOTE, SYSTEM
+  recordId      String?  // The affected record's ID
+
+  // Who did it
+  actorType     String   // USER, AI_AGENT, SYSTEM, API
+  actorId       String?  // Clerk user ID if USER, null if AI_AGENT
+
+  // Details
+  previousState Json?    // Snapshot before change
+  newState      Json?    // Snapshot after change
+  metadata      Json?    // Additional context (voice transcript, AI reasoning, etc.)
+
+  // Traceability
+  requestId     String?  // Groups related operations (e.g., multi-step voice command)
+  parentLogId   String?  // For nested operations
+
+  createdAt     DateTime @default(now())
+
+  @@index([orgId, createdAt])
+  @@index([recordId])
+  @@index([requestId])
+  @@index([actorId])
+}
+
+// =============================================================================
+// MULTI-TENANCY & ORGANIZATION
+// =============================================================================
+
+model Organization {
+  id                  String   @id // Clerk Organization ID
+  name                String
+  slug                String   @unique
+  plan                String   @default("FREE") // FREE, PRO, ENTERPRISE
+  settings            Json     @default("{}")
+
+  // Rate limiting
+  aiCallsThisMonth    Int      @default(0)
+  aiCallsLimit        Int      @default(100) // Based on plan
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  // Relations
+  leads               Lead[]
+  contacts            Contact[]
+  accounts            Account[]
+  opportunities       Opportunity[]
+  customFields        CustomFieldDefinition[]
+  dashboardConfigs    DashboardConfig[]
+  pipelineStages      PipelineStage[]
+  tasks               Task[]
+  notes               Note[]
+  activities          Activity[]
+  documents           Document[]
+
+  @@index([slug])
+}
+
+// =============================================================================
+// CRM CORE ENTITIES
+// =============================================================================
+
+model Lead {
+  id              String    @id @default(uuid())
+  orgId           String
+  org             Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  // Fixed fields (indexed, type-safe)
+  firstName       String
+  lastName        String
+  email           String?
+  phone           String?
+  company         String?
+  title           String?
+  source          String?   // REFERRAL, WEBSITE, COLD_CALL, LINKEDIN, TRADE_SHOW, OTHER
+  status          String    @default("NEW") // NEW, CONTACTED, QUALIFIED, CONVERTED, LOST
+
+  // Pipeline
+  pipelineStageId String?
+  pipelineStage   PipelineStage? @relation(fields: [pipelineStageId], references: [id])
+
+  // Dynamic fields (validated at runtime via Zod)
+  customFields    Json      @default("{}")
+
+  // Ownership
+  assignedToId    String?   // Clerk user ID
+
+  // Timestamps
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  convertedAt     DateTime?
+
+  // Relations
+  notes           Note[]
+  tasks           Task[]
+  activities      Activity[]
+  documents       Document[]
+
+  @@unique([orgId, email])
+  @@index([orgId, status])
+  @@index([orgId, assignedToId])
+  @@index([orgId, createdAt])
+  @@index([email])
+}
+
+model Contact {
+  id              String   @id @default(uuid())
+  orgId           String
+  org             Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  firstName       String
+  lastName        String
+  email           String?
+  phone           String?
+  title           String?
+  department      String?
+
+  // Link to Account
+  accountId       String?
+  account         Account? @relation(fields: [accountId], references: [id])
+
+  customFields    Json     @default("{}")
+  assignedToId    String?
+
+  isPrimary       Boolean  @default(false) // Primary contact for account
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  notes           Note[]
+  tasks           Task[]
+  activities      Activity[]
+
+  @@unique([orgId, email])
+  @@index([orgId])
+  @@index([accountId])
+}
+
+model Account {
+  id              String   @id @default(uuid())
+  orgId           String
+  org             Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  name            String
+  industry        String?
+  website         String?
+  phone           String?
+  
+  // Address as JSON
+  address         Json?    // { street, city, state, zip, country }
+
+  // Financials
+  annualRevenue   Decimal? @db.Decimal(15, 2)
+  employeeCount   Int?
+  
+  // Classification
+  type            String?  // PROSPECT, CUSTOMER, PARTNER, VENDOR
+  rating          String?  // HOT, WARM, COLD
+
+  customFields    Json     @default("{}")
+  assignedToId    String?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  contacts        Contact[]
+  opportunities   Opportunity[]
+  notes           Note[]
+  tasks           Task[]
+  documents       Document[]
+
+  @@index([orgId])
+  @@index([orgId, name])
+  @@index([industry])
+}
+
+model Opportunity {
+  id                  String    @id @default(uuid())
+  orgId               String
+  org                 Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  name                String
+  value               Decimal   @db.Decimal(15, 2)
+  currency            String    @default("USD")
+  probability         Int       @default(50) // 0-100
+
+  accountId           String
+  account             Account   @relation(fields: [accountId], references: [id])
+
+  stageId             String
+  stage               PipelineStage @relation(fields: [stageId], references: [id])
+
+  expectedCloseDate   DateTime?
+  actualCloseDate     DateTime?
+  
+  // Win/Loss tracking
+  closedWon           Boolean?
+  lostReason          String?
+
+  customFields        Json      @default("{}")
+  assignedToId        String?
+
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  notes               Note[]
+  tasks               Task[]
+
+  @@index([orgId, stageId])
+  @@index([orgId, expectedCloseDate])
+  @@index([accountId])
+}
+
+// =============================================================================
+// ACTIVITIES & RELATED ENTITIES
+// =============================================================================
+
+model Note {
+  id              String   @id @default(uuid())
+  orgId           String
+  org             Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  content         String   @db.Text
+  
+  // Polymorphic relation (only one should be set)
+  leadId          String?
+  lead            Lead?    @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  contactId       String?
+  contact         Contact? @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  accountId       String?
+  account         Account? @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  opportunityId   String?
+  opportunity     Opportunity? @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+
+  // Attribution
+  createdById     String   // Clerk user ID or "AI_AGENT"
+  createdByType   String   // USER, AI_AGENT
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([orgId])
+  @@index([leadId])
+  @@index([contactId])
+  @@index([accountId])
+  @@index([opportunityId])
+}
+
+model Task {
+  id              String    @id @default(uuid())
+  orgId           String
+  org             Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  title           String
+  description     String?   @db.Text
+  dueDate         DateTime?
+  priority        String    @default("MEDIUM") // LOW, MEDIUM, HIGH, URGENT
+  status          String    @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED, CANCELLED
+  
+  // Task type
+  taskType        String?   // CALL, EMAIL, MEETING, FOLLOW_UP, OTHER
+
+  // Polymorphic relation
+  leadId          String?
+  lead            Lead?     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  contactId       String?
+  contact         Contact?  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  accountId       String?
+  account         Account?  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  opportunityId   String?
+  opportunity     Opportunity? @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+
+  assignedToId    String?
+  createdById     String
+  createdByType   String    // USER, AI_AGENT
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  completedAt     DateTime?
+
+  @@index([orgId, status])
+  @@index([orgId, dueDate])
+  @@index([assignedToId, dueDate])
+  @@index([leadId])
+  @@index([contactId])
+}
+
+model Activity {
+  id              String   @id @default(uuid())
+  orgId           String
+  org             Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  type            String   // CALL, EMAIL, MEETING, VOICE_COMMAND, NOTE, TASK_COMPLETED
+  subject         String
+  description     String?  @db.Text
+
+  // For voice commands
+  transcript      String?  @db.Text
+  audioUrl        String?
+
+  // Duration for calls/meetings (in minutes)
+  duration        Int?
+
+  // Polymorphic relation
+  leadId          String?
+  lead            Lead?    @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  contactId       String?
+  contact         Contact? @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  performedById   String
+  performedByType String   // USER, AI_AGENT
+
+  performedAt     DateTime @default(now())
+
+  @@index([orgId, type])
+  @@index([orgId, performedAt])
+  @@index([leadId])
+  @@index([contactId])
+}
+
+model Document {
+  id              String   @id @default(uuid())
+  orgId           String
+  org             Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  name            String
+  type            String   // INVOICE, CONTRACT, PROPOSAL, PRESENTATION, OTHER
+  fileUrl         String
+  fileKey         String   // R2 key
+  fileSize        Int
+  mimeType        String
+
+  // Polymorphic relation
+  leadId          String?
+  lead            Lead?    @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  accountId       String?
+  account         Account? @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  uploadedById    String
+
+  createdAt       DateTime @default(now())
+
+  @@index([orgId])
+  @@index([leadId])
+  @@index([accountId])
+}
+
+// =============================================================================
+// CUSTOMIZATION & CONFIGURATION
+// =============================================================================
+
+model CustomFieldDefinition {
+  id              String   @id @default(uuid())
+  orgId           String
+  org             Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  module          String   // LEAD, CONTACT, ACCOUNT, OPPORTUNITY
+  fieldName       String   // Display name: "Industry"
+  fieldKey        String   // JSON key: "industry"
+  fieldType       String   // TEXT, NUMBER, DATE, SELECT, MULTISELECT, BOOLEAN, URL, EMAIL, PHONE
+
+  required        Boolean  @default(false)
+  options         Json?    // For SELECT/MULTISELECT: ["Option 1", "Option 2"]
+  defaultValue    Json?
+  placeholder     String?
+  helpText        String?
+
+  displayOrder    Int      @default(0)
+  isActive        Boolean  @default(true)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([orgId, module, fieldKey])
+  @@index([orgId, module])
+}
+
+model PipelineStage {
+  id              String   @id @default(uuid())
+  orgId           String
+  org             Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  name            String
+  module          String   // LEAD, OPPORTUNITY
+  order           Int
+  color           String?  // Hex color for UI
+  
+  // For opportunity stages
+  probability     Int?     // Default win probability (0-100)
+  isWon           Boolean  @default(false)
+  isLost          Boolean  @default(false)
+
+  leads           Lead[]
+  opportunities   Opportunity[]
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([orgId, module, name])
+  @@index([orgId, module])
+}
+
+model DashboardConfig {
+  id              String   @id @default(uuid())
+  orgId           String
+  org             Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  userId          String   // Clerk user ID
+
+  layout          Json     // Grid layout configuration
+  widgets         Json     // Widget settings and preferences
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([orgId, userId])
+}
+
+// =============================================================================
+// USAGE TRACKING & RATE LIMITING
+// =============================================================================
+
+model UsageRecord {
+  id              String   @id @default(uuid())
+  orgId           String
+  userId          String?
+
+  type            String   // AI_CALL, TRANSCRIPTION, VOICE_MINUTES, EMBEDDING
+  count           Int      @default(1)
+  metadata        Json?    // Additional details (model used, tokens, etc.)
+
+  createdAt       DateTime @default(now())
+
+  @@index([orgId, type, createdAt])
+  @@index([userId, type, createdAt])
+}
