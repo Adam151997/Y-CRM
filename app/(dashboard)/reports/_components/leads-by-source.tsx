@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 interface LeadsBySourceProps {
   data: {
     source: string | null;
-    _count: number;
+    _count: number | boolean | Record<string, number> | undefined;
   }[];
 }
 
@@ -31,9 +31,13 @@ const sourceColors: Record<string, string> = {
   OTHER: "#6B7280",
 };
 
+function getCount(count: number | boolean | Record<string, number> | undefined): number {
+  return typeof count === 'number' ? count : 0;
+}
+
 export function LeadsBySource({ data }: LeadsBySourceProps) {
-  const total = data.reduce((sum, item) => sum + item._count, 0);
-  const sortedData = [...data].sort((a, b) => b._count - a._count);
+  const total = data.reduce((sum, item) => sum + getCount(item._count), 0);
+  const sortedData = [...data].sort((a, b) => getCount(b._count) - getCount(a._count));
 
   return (
     <Card>
@@ -49,7 +53,8 @@ export function LeadsBySource({ data }: LeadsBySourceProps) {
           <div className="space-y-4">
             {sortedData.map((item) => {
               const source = item.source || "OTHER";
-              const percentage = total > 0 ? (item._count / total) * 100 : 0;
+              const count = getCount(item._count);
+              const percentage = total > 0 ? (count / total) * 100 : 0;
 
               return (
                 <div key={source} className="space-y-2">
@@ -62,7 +67,7 @@ export function LeadsBySource({ data }: LeadsBySourceProps) {
                       <span>{sourceLabels[source] || source}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="font-medium">{item._count}</span>
+                      <span className="font-medium">{count}</span>
                       <span className="text-muted-foreground text-xs">
                         ({percentage.toFixed(0)}%)
                       </span>

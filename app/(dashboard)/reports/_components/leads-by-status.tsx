@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 interface LeadsByStatusProps {
   data: {
     status: string;
-    _count: number;
+    _count: number | boolean | Record<string, number> | undefined;
   }[];
 }
 
@@ -25,8 +25,12 @@ const statusColors: Record<string, string> = {
   LOST: "#EF4444",
 };
 
+function getCount(count: number | boolean | Record<string, number> | undefined): number {
+  return typeof count === 'number' ? count : 0;
+}
+
 export function LeadsByStatus({ data }: LeadsByStatusProps) {
-  const total = data.reduce((sum, item) => sum + item._count, 0);
+  const total = data.reduce((sum, item) => sum + getCount(item._count), 0);
   
   // Sort by the natural status order
   const statusOrder = ["NEW", "CONTACTED", "QUALIFIED", "CONVERTED", "LOST"];
@@ -49,7 +53,8 @@ export function LeadsByStatus({ data }: LeadsByStatusProps) {
             {/* Visual bar */}
             <div className="flex h-8 rounded-lg overflow-hidden">
               {sortedData.map((item) => {
-                const percentage = total > 0 ? (item._count / total) * 100 : 0;
+                const count = getCount(item._count);
+                const percentage = total > 0 ? (count / total) * 100 : 0;
                 if (percentage === 0) return null;
 
                 return (
@@ -60,7 +65,7 @@ export function LeadsByStatus({ data }: LeadsByStatusProps) {
                       width: `${percentage}%`,
                       backgroundColor: statusColors[item.status] || "#6B7280",
                     }}
-                    title={`${statusLabels[item.status]}: ${item._count} (${percentage.toFixed(0)}%)`}
+                    title={`${statusLabels[item.status]}: ${count} (${percentage.toFixed(0)}%)`}
                   />
                 );
               })}
@@ -69,7 +74,8 @@ export function LeadsByStatus({ data }: LeadsByStatusProps) {
             {/* Legend */}
             <div className="grid grid-cols-2 gap-3">
               {sortedData.map((item) => {
-                const percentage = total > 0 ? (item._count / total) * 100 : 0;
+                const count = getCount(item._count);
+                const percentage = total > 0 ? (count / total) * 100 : 0;
 
                 return (
                   <div key={item.status} className="flex items-center justify-between">
@@ -81,7 +87,7 @@ export function LeadsByStatus({ data }: LeadsByStatusProps) {
                       <span className="text-sm">{statusLabels[item.status]}</span>
                     </div>
                     <span className="text-sm font-medium">
-                      {item._count}{" "}
+                      {count}{" "}
                       <span className="text-muted-foreground text-xs">
                         ({percentage.toFixed(0)}%)
                       </span>
