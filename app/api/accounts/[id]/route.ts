@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getApiAuthContext } from "@/lib/auth";
 import prisma from "@/lib/db";
+import { Prisma } from "@prisma/client";
 import { createAuditLog } from "@/lib/audit";
 import { updateAccountSchema } from "@/lib/validation/schemas";
 import { validateCustomFields } from "@/lib/validation/custom-fields";
@@ -135,7 +136,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
           ? ({
               ...(existingAccount.customFields as object),
               ...data.customFields,
-            } as Record<string, unknown>)
+            } as Prisma.InputJsonValue)
           : undefined,
       },
     });
