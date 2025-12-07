@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getApiAuthContext } from "@/lib/auth";
 import prisma from "@/lib/db";
+import { Prisma } from "@prisma/client";
 import { createAuditLog } from "@/lib/audit";
 import { createOpportunitySchema } from "@/lib/validation/schemas";
 import { validateCustomFields } from "@/lib/validation/custom-fields";
@@ -188,7 +189,9 @@ export async function POST(request: NextRequest) {
         stageId: data.stageId,
         expectedCloseDate: data.expectedCloseDate,
         assignedToId: data.assignedToId || auth.userId,
-        customFields: data.customFields || {},
+        customFields: data.customFields 
+          ? (data.customFields as Prisma.InputJsonValue) 
+          : {},
       },
       include: {
         account: {

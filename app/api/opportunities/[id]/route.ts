@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getApiAuthContext } from "@/lib/auth";
 import prisma from "@/lib/db";
+import { Prisma } from "@prisma/client";
 import { createAuditLog } from "@/lib/audit";
 import { updateOpportunitySchema, closeOpportunitySchema } from "@/lib/validation/schemas";
 import { validateCustomFields } from "@/lib/validation/custom-fields";
@@ -197,18 +198,38 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       data.customFields = customFieldValidation.data;
     }
 
+    // Build update data with proper JSON handling
+    const updateData: Prisma.OpportunityUpdateInput = {
+      name: data.name,
+      value: data.value,
+      currency: data.currency,
+      probability: data.probability,
+      expectedCloseDate: data.expectedCloseDate,
+      assignedToId: data.assignedToId,
+    };
+
+    // Handle accountId relation
+    if (data.accountId !== undefined) {
+      updateData.account = { connect: { id: data.accountId } };
+    }
+
+    // Handle stageId relation
+    if (data.stageId !== undefined) {
+      updateData.stage = { connect: { id: data.stageId } };
+    }
+
+    // Handle customFields JSON field
+    if (data.customFields) {
+      updateData.customFields = {
+        ...(existingOpportunity.customFields as object),
+        ...data.customFields,
+      } as Prisma.InputJsonValue;
+    }
+
     // Update opportunity
     const updatedOpportunity = await prisma.opportunity.update({
       where: { id },
-      data: {
-        ...data,
-        customFields: data.customFields
-          ? {
-              ...(existingOpportunity.customFields as object),
-              ...data.customFields,
-            }
-          : undefined,
-      },
+      data: updateData,
       include: {
         account: { select: { id: true, name: true } },
         stage: true,

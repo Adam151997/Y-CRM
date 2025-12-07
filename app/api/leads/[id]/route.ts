@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getApiAuthContext } from "@/lib/auth";
 import prisma from "@/lib/db";
+import { Prisma } from "@prisma/client";
 import { createAuditLog } from "@/lib/audit";
 import { updateLeadSchema } from "@/lib/validation/schemas";
 import { validateCustomFields } from "@/lib/validation/custom-fields";
@@ -129,19 +130,38 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       }
     }
 
+    // Build update data with proper JSON handling
+    const updateData: Prisma.LeadUpdateInput = {
+      firstName: data.firstName,
+      lastName: data.lastName,
+      email: data.email,
+      phone: data.phone,
+      company: data.company,
+      title: data.title,
+      source: data.source,
+      status: data.status,
+      assignedToId: data.assignedToId,
+    };
+
+    // Handle pipelineStageId relation
+    if (data.pipelineStageId !== undefined) {
+      updateData.pipelineStage = data.pipelineStageId 
+        ? { connect: { id: data.pipelineStageId } }
+        : { disconnect: true };
+    }
+
+    // Handle customFields JSON field
+    if (data.customFields) {
+      updateData.customFields = {
+        ...(existingLead.customFields as object),
+        ...data.customFields,
+      } as Prisma.InputJsonValue;
+    }
+
     // Update lead
     const updatedLead = await prisma.lead.update({
       where: { id },
-      data: {
-        ...data,
-        // Merge custom fields
-        customFields: data.customFields
-          ? {
-              ...(existingLead.customFields as object),
-              ...data.customFields,
-            }
-          : undefined,
-      },
+      data: updateData,
       include: {
         pipelineStage: true,
       },
