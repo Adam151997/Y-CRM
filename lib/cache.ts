@@ -79,6 +79,10 @@ export const getCachedUpcomingTasks = unstable_cache(
       },
       orderBy: { dueDate: "asc" },
       take: 5,
+      include: {
+        lead: { select: { firstName: true, lastName: true } },
+        contact: { select: { firstName: true, lastName: true } },
+      },
     });
   },
   ["upcoming-tasks"],
