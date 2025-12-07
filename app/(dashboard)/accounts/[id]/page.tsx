@@ -40,9 +40,10 @@ const ratingColors: Record<string, string> = {
   COLD: "bg-slate-500/10 text-slate-500",
 };
 
-function formatRevenue(value: string | number | null): string {
+function formatRevenue(value: unknown): string {
   if (!value) return "-";
-  const num = typeof value === "string" ? parseFloat(value) : value;
+  const num = typeof value === "string" ? parseFloat(value) : Number(value);
+  if (isNaN(num)) return "-";
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
