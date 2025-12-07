@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getApiAuthContext } from "@/lib/auth";
 import prisma from "@/lib/db";
+import { Prisma } from "@prisma/client";
 import { createAuditLog } from "@/lib/audit";
 import { updateContactSchema } from "@/lib/validation/schemas";
 import { validateCustomFields } from "@/lib/validation/custom-fields";
@@ -140,18 +141,37 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       }
     }
 
+    // Build update data with proper JSON handling
+    const updateData: Prisma.ContactUpdateInput = {
+      firstName: data.firstName,
+      lastName: data.lastName,
+      email: data.email,
+      phone: data.phone,
+      title: data.title,
+      department: data.department,
+      isPrimary: data.isPrimary,
+      assignedToId: data.assignedToId,
+    };
+
+    // Handle accountId relation
+    if (data.accountId !== undefined) {
+      updateData.account = data.accountId 
+        ? { connect: { id: data.accountId } }
+        : { disconnect: true };
+    }
+
+    // Handle customFields JSON field
+    if (data.customFields) {
+      updateData.customFields = {
+        ...(existingContact.customFields as object),
+        ...data.customFields,
+      } as Prisma.InputJsonValue;
+    }
+
     // Update contact
     const updatedContact = await prisma.contact.update({
       where: { id },
-      data: {
-        ...data,
-        customFields: data.customFields
-          ? {
-              ...(existingContact.customFields as object),
-              ...data.customFields,
-            }
-          : undefined,
-      },
+      data: updateData,
       include: {
         account: {
           select: { id: true, name: true },
