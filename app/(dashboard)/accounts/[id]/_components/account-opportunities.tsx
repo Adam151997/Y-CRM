@@ -10,7 +10,7 @@ import { format } from "date-fns";
 interface Opportunity {
   id: string;
   name: string;
-  value: string | number;
+  value: unknown; // Prisma Decimal
   probability: number;
   expectedCloseDate: Date | null;
   stage: {
@@ -24,8 +24,10 @@ interface AccountOpportunitiesProps {
   accountId: string;
 }
 
-function formatCurrency(value: string | number): string {
-  const num = typeof value === "string" ? parseFloat(value) : value;
+function formatCurrency(value: unknown): string {
+  if (!value) return "$0";
+  const num = typeof value === "string" ? parseFloat(value) : Number(value);
+  if (isNaN(num)) return "$0";
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",

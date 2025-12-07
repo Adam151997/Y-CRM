@@ -25,13 +25,15 @@ interface OpportunityDetailPageProps {
   params: Promise<{ id: string }>;
 }
 
-function formatCurrency(value: number, currency: string): string {
+function formatCurrency(value: unknown, currency: string): string {
+  const num = typeof value === "string" ? parseFloat(value) : Number(value);
+  if (isNaN(num)) return "$0";
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency,
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
-  }).format(value);
+  }).format(num);
 }
 
 export default async function OpportunityDetailPage({ params }: OpportunityDetailPageProps) {

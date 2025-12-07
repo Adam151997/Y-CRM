@@ -36,7 +36,7 @@ import { toast } from "sonner";
 interface Opportunity {
   id: string;
   name: string;
-  value: number;
+  value: unknown; // Prisma Decimal
   currency: string;
   probability: number;
   expectedCloseDate: Date | null;
