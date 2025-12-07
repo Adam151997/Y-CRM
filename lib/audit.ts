@@ -1,4 +1,5 @@
 import prisma from "./db";
+import { Prisma } from "@prisma/client";
 
 export type AuditAction =
   | "CREATE"
@@ -65,9 +66,15 @@ export async function createAuditLog(params: CreateAuditLogParams) {
         recordId,
         actorType,
         actorId,
-        previousState: previousState ?? undefined,
-        newState: newState ?? undefined,
-        metadata: metadata ?? undefined,
+        previousState: previousState 
+          ? (previousState as Prisma.InputJsonValue) 
+          : undefined,
+        newState: newState 
+          ? (newState as Prisma.InputJsonValue) 
+          : undefined,
+        metadata: metadata 
+          ? (metadata as Prisma.InputJsonValue) 
+          : undefined,
         requestId,
         parentLogId,
       },
