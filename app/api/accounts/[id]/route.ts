@@ -134,7 +134,6 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       industry: data.industry,
       website: data.website,
       phone: data.phone,
-      description: data.description,
       annualRevenue: data.annualRevenue,
       employeeCount: data.employeeCount,
       rating: data.rating,
