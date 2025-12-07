@@ -13,9 +13,9 @@ interface Stage {
 interface StageData {
   stageId: string;
   _count: number | boolean | Record<string, number> | undefined;
-  _sum: {
-    value: unknown; // Prisma Decimal
-  } | null;
+  _sum?: {
+    value?: unknown; // Prisma Decimal
+  } | null | undefined;
 }
 
 interface OpportunitiesByStageProps {
