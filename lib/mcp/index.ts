@@ -7,22 +7,30 @@
 export * from "./protocol";
 
 // Client
-export { MCPClient, MCPClientConfig, MCPClientState, createMCPClient } from "./client";
-export { MCPSession, MCPSessionConfig } from "./client/session";
-export {
+export { 
+  MCPClient, 
+  createMCPClient,
+  MCPSession,
+  createTransport,
+} from "./client";
+export type { 
+  MCPClientConfig, 
+  MCPClientState,
+  MCPSessionConfig,
   Transport,
   TransportConfig,
   StdioTransportConfig,
   SSETransportConfig,
-  createTransport,
-} from "./client/transport";
+} from "./client";
 
 // Server
 export {
   MCPServer,
-  MCPServerConfig,
   getMCPServer,
   initializeMCPServer,
+} from "./server";
+export type {
+  MCPServerConfig,
   ToolHandler,
   ToolContext,
   ToolResult,
@@ -40,6 +48,8 @@ export {
   ToolRegistry,
   getToolRegistry,
   resetToolRegistry,
+} from "./registry";
+export type {
   InternalToolDefinition,
   ExternalToolReference,
   UnifiedTool,

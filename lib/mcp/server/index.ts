@@ -16,7 +16,8 @@ export interface MCPServerConfig {
   capabilities?: Partial<ServerCapabilities>;
 }
 
-export { ToolHandler, ToolContext, ToolResult };
+// Re-export types from handler
+export type { ToolHandler, ToolContext, ToolResult };
 
 /**
  * MCP Server

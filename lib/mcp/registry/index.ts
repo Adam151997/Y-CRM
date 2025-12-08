@@ -5,7 +5,7 @@
 
 import { MCPTool, CallToolResult, TextContent } from "../protocol";
 import { MCPClient } from "../client";
-import { ToolContext, ToolResult } from "../server";
+import { ToolContext, ToolResult } from "../server/handler";
 
 /**
  * Internal Tool Definition

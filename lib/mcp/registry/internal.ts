@@ -3,9 +3,9 @@
  * Converts Y-CRM's existing tools to MCP format and registers them
  */
 
-import { MCPTool, JSONSchema } from "../protocol";
+import { MCPTool } from "../protocol";
 import { ToolRegistry, InternalToolDefinition } from "./index";
-import { ToolContext, ToolResult } from "../server";
+import { ToolContext, ToolResult } from "../server/handler";
 import prisma from "@/lib/db";
 import { createAuditLog } from "@/lib/audit";
 import {
@@ -13,7 +13,6 @@ import {
   revalidateContactCaches,
   revalidateAccountCaches,
   revalidateTaskCaches,
-  revalidateOpportunityCaches,
 } from "@/lib/cache-utils";
 
 /**
@@ -104,7 +103,7 @@ const searchLeadsTool: InternalToolDefinition = {
           description: "Filter by lead status",
           enum: ["NEW", "CONTACTED", "QUALIFIED", "CONVERTED", "LOST"],
         },
-        limit: { type: "integer", description: "Maximum results (1-20)", minimum: 1, maximum: 20, default: 5 },
+        limit: { type: "integer", description: "Maximum results (1-20)", minimum: 1, maximum: 20 },
       },
     },
   },

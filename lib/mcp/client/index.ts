@@ -182,12 +182,15 @@ export class MCPClient {
   async callTool(name: string, args?: Record<string, unknown>): Promise<CallToolResult> {
     this.ensureInitialized();
 
-    const params: CallToolParams = {
+    const params = {
       name,
       arguments: args,
     };
 
-    return this.session!.request<CallToolResult>(MCPMethods.CallTool, params);
+    return this.session!.request<CallToolResult>(
+      MCPMethods.CallTool, 
+      params
+    );
   }
 
   /**
@@ -225,7 +228,7 @@ export class MCPClient {
   async readResource(uri: string): Promise<ReadResourceResult> {
     this.ensureInitialized();
 
-    const params: ReadResourceParams = { uri };
+    const params = { uri };
 
     return this.session!.request<ReadResourceResult>(
       MCPMethods.ReadResource,
@@ -268,12 +271,15 @@ export class MCPClient {
   async getPrompt(name: string, args?: Record<string, string>): Promise<GetPromptResult> {
     this.ensureInitialized();
 
-    const params: GetPromptParams = {
+    const params = {
       name,
       arguments: args,
     };
 
-    return this.session!.request<GetPromptResult>(MCPMethods.GetPrompt, params);
+    return this.session!.request<GetPromptResult>(
+      MCPMethods.GetPrompt, 
+      params
+    );
   }
 
   /**
@@ -340,3 +346,14 @@ export async function createMCPClient(
   await client.connect();
   return client;
 }
+
+// Re-export types and classes
+export { MCPSession } from "./session";
+export type { MCPSessionConfig } from "./session";
+export { createTransport } from "./transport/base";
+export type { 
+  Transport, 
+  TransportConfig, 
+  StdioTransportConfig, 
+  SSETransportConfig 
+} from "./transport/base";

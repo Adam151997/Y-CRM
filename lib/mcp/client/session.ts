@@ -16,7 +16,7 @@ import {
   ServerCapabilities,
 } from "../protocol";
 import { Transport } from "./transport/base";
-import { MCPError, TimeoutError, methodNotFound } from "../protocol/errors";
+import { MCPError, TimeoutError } from "../protocol/errors";
 import { DEFAULT_CLIENT_CAPABILITIES, Y_CRM_CLIENT_INFO } from "../protocol/capabilities";
 
 export interface MCPSessionConfig {
@@ -27,7 +27,7 @@ export interface MCPSessionConfig {
 export interface PendingRequest {
   resolve: (result: unknown) => void;
   reject: (error: Error) => void;
-  timeout: NodeJS.Timeout;
+  timeout: ReturnType<typeof setTimeout>;
 }
 
 /**
@@ -87,7 +87,7 @@ export class MCPSession {
 
     const result = await this.request<InitializeResult>(
       MCPMethods.Initialize,
-      params
+      params as unknown as Record<string, unknown>
     );
 
     // Validate protocol version
