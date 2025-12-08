@@ -47,6 +47,7 @@ export interface AgentResult {
   success: boolean;
   response: string;
   toolsCalled: string[];
+  toolResults: Record<string, unknown>[]; // Track tool results for context
   modelUsed: string;
   error?: string;
 }
@@ -119,6 +120,7 @@ export async function executeAgent(
 ): Promise<AgentResult> {
   const { orgId, userId, requestId } = context;
   const toolsCalled: string[] = [];
+  const toolResults: Record<string, unknown>[] = [];
 
   // Check if AI is configured
   if (!isAIConfigured()) {
@@ -126,6 +128,7 @@ export async function executeAgent(
       success: false,
       response: "AI is not configured. Please add GOOGLE_GENERATIVE_AI_API_KEY to your environment variables.",
       toolsCalled: [],
+      toolResults: [],
       modelUsed: "none",
       error: "AI not configured",
     };
@@ -154,7 +157,7 @@ export async function executeAgent(
       messages,
       tools,
       maxSteps: 5,
-      onStepFinish: ({ toolCalls, toolResults, finishReason }) => {
+      onStepFinish: ({ toolCalls, toolResults: stepToolResults, finishReason }) => {
         console.log("[Agent] Step finished:", {
           toolCallsCount: toolCalls?.length || 0,
           finishReason,
@@ -164,6 +167,15 @@ export async function executeAgent(
           toolCalls.forEach((tc) => {
             console.log("[Agent] Tool called:", tc.toolName);
             toolsCalled.push(tc.toolName);
+          });
+        }
+        
+        // Capture tool results for context
+        if (stepToolResults && stepToolResults.length > 0) {
+          stepToolResults.forEach((tr) => {
+            if (tr.result && typeof tr.result === 'object') {
+              toolResults.push(tr.result as Record<string, unknown>);
+            }
           });
         }
       },
@@ -195,6 +207,7 @@ export async function executeAgent(
       success: true,
       response: result.text || "I processed your request but have no additional response.",
       toolsCalled,
+      toolResults,
       modelUsed: modelName,
     };
   } catch (error) {
@@ -218,6 +231,7 @@ export async function executeAgent(
       success: false,
       response: `I encountered an error: ${error instanceof Error ? error.message : "Unknown error"}. Please try again.`,
       toolsCalled,
+      toolResults,
       modelUsed: modelName,
       error: error instanceof Error ? error.message : "Unknown error",
     };

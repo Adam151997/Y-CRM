@@ -110,6 +110,7 @@ export async function POST(request: NextRequest) {
       success: result.success,
       response: result.response,
       toolsCalled: result.toolsCalled,
+      toolResults: result.toolResults, // Include tool results for context
       modelUsed: result.modelUsed,
       error: result.error,
     });

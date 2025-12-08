@@ -78,7 +78,7 @@ export const createLeadTool = (orgId: string, userId: string) =>
         return {
           success: true,
           leadId: lead.id,
-          message: `Successfully created lead: ${lead.firstName} ${lead.lastName}${lead.company ? ` at ${lead.company}` : ""}`,
+          message: `Created lead "${lead.firstName} ${lead.lastName}"${lead.company ? ` at ${lead.company}` : ""}. IMPORTANT: Use leadId="${lead.id}" if you need to create tasks, notes, or other records for this lead.`,
         };
       } catch (error) {
         console.error("[Tool:createLead] Error:", error);
@@ -259,7 +259,7 @@ export const createContactTool = (orgId: string, userId: string) =>
         return {
           success: true,
           contactId: contact.id,
-          message: `Created contact: ${contact.firstName} ${contact.lastName}`,
+          message: `Created contact "${contact.firstName} ${contact.lastName}". IMPORTANT: Use contactId="${contact.id}" if you need to create tasks, notes, or other records for this contact.`,
         };
       } catch (error) {
         console.error("[Tool:createContact] Error:", error);
@@ -353,7 +353,7 @@ export const createAccountTool = (orgId: string, userId: string) =>
         return {
           success: true,
           accountId: account.id,
-          message: `Created account: ${account.name}`,
+          message: `Created account "${account.name}". IMPORTANT: Use accountId="${account.id}" if you need to create contacts, tasks, opportunities, or other records for this account.`,
         };
       } catch (error) {
         console.error("[Tool:createAccount] Error:", error);
@@ -414,17 +414,17 @@ export const searchAccountsTool = (orgId: string) =>
 
 export const createTaskTool = (orgId: string, userId: string) =>
   tool({
-    description: "Create a new task",
+    description: "Create a new task. Can be linked to a lead, contact, account, or opportunity using their IDs.",
     parameters: z.object({
       title: z.string().describe("Task title (required)"),
       description: z.string().optional().describe("Task description"),
       dueDate: z.string().optional().describe("Due date (e.g., 'tomorrow', 'next week', or ISO date)"),
       priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]).default("MEDIUM"),
       taskType: z.enum(["CALL", "EMAIL", "MEETING", "FOLLOW_UP", "OTHER"]).optional(),
-      leadId: z.string().uuid().optional().describe("Related lead ID"),
-      contactId: z.string().uuid().optional().describe("Related contact ID"),
-      accountId: z.string().uuid().optional().describe("Related account ID"),
-      opportunityId: z.string().uuid().optional().describe("Related opportunity ID"),
+      leadId: z.string().uuid().optional().describe("UUID of the related lead (use the leadId returned from createLead)"),
+      contactId: z.string().uuid().optional().describe("UUID of the related contact (use the contactId returned from createContact)"),
+      accountId: z.string().uuid().optional().describe("UUID of the related account (use the accountId returned from createAccount)"),
+      opportunityId: z.string().uuid().optional().describe("UUID of the related opportunity (use the opportunityId returned from createOpportunity)"),
     }),
     execute: async (params) => {
       console.log("[Tool:createTask] Executing:", params);
@@ -636,7 +636,7 @@ export const createOpportunityTool = (orgId: string, userId: string) =>
         return {
           success: true,
           opportunityId: opportunity.id,
-          message: `Created opportunity: "${opportunity.name}" worth ${params.value.toLocaleString()} with ${opportunity.account.name}`,
+          message: `Created opportunity "${opportunity.name}" worth ${params.value.toLocaleString()} with ${opportunity.account.name}. IMPORTANT: Use opportunityId="${opportunity.id}" if you need to create tasks or notes for this opportunity.`,
         };
       } catch (error) {
         console.error("[Tool:createOpportunity] Error:", error);
