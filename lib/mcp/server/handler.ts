@@ -146,7 +146,7 @@ export class MCPServerHandler {
       switch (request.method) {
         case MCPMethods.Initialize:
           result = await this.handleInitialize(
-            request.params as InitializeParams,
+            request.params as unknown as InitializeParams,
             connection
           );
           break;
@@ -161,7 +161,7 @@ export class MCPServerHandler {
 
         case MCPMethods.CallTool:
           result = await this.handleCallTool(
-            request.params as CallToolParams,
+            request.params as unknown as CallToolParams,
             context
           );
           break;
@@ -172,7 +172,7 @@ export class MCPServerHandler {
 
         case MCPMethods.ReadResource:
           result = await this.handleReadResource(
-            request.params as { uri: string }
+            request.params as unknown as { uri: string }
           );
           break;
 
