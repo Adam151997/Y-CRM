@@ -37,9 +37,9 @@ export function composioToolToMCP(tool: ComposioTool): MCPTool {
     description: tool.description || `${tool.displayName || tool.name} via ${tool.appName}`,
     inputSchema: {
       type: "object",
-      properties: tool.parameters.properties as unknown as Record<string, { type: string; description?: string }>,
+      properties: tool.parameters.properties,
       required: tool.parameters.required,
-    },
+    } as MCPTool["inputSchema"],
   };
 }
 
