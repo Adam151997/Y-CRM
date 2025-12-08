@@ -26,17 +26,17 @@ interface CustomField {
   fieldKey: string;
   fieldType: string;
   required: boolean;
-  options: unknown; // Prisma JsonValue
+  options: unknown;
   displayOrder: number;
   isActive: boolean;
-  isSystem?: boolean;
+  isSystem: boolean;
 }
 
 interface CustomFieldsListProps {
   fields: CustomField[];
   moduleType: "builtin" | "custom";
-  moduleIdentifier: string; // Module name for builtin, module ID for custom
-  moduleName?: string; // Display name for custom modules
+  moduleIdentifier: string;
+  moduleName?: string;
 }
 
 const fieldTypeLabels: Record<string, string> = {
@@ -79,7 +79,7 @@ export function CustomFieldsList({
 }: CustomFieldsListProps) {
   const router = useRouter();
 
-  const handleDelete = async (id: string, name: string, isSystem?: boolean) => {
+  const handleDelete = async (id: string, name: string, isSystem: boolean) => {
     if (isSystem) {
       toast.error("System fields cannot be deleted");
       return;
@@ -187,7 +187,7 @@ export function CustomFieldsList({
                     Edit
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    className="text-red-600"
+                    className={field.isSystem ? "text-muted-foreground" : "text-red-600"}
                     onClick={() => handleDelete(field.id, field.fieldName, field.isSystem)}
                     disabled={field.isSystem}
                   >

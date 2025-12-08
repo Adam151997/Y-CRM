@@ -18,31 +18,36 @@ const moduleLabels: Record<string, string> = {
 };
 
 export default async function CustomFieldsSettingsPage() {
-  const { orgId } = await getAuthContext();
+  const auth = await getAuthContext();
+  const orgId = auth.orgId;
 
   // Fetch custom fields and custom modules in parallel
   const [customFields, customModules] = await Promise.all([
     prisma.customFieldDefinition.findMany({
       where: { orgId },
-      orderBy: [{ displayOrder: "asc" }],
+      orderBy: { displayOrder: "asc" },
     }),
     prisma.customModule.findMany({
       where: { orgId, isActive: true },
-      orderBy: [{ displayOrder: "asc" }, { name: "asc" }],
+      orderBy: { displayOrder: "asc" },
     }),
   ]);
 
   // Group fields by built-in module
-  const fieldsByBuiltInModule = builtInModules.reduce((acc, module) => {
-    acc[module] = customFields.filter((f) => f.module === module && !f.customModuleId);
-    return acc;
-  }, {} as Record<string, typeof customFields>);
+  const fieldsByBuiltInModule: Record<string, typeof customFields> = {};
+  for (const module of builtInModules) {
+    fieldsByBuiltInModule[module] = customFields.filter(
+      (f) => f.module === module && !f.customModuleId
+    );
+  }
 
   // Group fields by custom module ID
-  const fieldsByCustomModule = customModules.reduce((acc, module) => {
-    acc[module.id] = customFields.filter((f) => f.customModuleId === module.id);
-    return acc;
-  }, {} as Record<string, typeof customFields>);
+  const fieldsByCustomModule: Record<string, typeof customFields> = {};
+  for (const module of customModules) {
+    fieldsByCustomModule[module.id] = customFields.filter(
+      (f) => f.customModuleId === module.id
+    );
+  }
 
   // Prepare custom modules data for the client component
   const customModulesForClient = customModules.map((m) => ({
@@ -52,10 +57,6 @@ export default async function CustomFieldsSettingsPage() {
     slug: m.slug,
     icon: m.icon,
   }));
-
-  // Calculate total tabs
-  const totalTabs = builtInModules.length + customModules.length;
-  const gridCols = totalTabs <= 4 ? totalTabs : 4;
 
   return (
     <div className="space-y-6">
@@ -73,13 +74,13 @@ export default async function CustomFieldsSettingsPage() {
           <Tabs defaultValue="LEAD">
             {/* Tab triggers */}
             <div className="overflow-x-auto">
-              <TabsList className={`inline-flex w-auto min-w-full lg:grid lg:grid-cols-${gridCols > 4 ? 4 : gridCols}`}>
+              <TabsList className="inline-flex w-auto min-w-full">
                 {/* Built-in modules */}
                 {builtInModules.map((module) => (
                   <TabsTrigger key={module} value={module} className="whitespace-nowrap">
                     {moduleLabels[module]}
                     <Badge variant="secondary" className="ml-2">
-                      {fieldsByBuiltInModule[module].length}
+                      {fieldsByBuiltInModule[module]?.length || 0}
                     </Badge>
                   </TabsTrigger>
                 ))}
@@ -104,7 +105,7 @@ export default async function CustomFieldsSettingsPage() {
             {builtInModules.map((module) => (
               <TabsContent key={module} value={module} className="mt-4">
                 <CustomFieldsList
-                  fields={fieldsByBuiltInModule[module]}
+                  fields={fieldsByBuiltInModule[module] || []}
                   moduleType="builtin"
                   moduleIdentifier={module}
                 />
