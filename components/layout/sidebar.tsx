@@ -19,9 +19,37 @@ import {
   ChevronLeft,
   ChevronRight,
   Sparkles,
+  Box,
+  Package,
+  Layers,
+  Tag,
+  Briefcase,
+  Star,
+  ShoppingCart,
+  Truck,
+  Folder,
+  Award,
+  LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+
+// Map icon names to Lucide components
+const iconMap: Record<string, LucideIcon> = {
+  box: Box,
+  package: Package,
+  layers: Layers,
+  tag: Tag,
+  briefcase: Briefcase,
+  users: Users,
+  "file-text": FileText,
+  star: Star,
+  "shopping-cart": ShoppingCart,
+  "building-2": Building2,
+  truck: Truck,
+  folder: Folder,
+  award: Award,
+};
 
 const navigation = [
   {
@@ -85,6 +113,15 @@ const secondaryNavigation = [
   },
 ];
 
+interface CustomModule {
+  id: string;
+  name: string;
+  pluralName: string;
+  slug: string;
+  icon: string;
+  showInSidebar: boolean;
+}
+
 interface SidebarProps {
   onNavigate?: () => void;
 }
@@ -92,6 +129,36 @@ interface SidebarProps {
 export function Sidebar({ onNavigate }: SidebarProps) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  const [customModules, setCustomModules] = useState<CustomModule[]>([]);
+
+  // Fetch custom modules
+  useEffect(() => {
+    const fetchModules = async () => {
+      try {
+        const response = await fetch("/api/custom-modules");
+        if (response.ok) {
+          const data = await response.json();
+          setCustomModules(
+            (data.modules || []).filter((m: CustomModule) => m.showInSidebar)
+          );
+        }
+      } catch (error) {
+        console.error("Failed to fetch custom modules:", error);
+      }
+    };
+
+    fetchModules();
+
+    // Listen for custom module updates
+    const handleModuleUpdate = () => {
+      fetchModules();
+    };
+
+    window.addEventListener("custom-modules-updated", handleModuleUpdate);
+    return () => {
+      window.removeEventListener("custom-modules-updated", handleModuleUpdate);
+    };
+  }, []);
 
   const handleNavClick = () => {
     if (onNavigate) {
@@ -173,6 +240,42 @@ export function Sidebar({ onNavigate }: SidebarProps) {
             </Link>
           );
         })}
+
+        {/* Custom Modules Section */}
+        {customModules.length > 0 && (
+          <>
+            <div className="my-4 border-t" />
+            {!collapsed && (
+              <div className="px-3 py-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Custom Modules
+              </div>
+            )}
+            {customModules.map((module) => {
+              const isActive = pathname.startsWith(`/modules/${module.slug}`);
+              const IconComponent = iconMap[module.icon] || Box;
+              
+              return (
+                <Link
+                  key={module.id}
+                  href={`/modules/${module.slug}`}
+                  prefetch={true}
+                  onClick={handleNavClick}
+                  className={cn(
+                    "flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors",
+                    isActive
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground hover:bg-accent hover:text-foreground",
+                    collapsed && "justify-center px-2"
+                  )}
+                  title={collapsed ? module.pluralName : undefined}
+                >
+                  <IconComponent className={cn("h-5 w-5", !collapsed && "mr-3")} />
+                  {!collapsed && module.pluralName}
+                </Link>
+              );
+            })}
+          </>
+        )}
 
         <div className="my-4 border-t" />
 

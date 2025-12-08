@@ -68,6 +68,7 @@ model Organization {
   accounts            Account[]
   opportunities       Opportunity[]
   customFields        CustomFieldDefinition[]
+  customModules       CustomModule[]
   dashboardConfigs    DashboardConfig[]
   pipelineStages      PipelineStage[]
   tasks               Task[]
@@ -369,6 +370,63 @@ model Document {
 }
 
 // =============================================================================
+// CUSTOM MODULES (User-Defined Modules)
+// =============================================================================
+
+model CustomModule {
+  id              String   @id @default(uuid())
+  orgId           String
+  org             Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  name            String   // Display name: "Products"
+  pluralName      String   // Plural: "Products"
+  slug            String   // URL slug: "products"
+  description     String?
+  icon            String   @default("box") // Lucide icon name
+  color           String?  // Brand color for the module
+
+  // Module configuration
+  labelField      String   @default("name") // Which field to use as the record label
+  isActive        Boolean  @default(true)
+  showInSidebar   Boolean  @default(true)
+  displayOrder    Int      @default(0)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  records         CustomModuleRecord[]
+  fields          CustomFieldDefinition[]
+
+  @@unique([orgId, slug])
+  @@index([orgId])
+  @@index([orgId, isActive])
+}
+
+model CustomModuleRecord {
+  id              String   @id @default(uuid())
+  orgId           String
+  
+  moduleId        String
+  module          CustomModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+
+  // All field values stored as JSON
+  data            Json     @default("{}")
+
+  // Ownership & attribution
+  assignedToId    String?
+  createdById     String
+  createdByType   String   @default("USER") // USER, AI_AGENT
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([orgId])
+  @@index([moduleId])
+  @@index([moduleId, createdAt])
+}
+
+// =============================================================================
 // CUSTOMIZATION & CONFIGURATION
 // =============================================================================
 
@@ -377,25 +435,37 @@ model CustomFieldDefinition {
   orgId           String
   org             Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
-  module          String   // LEAD, CONTACT, ACCOUNT, OPPORTUNITY
+  // For built-in modules (LEAD, CONTACT, etc.)
+  module          String?  // LEAD, CONTACT, ACCOUNT, OPPORTUNITY (null if custom module)
+  
+  // For custom modules
+  customModuleId  String?
+  customModule    CustomModule? @relation(fields: [customModuleId], references: [id], onDelete: Cascade)
+
   fieldName       String   // Display name: "Industry"
   fieldKey        String   // JSON key: "industry"
-  fieldType       String   // TEXT, NUMBER, DATE, SELECT, MULTISELECT, BOOLEAN, URL, EMAIL, PHONE
+  fieldType       String   // TEXT, NUMBER, DATE, SELECT, MULTISELECT, BOOLEAN, URL, EMAIL, PHONE, TEXTAREA, CURRENCY, PERCENT, RELATIONSHIP
 
   required        Boolean  @default(false)
   options         Json?    // For SELECT/MULTISELECT: ["Option 1", "Option 2"]
   defaultValue    Json?
   placeholder     String?
   helpText        String?
+  
+  // For RELATIONSHIP field type
+  relatedModule   String?  // Module to link to (LEAD, CONTACT, or custom module slug)
 
   displayOrder    Int      @default(0)
   isActive        Boolean  @default(true)
+  isSystem        Boolean  @default(false) // System fields can't be deleted
 
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
   @@unique([orgId, module, fieldKey])
+  @@unique([orgId, customModuleId, fieldKey])
   @@index([orgId, module])
+  @@index([orgId, customModuleId])
 }
 
 model PipelineStage {

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { User, Building, Layers, Plug, Bell, Shield } from "lucide-react";
+import { User, Building, Layers, Plug, Bell, Shield, Box } from "lucide-react";
 
 const settingsNav = [
   {
@@ -23,6 +23,12 @@ const settingsNav = [
     href: "/settings/integrations",
     icon: Plug,
     description: "Connect external apps",
+  },
+  {
+    title: "Custom Modules",
+    href: "/settings/modules",
+    icon: Box,
+    description: "Create custom data modules",
   },
   {
     title: "Custom Fields",
