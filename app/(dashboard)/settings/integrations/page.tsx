@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   Card,
@@ -68,7 +68,20 @@ interface Integration {
   status?: string;
 }
 
-export default function IntegrationsPage() {
+const categoryLabels: Record<string, string> = {
+  communication: "Communication",
+  productivity: "Productivity",
+  storage: "Storage",
+  development: "Development",
+  crm: "CRM & Sales",
+  other: "Other",
+};
+
+/**
+ * Inner component that uses useSearchParams
+ * Must be wrapped in Suspense
+ */
+function IntegrationsContent() {
   const [integrations, setIntegrations] = useState<Integration[]>([]);
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState<string | null>(null);
@@ -172,15 +185,6 @@ export default function IntegrationsPage() {
     acc[category].push(integration);
     return acc;
   }, {} as Record<string, Integration[]>);
-
-  const categoryLabels: Record<string, string> = {
-    communication: "Communication",
-    productivity: "Productivity",
-    storage: "Storage",
-    development: "Development",
-    crm: "CRM & Sales",
-    other: "Other",
-  };
 
   if (loading) {
     return (
@@ -367,5 +371,33 @@ export default function IntegrationsPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+/**
+ * Loading fallback for Suspense
+ */
+function IntegrationsLoading() {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Integrations</CardTitle>
+        <CardDescription>Connect your favorite apps to Y-CRM</CardDescription>
+      </CardHeader>
+      <CardContent className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </CardContent>
+    </Card>
+  );
+}
+
+/**
+ * Main page component with Suspense boundary
+ */
+export default function IntegrationsPage() {
+  return (
+    <Suspense fallback={<IntegrationsLoading />}>
+      <IntegrationsContent />
+    </Suspense>
   );
 }
