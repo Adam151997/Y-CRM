@@ -23,6 +23,8 @@ export type AuditModule =
   | "NOTE"
   | "ACTIVITY"
   | "DOCUMENT"
+  | "CUSTOM_MODULE"
+  | "CUSTOM_MODULE_RECORD"
   | "SYSTEM"
   | "AUTH";
 
