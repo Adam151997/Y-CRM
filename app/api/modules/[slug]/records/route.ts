@@ -251,11 +251,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     await createAuditLog({
       orgId: auth.orgId,
       action: "CREATE",
-      module: `CUSTOM:${module.slug.toUpperCase()}`,
+      module: "CUSTOM_MODULE_RECORD",
       recordId: record.id,
       actorType: "USER",
       actorId: auth.userId,
       newState: record as unknown as Record<string, unknown>,
+      metadata: { moduleSlug: module.slug, moduleName: module.name },
     });
 
     return NextResponse.json({ record }, { status: 201 });

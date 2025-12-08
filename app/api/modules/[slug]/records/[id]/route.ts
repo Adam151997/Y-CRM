@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getApiAuthContext } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { createAuditLog } from "@/lib/audit";
+import { Prisma } from "@prisma/client";
 
 interface RouteParams {
   params: Promise<{ slug: string; id: string }>;
@@ -113,15 +114,16 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     };
 
     // Merge existing data with new data
+    const existingData = (existing.data as Record<string, unknown>) || {};
     const mergedData = data
-      ? { ...(existing.data as Record<string, unknown>), ...data }
-      : existing.data;
+      ? { ...existingData, ...data }
+      : existingData;
 
     // Update the record
     const record = await prisma.customModuleRecord.update({
       where: { id },
       data: {
-        data: mergedData,
+        data: mergedData as Prisma.InputJsonValue,
         ...(assignedToId !== undefined ? { assignedToId } : {}),
       },
     });
@@ -130,12 +132,13 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     await createAuditLog({
       orgId: auth.orgId,
       action: "UPDATE",
-      module: `CUSTOM:${module.slug.toUpperCase()}`,
+      module: "CUSTOM_MODULE_RECORD",
       recordId: record.id,
       actorType: "USER",
       actorId: auth.userId,
       previousState: existing as unknown as Record<string, unknown>,
       newState: record as unknown as Record<string, unknown>,
+      metadata: { moduleSlug: module.slug, moduleName: module.name },
     });
 
     return NextResponse.json({ record });
@@ -195,11 +198,12 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     await createAuditLog({
       orgId: auth.orgId,
       action: "DELETE",
-      module: `CUSTOM:${module.slug.toUpperCase()}`,
+      module: "CUSTOM_MODULE_RECORD",
       recordId: id,
       actorType: "USER",
       actorId: auth.userId,
       previousState: existing as unknown as Record<string, unknown>,
+      metadata: { moduleSlug: module.slug, moduleName: module.name },
     });
 
     return NextResponse.json({ success: true });
