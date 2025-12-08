@@ -9,6 +9,11 @@ import {
   revalidateTaskCaches,
   revalidateOpportunityCaches,
 } from "@/lib/cache-utils";
+import {
+  getActiveConnections,
+  executeComposioToolDirect,
+  FEATURED_APPS,
+} from "@/lib/composio";
 
 /**
  * AI Tools for Y-CRM
@@ -1095,3 +1100,256 @@ function parseNaturalDate(input: string): Date | null {
 
   return null;
 }
+
+// =============================================================================
+// COMPOSIO INTEGRATION TOOLS
+// =============================================================================
+
+/**
+ * Get list of connected integrations
+ */
+export const getConnectedIntegrationsTool = (orgId: string) =>
+  tool({
+    description: "Get list of connected external integrations like Gmail, Calendar, Slack, etc.",
+    parameters: z.object({}),
+    execute: async () => {
+      console.log("[Tool:getConnectedIntegrations] Executing");
+      try {
+        const connections = await getActiveConnections(orgId);
+        const connectedApps = FEATURED_APPS.filter((app) =>
+          connections.includes(app.key)
+        );
+
+        return {
+          success: true,
+          connectedApps: connectedApps.map((app) => ({
+            key: app.key,
+            name: app.name,
+            category: app.category,
+          })),
+          message: connections.length > 0
+            ? `You have ${connections.length} connected apps: ${connectedApps.map(a => a.name).join(", ")}`
+            : "No external apps connected. Connect apps in Settings > Integrations.",
+        };
+      } catch (error) {
+        console.error("[Tool:getConnectedIntegrations] Error:", error);
+        return {
+          success: false,
+          connectedApps: [],
+          message: "Failed to fetch connected integrations",
+        };
+      }
+    },
+  });
+
+/**
+ * Send an email via Gmail (requires Gmail connection)
+ */
+export const sendEmailTool = (orgId: string) =>
+  tool({
+    description: "Send an email via Gmail. Requires Gmail to be connected in Settings > Integrations.",
+    parameters: z.object({
+      to: z.string().email().describe("Recipient email address"),
+      subject: z.string().describe("Email subject"),
+      body: z.string().describe("Email body (plain text or HTML)"),
+      cc: z.string().email().optional().describe("CC recipient"),
+    }),
+    execute: async ({ to, subject, body, cc }) => {
+      console.log("[Tool:sendEmail] Executing:", { to, subject });
+      try {
+        const result = await executeComposioToolDirect(
+          "composio_gmail_send_email",
+          { to, subject, body, cc },
+          orgId
+        );
+
+        if (result.success) {
+          return {
+            success: true,
+            message: `Email sent successfully to ${to}`,
+          };
+        } else {
+          return {
+            success: false,
+            message: result.content || "Failed to send email",
+          };
+        }
+      } catch (error) {
+        console.error("[Tool:sendEmail] Error:", error);
+        return {
+          success: false,
+          message: error instanceof Error ? error.message : "Failed to send email",
+        };
+      }
+    },
+  });
+
+/**
+ * Create a calendar event (requires Google Calendar connection)
+ */
+export const createCalendarEventTool = (orgId: string) =>
+  tool({
+    description: "Create a Google Calendar event. Requires Google Calendar to be connected.",
+    parameters: z.object({
+      title: z.string().describe("Event title"),
+      description: z.string().optional().describe("Event description"),
+      startTime: z.string().describe("Start time (ISO format or natural language like 'tomorrow at 2pm')"),
+      endTime: z.string().optional().describe("End time (ISO format or natural language)"),
+      attendees: z.array(z.string().email()).optional().describe("List of attendee emails"),
+      location: z.string().optional().describe("Event location"),
+    }),
+    execute: async ({ title, description, startTime, endTime, attendees, location }) => {
+      console.log("[Tool:createCalendarEvent] Executing:", { title, startTime });
+      try {
+        const result = await executeComposioToolDirect(
+          "composio_googlecalendar_create_event",
+          { 
+            summary: title, 
+            description, 
+            start: { dateTime: startTime },
+            end: endTime ? { dateTime: endTime } : undefined,
+            attendees: attendees?.map(email => ({ email })),
+            location,
+          },
+          orgId
+        );
+
+        if (result.success) {
+          return {
+            success: true,
+            message: `Calendar event "${title}" created successfully`,
+            data: result.data,
+          };
+        } else {
+          return {
+            success: false,
+            message: result.content || "Failed to create calendar event",
+          };
+        }
+      } catch (error) {
+        console.error("[Tool:createCalendarEvent] Error:", error);
+        return {
+          success: false,
+          message: error instanceof Error ? error.message : "Failed to create event",
+        };
+      }
+    },
+  });
+
+/**
+ * Send a Slack message (requires Slack connection)
+ */
+export const sendSlackMessageTool = (orgId: string) =>
+  tool({
+    description: "Send a message to a Slack channel or user. Requires Slack to be connected.",
+    parameters: z.object({
+      channel: z.string().describe("Channel name (e.g., #general) or user ID"),
+      message: z.string().describe("Message text"),
+    }),
+    execute: async ({ channel, message }) => {
+      console.log("[Tool:sendSlackMessage] Executing:", { channel });
+      try {
+        const result = await executeComposioToolDirect(
+          "composio_slack_send_message",
+          { channel, text: message },
+          orgId
+        );
+
+        if (result.success) {
+          return {
+            success: true,
+            message: `Message sent to ${channel}`,
+          };
+        } else {
+          return {
+            success: false,
+            message: result.content || "Failed to send Slack message",
+          };
+        }
+      } catch (error) {
+        console.error("[Tool:sendSlackMessage] Error:", error);
+        return {
+          success: false,
+          message: error instanceof Error ? error.message : "Failed to send message",
+        };
+      }
+    },
+  });
+
+/**
+ * Create a GitHub issue (requires GitHub connection)
+ */
+export const createGitHubIssueTool = (orgId: string) =>
+  tool({
+    description: "Create a GitHub issue in a repository. Requires GitHub to be connected.",
+    parameters: z.object({
+      repo: z.string().describe("Repository name (e.g., 'owner/repo')"),
+      title: z.string().describe("Issue title"),
+      body: z.string().optional().describe("Issue description"),
+      labels: z.array(z.string()).optional().describe("Labels to add"),
+    }),
+    execute: async ({ repo, title, body, labels }) => {
+      console.log("[Tool:createGitHubIssue] Executing:", { repo, title });
+      try {
+        const [owner, repoName] = repo.split("/");
+        const result = await executeComposioToolDirect(
+          "composio_github_create_issue",
+          { owner, repo: repoName, title, body, labels },
+          orgId
+        );
+
+        if (result.success) {
+          return {
+            success: true,
+            message: `GitHub issue "${title}" created in ${repo}`,
+            data: result.data,
+          };
+        } else {
+          return {
+            success: false,
+            message: result.content || "Failed to create GitHub issue",
+          };
+        }
+      } catch (error) {
+        console.error("[Tool:createGitHubIssue] Error:", error);
+        return {
+          success: false,
+          message: error instanceof Error ? error.message : "Failed to create issue",
+        };
+      }
+    },
+  });
+
+/**
+ * Execute any Composio tool dynamically
+ */
+export const executeExternalToolTool = (orgId: string) =>
+  tool({
+    description: "Execute any external tool via Composio. Use this for advanced integrations.",
+    parameters: z.object({
+      toolName: z.string().describe("Full tool name (e.g., 'composio_gmail_send_email')"),
+      arguments: z.record(z.unknown()).describe("Tool arguments as key-value pairs"),
+    }),
+    execute: async ({ toolName, arguments: args }) => {
+      console.log("[Tool:executeExternalTool] Executing:", { toolName });
+      try {
+        const result = await executeComposioToolDirect(
+          toolName,
+          args as Record<string, unknown>,
+          orgId
+        );
+
+        return {
+          success: result.success,
+          message: result.content,
+          data: result.data,
+        };
+      } catch (error) {
+        console.error("[Tool:executeExternalTool] Error:", error);
+        return {
+          success: false,
+          message: error instanceof Error ? error.message : "Failed to execute tool",
+        };
+      }
+    },
+  });

@@ -26,6 +26,13 @@ import {
   searchDocumentsTool,
   getDocumentStatsTool,
   analyzeDocumentTool,
+  // Composio Integration Tools
+  getConnectedIntegrationsTool,
+  sendEmailTool,
+  createCalendarEventTool,
+  sendSlackMessageTool,
+  createGitHubIssueTool,
+  executeExternalToolTool,
 } from "./tools";
 import { createAuditLog } from "@/lib/audit";
 
@@ -76,6 +83,13 @@ export function getCRMTools(orgId: string, userId: string) {
     searchDocuments: searchDocumentsTool(orgId),
     getDocumentStats: getDocumentStatsTool(orgId),
     analyzeDocument: analyzeDocumentTool(orgId),
+    // Composio Integration tools
+    getConnectedIntegrations: getConnectedIntegrationsTool(orgId),
+    sendEmail: sendEmailTool(orgId),
+    createCalendarEvent: createCalendarEventTool(orgId),
+    sendSlackMessage: sendSlackMessageTool(orgId),
+    createGitHubIssue: createGitHubIssueTool(orgId),
+    executeExternalTool: executeExternalToolTool(orgId),
   };
 }
 

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { User, Building, Layers, Bell, Shield } from "lucide-react";
+import { User, Building, Layers, Plug, Bell, Shield } from "lucide-react";
 
 const settingsNav = [
   {
@@ -17,6 +17,12 @@ const settingsNav = [
     href: "/settings/organization",
     icon: Building,
     description: "Manage your organization settings",
+  },
+  {
+    title: "Integrations",
+    href: "/settings/integrations",
+    icon: Plug,
+    description: "Connect external apps",
   },
   {
     title: "Custom Fields",

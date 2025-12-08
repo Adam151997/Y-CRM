@@ -456,3 +456,30 @@ model UsageRecord {
   @@index([orgId, type, createdAt])
   @@index([userId, type, createdAt])
 }
+
+// =============================================================================
+// INTEGRATIONS (Composio)
+// =============================================================================
+
+model Integration {
+  id              String   @id @default(uuid())
+  orgId           String
+  
+  provider        String   // gmail, googlecalendar, slack, github, etc.
+  status          String   @default("PENDING") // PENDING, ACTIVE, ERROR, DISCONNECTED
+  connectionId    String?  // Composio connection ID
+  
+  // OAuth tokens (encrypted in production)
+  accessToken     String?  @db.Text
+  refreshToken    String?  @db.Text
+  tokenExpiresAt  DateTime?
+  
+  metadata        Json     @default("{}") // Additional provider-specific data
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@unique([orgId, provider])
+  @@index([orgId])
+  @@index([provider, status])
+}
