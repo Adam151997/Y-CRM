@@ -4,7 +4,7 @@
  */
 
 import { BaseTransport, SSETransportConfig } from "./base";
-import { JSONRPCMessage } from "../../protocol/types";
+import { JSONRPCMessage } from "../../protocol";
 
 /**
  * SSE Transport for MCP Client

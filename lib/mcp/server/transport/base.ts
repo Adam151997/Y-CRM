@@ -3,7 +3,7 @@
  * Server-side transports for handling incoming MCP connections
  */
 
-import { JSONRPCMessage } from "../../protocol/types";
+import { JSONRPCMessage } from "../../protocol";
 
 export type ServerTransportState = "idle" | "running" | "error";
 

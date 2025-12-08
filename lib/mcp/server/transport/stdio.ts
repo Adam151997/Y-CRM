@@ -5,7 +5,7 @@
  * This is used when running Y-CRM as a standalone MCP server
  */
 
-import { JSONRPCMessage } from "../../protocol/types";
+import { JSONRPCMessage } from "../../protocol";
 import { BaseServerTransport, ServerConnection } from "./base";
 
 /**

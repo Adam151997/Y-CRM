@@ -5,7 +5,7 @@
  * This is designed to work with Next.js API routes
  */
 
-import { JSONRPCMessage } from "../../protocol/types";
+import { JSONRPCMessage } from "../../protocol";
 import { ServerConnection } from "./base";
 
 /**

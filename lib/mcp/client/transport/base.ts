@@ -3,7 +3,7 @@
  * Defines the contract for all transport implementations
  */
 
-import { JSONRPCMessage } from "../protocol/types";
+import { JSONRPCMessage } from "../../protocol";
 
 export type TransportState = "disconnected" | "connecting" | "connected" | "error";
 
