@@ -325,7 +325,7 @@ async function handleCallTool(id: string | number, params: CallToolParams): Prom
 async function handleRequest(request: JSONRPCRequest): Promise<void> {
   switch (request.method) {
     case "initialize":
-      handleInitialize(request.id, request.params as InitializeParams);
+      handleInitialize(request.id, request.params as unknown as InitializeParams);
       break;
 
     case "ping":
@@ -337,7 +337,7 @@ async function handleRequest(request: JSONRPCRequest): Promise<void> {
       break;
 
     case "tools/call":
-      await handleCallTool(request.id, request.params as CallToolParams);
+      await handleCallTool(request.id, request.params as unknown as CallToolParams);
       break;
 
     case "resources/list":
