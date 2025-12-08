@@ -67,7 +67,7 @@ interface Module {
   fields: Field[];
 }
 
-interface Record {
+interface ModuleRecord {
   id: string;
   data: unknown;
   createdAt: string | Date;
@@ -76,7 +76,7 @@ interface Record {
 
 interface RecordsListProps {
   module: Module;
-  records: Record[];
+  records: ModuleRecord[];
   total: number;
   page: number;
   limit: number;
@@ -94,7 +94,7 @@ export function RecordsList({
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState(initialQuery || "");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [recordToDelete, setRecordToDelete] = useState<Record | null>(null);
+  const [recordToDelete, setRecordToDelete] = useState<ModuleRecord | null>(null);
 
   const totalPages = Math.ceil(total / limit);
 
