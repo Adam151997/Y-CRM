@@ -58,15 +58,15 @@ export class StdioTransport extends BaseTransport {
       });
 
       // Handle process exit
-      this.process.on("exit", (code: number | null) => {
+      this.process.on("exit", (code) => {
         console.log("[Stdio Transport] Process exited with code:", code);
         this.handleClose();
       });
 
       // Handle errors
-      this.process.on("error", (error: Error) => {
+      this.process.on("error", (error) => {
         console.error("[Stdio Transport] Process error:", error);
-        this.emit("error", error);
+        this.emit("error", error instanceof Error ? error : new Error(String(error)));
         this.setState("error");
       });
 
