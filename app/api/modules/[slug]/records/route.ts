@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getApiAuthContext } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { createAuditLog } from "@/lib/audit";
+import { Prisma } from "@prisma/client";
 
 interface RouteParams {
   params: Promise<{ slug: string }>;
@@ -240,7 +241,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       data: {
         orgId: auth.orgId,
         moduleId: module.id,
-        data,
+        data: data as Prisma.InputJsonValue,
         assignedToId,
         createdById: auth.userId,
         createdByType: "USER",
