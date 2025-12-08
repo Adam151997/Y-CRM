@@ -20,7 +20,7 @@ model AuditLog {
 
   // What happened
   action        String   // CREATE, UPDATE, DELETE, VOICE_COMMAND, AI_EXECUTION
-  module        String   // LEAD, CONTACT, ACCOUNT, TASK, NOTE, SYSTEM
+  module        String   // LEAD, CONTACT, ACCOUNT, TASK, NOTE, TICKET, etc.
   recordId      String?  // The affected record's ID
 
   // Who did it
@@ -62,11 +62,18 @@ model Organization {
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
-  // Relations
+  // Relations - Sales
   leads               Lead[]
   contacts            Contact[]
   accounts            Account[]
   opportunities       Opportunity[]
+  
+  // Relations - CS
+  tickets             Ticket[]
+  playbooks           Playbook[]
+  renewals            Renewal[]
+  
+  // Relations - Shared
   customFields        CustomFieldDefinition[]
   customModules       CustomModule[]
   dashboardConfigs    DashboardConfig[]
@@ -150,9 +157,11 @@ model Contact {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
+  // Relations
   notes           Note[]
   tasks           Task[]
   activities      Activity[]
+  tickets         Ticket[]  // CS: Tickets from this contact
 
   @@unique([orgId, email])
   @@index([orgId])
@@ -186,12 +195,18 @@ model Account {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  // Relations
+  // Relations - Sales
   contacts        Contact[]
   opportunities   Opportunity[]
   notes           Note[]
   tasks           Task[]
   documents       Document[]
+  activities      Activity[]      // Unified timeline
+  
+  // Relations - CS
+  tickets         Ticket[]        // Support tickets
+  health          AccountHealth?  // Health score record
+  renewals        Renewal[]       // Contract renewals
 
   @@index([orgId])
   @@index([orgId, name])
@@ -232,6 +247,240 @@ model Opportunity {
 
   @@index([orgId, stageId])
   @@index([orgId, expectedCloseDate])
+  @@index([accountId])
+}
+
+// =============================================================================
+// CUSTOMER SUCCESS MODULES
+// =============================================================================
+
+model Ticket {
+  id              String    @id @default(uuid())
+  orgId           String
+  org             Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  
+  // Ticket identifier (auto-increment per org would be ideal, using sequence)
+  ticketNumber    Int       @default(autoincrement())
+  
+  // Core fields
+  subject         String
+  description     String?   @db.Text
+  status          String    @default("NEW") // NEW, OPEN, PENDING, RESOLVED, CLOSED
+  priority        String    @default("MEDIUM") // LOW, MEDIUM, HIGH, URGENT
+  category        String?   // BUG, BILLING, FEATURE_REQUEST, QUESTION, GENERAL
+  
+  // Relations
+  accountId       String
+  account         Account   @relation(fields: [accountId], references: [id])
+  contactId       String?
+  contact         Contact?  @relation(fields: [contactId], references: [id])
+  
+  // Assignment & Attribution
+  assignedToId    String?   // CSM/Support agent user ID
+  createdById     String
+  createdByType   String    @default("USER") // USER, CONTACT, AI_AGENT
+  
+  // AI Analysis
+  sentiment       String?   // POSITIVE, NEUTRAL, NEGATIVE
+  tags            Json?     // ["Bug", "Billing", "Urgent"]
+  aiSummary       String?   @db.Text // AI-generated summary
+  
+  // SLA & Resolution
+  firstResponseAt DateTime?
+  resolvedAt      DateTime?
+  closedAt        DateTime?
+  resolvedById    String?
+  resolution      String?   @db.Text
+  
+  // Satisfaction
+  satisfactionScore Int?    // 1-5 CSAT rating
+  satisfactionFeedback String?
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  // Relations
+  messages        TicketMessage[]
+
+  @@index([orgId, status])
+  @@index([orgId, priority])
+  @@index([orgId, accountId])
+  @@index([orgId, assignedToId])
+  @@index([orgId, createdAt])
+}
+
+model TicketMessage {
+  id          String   @id @default(uuid())
+  ticketId    String
+  ticket      Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  
+  content     String   @db.Text
+  contentHtml String?  @db.Text  // Rich text version
+  isInternal  Boolean  @default(false) // Internal notes vs customer-facing
+  
+  // Author
+  authorId    String
+  authorType  String   // USER, CONTACT, AI_AGENT
+  authorName  String?  // Cached name for display
+  
+  // Attachments
+  attachments Json?    // [{ name, url, size, type }]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([ticketId])
+  @@index([ticketId, createdAt])
+}
+
+model AccountHealth {
+  id              String   @id @default(uuid())
+  orgId           String
+  
+  accountId       String   @unique
+  account         Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  
+  // Overall Health Score (0-100)
+  score           Int      @default(50)
+  previousScore   Int?     // For trend calculation
+  riskLevel       String   @default("MEDIUM") // LOW, MEDIUM, HIGH, CRITICAL
+  
+  // Score Components (each 0-100)
+  engagementScore     Int  @default(50)  // Login frequency, feature usage
+  supportScore        Int  @default(50)  // Ticket volume, resolution satisfaction
+  relationshipScore   Int  @default(50)  // Contact frequency, meeting attendance
+  financialScore      Int  @default(50)  // Payment history, expansion signals
+  adoptionScore       Int  @default(50)  // Feature adoption, usage depth
+  
+  // Activity Metrics
+  lastLoginAt         DateTime?
+  lastContactAt       DateTime?
+  lastMeetingAt       DateTime?
+  openTicketCount     Int      @default(0)
+  avgTicketResolution Int?     // Average resolution time in hours
+  
+  // Flags
+  isAtRisk            Boolean  @default(false)
+  riskReasons         Json?    // ["No login in 30 days", "High ticket volume"]
+  
+  // Metadata
+  calculatedAt    DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([orgId, riskLevel])
+  @@index([orgId, score])
+  @@index([orgId, isAtRisk])
+}
+
+model Playbook {
+  id              String   @id @default(uuid())
+  orgId           String
+  org             Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  
+  name            String   // "SaaS Onboarding", "Renewal 90-Day", "At-Risk Intervention"
+  description     String?  @db.Text
+  
+  // Trigger configuration
+  trigger         String   @default("MANUAL") // MANUAL, NEW_CUSTOMER, RENEWAL_APPROACHING, HEALTH_DROP, TICKET_ESCALATION
+  triggerConfig   Json?    // { daysBeforeRenewal: 90 } or { healthScoreBelow: 40 }
+  
+  // Steps as JSON array
+  // [{ order: 1, dayOffset: 0, title: "Kickoff Call", description: "...", taskType: "CALL", assigneeType: "CSM" }, ...]
+  steps           Json     @default("[]")
+  
+  // Settings
+  isActive        Boolean  @default(true)
+  isTemplate      Boolean  @default(false) // Can be cloned
+  
+  createdById     String
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Active instances
+  runs            PlaybookRun[]
+
+  @@index([orgId])
+  @@index([orgId, isActive])
+  @@index([orgId, trigger])
+}
+
+model PlaybookRun {
+  id              String    @id @default(uuid())
+  orgId           String
+  
+  playbookId      String
+  playbook        Playbook  @relation(fields: [playbookId], references: [id], onDelete: Cascade)
+  
+  accountId       String
+  
+  // Progress
+  status          String    @default("IN_PROGRESS") // IN_PROGRESS, COMPLETED, CANCELLED, PAUSED
+  currentStep     Int       @default(0)
+  totalSteps      Int       @default(0)
+  
+  // Timing
+  startedAt       DateTime  @default(now())
+  completedAt     DateTime?
+  pausedAt        DateTime?
+  
+  // Attribution
+  startedById     String
+  
+  // Metadata - tracks generated task IDs, completion data
+  metadata        Json?     // { taskIds: [...], stepCompletions: [...] }
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([orgId, status])
+  @@index([orgId, accountId])
+  @@index([playbookId])
+}
+
+model Renewal {
+  id              String    @id @default(uuid())
+  orgId           String
+  org             Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  
+  accountId       String
+  account         Account   @relation(fields: [accountId], references: [id])
+  
+  // Contract Details
+  contractName    String?
+  contractValue   Decimal   @db.Decimal(15, 2)
+  currency        String    @default("USD")
+  
+  // Contract Period
+  startDate       DateTime
+  endDate         DateTime
+  
+  // Renewal Tracking
+  status          String    @default("UPCOMING") // UPCOMING, IN_PROGRESS, RENEWED, CHURNED, DOWNGRADED, EXPANDED
+  renewalValue    Decimal?  @db.Decimal(15, 2)   // New contract value if renewed
+  probability     Int       @default(50) // 0-100
+  
+  // Outcome
+  outcome         String?   // RENEWED, CHURNED, DOWNGRADED, EXPANDED
+  churnReason     String?   // COMPETITOR, BUDGET, NO_VALUE, PRODUCT_FIT, OTHER
+  expansionAmount Decimal?  @db.Decimal(15, 2)
+  
+  // Ownership
+  ownerUserId     String?   // CSM responsible
+  
+  // Notes & Activity
+  notes           String?   @db.Text
+  lastContactAt   DateTime?
+  nextActionDate  DateTime?
+  nextAction      String?
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([orgId, status])
+  @@index([orgId, endDate])
+  @@index([orgId, ownerUserId])
   @@index([accountId])
 }
 
@@ -282,7 +531,10 @@ model Task {
   status          String    @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED, CANCELLED
   
   // Task type
-  taskType        String?   // CALL, EMAIL, MEETING, FOLLOW_UP, OTHER
+  taskType        String?   // CALL, EMAIL, MEETING, FOLLOW_UP, ONBOARDING, RENEWAL, OTHER
+  
+  // Workspace context
+  workspace       String    @default("sales") // sales, cs, marketing
 
   // Polymorphic relation
   leadId          String?
@@ -304,9 +556,11 @@ model Task {
 
   @@index([orgId, status])
   @@index([orgId, dueDate])
+  @@index([orgId, workspace])
   @@index([assignedToId, dueDate])
   @@index([leadId])
   @@index([contactId])
+  @@index([accountId])
 }
 
 model Activity {
@@ -314,9 +568,16 @@ model Activity {
   orgId           String
   org             Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
-  type            String   // CALL, EMAIL, MEETING, VOICE_COMMAND, NOTE, TASK_COMPLETED
+  // Activity type - expanded for all workspaces
+  type            String   // CALL, EMAIL, MEETING, VOICE_COMMAND, NOTE, TASK_COMPLETED,
+                           // TICKET_CREATED, TICKET_RESOLVED, HEALTH_ALERT, 
+                           // PLAYBOOK_STARTED, PLAYBOOK_COMPLETED, RENEWAL_UPDATED
+  
   subject         String
   description     String?  @db.Text
+  
+  // Workspace context
+  workspace       String   @default("sales") // sales, cs, marketing
 
   // For voice commands
   transcript      String?  @db.Text
@@ -330,6 +591,8 @@ model Activity {
   lead            Lead?    @relation(fields: [leadId], references: [id], onDelete: Cascade)
   contactId       String?
   contact         Contact? @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  accountId       String?
+  account         Account? @relation(fields: [accountId], references: [id], onDelete: Cascade)
 
   performedById   String
   performedByType String   // USER, AI_AGENT
@@ -338,8 +601,10 @@ model Activity {
 
   @@index([orgId, type])
   @@index([orgId, performedAt])
+  @@index([orgId, workspace])
   @@index([leadId])
   @@index([contactId])
+  @@index([accountId])
 }
 
 model Document {
@@ -498,14 +763,17 @@ model DashboardConfig {
   orgId           String
   org             Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
   userId          String   // Clerk user ID
+  
+  // Workspace-specific dashboard
+  workspace       String   @default("sales") // sales, cs, marketing
 
-  layout          Json     // Grid layout configuration
-  widgets         Json     // Widget settings and preferences
+  layout          Json     // Grid layout: [{ i: "widget-1", x: 0, y: 0, w: 2, h: 2 }]
+  widgets         Json     // Widget configs: [{ id: "widget-1", type: "pipeline", settings: {} }]
 
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  @@unique([orgId, userId])
+  @@unique([orgId, userId, workspace])
 }
 
 // =============================================================================

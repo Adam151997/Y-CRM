@@ -25,6 +25,14 @@ export type AuditModule =
   | "DOCUMENT"
   | "CUSTOM_MODULE"
   | "CUSTOM_MODULE_RECORD"
+  // Customer Success
+  | "TICKET"
+  | "TICKET_MESSAGE"
+  | "ACCOUNT_HEALTH"
+  | "PLAYBOOK"
+  | "PLAYBOOK_RUN"
+  | "RENEWAL"
+  // System
   | "SYSTEM"
   | "AUTH";
 
