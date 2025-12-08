@@ -2,7 +2,44 @@ import { NextRequest, NextResponse } from "next/server";
 import { getApiAuthContext } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { Prisma } from "@prisma/client";
-import { createCustomFieldSchema } from "@/lib/validation/schemas";
+import { z } from "zod";
+
+// Schema for creating custom fields (supports both built-in and custom modules)
+const createCustomFieldSchema = z.object({
+  // For built-in modules
+  module: z.enum(["LEAD", "CONTACT", "ACCOUNT", "OPPORTUNITY"]).optional(),
+  // For custom modules
+  customModuleId: z.string().uuid().optional(),
+  // Field definition
+  fieldName: z.string().min(1).max(100),
+  fieldKey: z.string().min(1).max(50).regex(/^[a-z][a-z0-9_]*$/),
+  fieldType: z.enum([
+    "TEXT",
+    "TEXTAREA", 
+    "NUMBER",
+    "CURRENCY",
+    "PERCENT",
+    "DATE",
+    "SELECT",
+    "MULTISELECT",
+    "BOOLEAN",
+    "URL",
+    "EMAIL",
+    "PHONE",
+    "RELATIONSHIP",
+  ]),
+  required: z.boolean().default(false),
+  options: z.array(z.string()).optional(),
+  defaultValue: z.unknown().optional(),
+  placeholder: z.string().max(200).nullable().optional(),
+  helpText: z.string().max(500).nullable().optional(),
+  relatedModule: z.string().optional(), // For RELATIONSHIP type
+}).refine((data) => {
+  // Must have either module OR customModuleId, but not both
+  return (data.module && !data.customModuleId) || (!data.module && data.customModuleId);
+}, {
+  message: "Must specify either module (for built-in) or customModuleId (for custom), but not both",
+});
 
 // GET /api/settings/custom-fields - List custom fields
 export async function GET(request: NextRequest) {
@@ -14,15 +51,21 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const module = searchParams.get("module");
+    const customModuleId = searchParams.get("customModuleId");
 
     const where: Record<string, unknown> = { orgId: auth.orgId };
+    
     if (module) {
       where.module = module;
+      where.customModuleId = null;
+    } else if (customModuleId) {
+      where.customModuleId = customModuleId;
+      where.module = null;
     }
 
     const customFields = await prisma.customFieldDefinition.findMany({
       where,
-      orderBy: [{ module: "asc" }, { displayOrder: "asc" }],
+      orderBy: [{ displayOrder: "asc" }],
     });
 
     return NextResponse.json(customFields);
@@ -56,13 +99,37 @@ export async function POST(request: NextRequest) {
 
     const data = validationResult.data;
 
-    // Check for duplicate fieldKey in the same module
+    // If customModuleId provided, verify it exists and belongs to org
+    if (data.customModuleId) {
+      const customModule = await prisma.customModule.findFirst({
+        where: {
+          id: data.customModuleId,
+          orgId: auth.orgId,
+        },
+      });
+
+      if (!customModule) {
+        return NextResponse.json(
+          { error: "Custom module not found" },
+          { status: 404 }
+        );
+      }
+    }
+
+    // Check for duplicate fieldKey
+    const existingWhere: Record<string, unknown> = {
+      orgId: auth.orgId,
+      fieldKey: data.fieldKey,
+    };
+
+    if (data.module) {
+      existingWhere.module = data.module;
+    } else {
+      existingWhere.customModuleId = data.customModuleId;
+    }
+
     const existing = await prisma.customFieldDefinition.findFirst({
-      where: {
-        orgId: auth.orgId,
-        module: data.module,
-        fieldKey: data.fieldKey,
-      },
+      where: existingWhere,
     });
 
     if (existing) {
@@ -73,8 +140,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Get the max displayOrder for the module
+    const maxOrderWhere: Record<string, unknown> = { orgId: auth.orgId };
+    if (data.module) {
+      maxOrderWhere.module = data.module;
+    } else {
+      maxOrderWhere.customModuleId = data.customModuleId;
+    }
+
     const maxOrder = await prisma.customFieldDefinition.aggregate({
-      where: { orgId: auth.orgId, module: data.module },
+      where: maxOrderWhere,
       _max: { displayOrder: true },
     });
 
@@ -82,7 +156,8 @@ export async function POST(request: NextRequest) {
     const customField = await prisma.customFieldDefinition.create({
       data: {
         orgId: auth.orgId,
-        module: data.module,
+        module: data.module || null,
+        customModuleId: data.customModuleId || null,
         fieldName: data.fieldName,
         fieldKey: data.fieldKey,
         fieldType: data.fieldType,
@@ -93,8 +168,9 @@ export async function POST(request: NextRequest) {
         defaultValue: data.defaultValue !== undefined 
           ? (data.defaultValue as Prisma.InputJsonValue) 
           : undefined,
-        placeholder: data.placeholder,
-        helpText: data.helpText,
+        placeholder: data.placeholder || null,
+        helpText: data.helpText || null,
+        relatedModule: data.relatedModule || null,
         displayOrder: (maxOrder._max.displayOrder || 0) + 1,
       },
     });

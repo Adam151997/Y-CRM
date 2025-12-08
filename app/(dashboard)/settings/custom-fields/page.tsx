@@ -5,8 +5,10 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CustomFieldsList } from "./_components/custom-fields-list";
 import { AddCustomFieldButton } from "./_components/add-custom-field-button";
+import { Box } from "lucide-react";
 
-const modules = ["LEAD", "CONTACT", "ACCOUNT", "OPPORTUNITY"] as const;
+// Built-in modules
+const builtInModules = ["LEAD", "CONTACT", "ACCOUNT", "OPPORTUNITY"] as const;
 
 const moduleLabels: Record<string, string> = {
   LEAD: "Leads",
@@ -18,16 +20,42 @@ const moduleLabels: Record<string, string> = {
 export default async function CustomFieldsSettingsPage() {
   const { orgId } = await getAuthContext();
 
-  const customFields = await prisma.customFieldDefinition.findMany({
-    where: { orgId },
-    orderBy: [{ module: "asc" }, { displayOrder: "asc" }],
-  });
+  // Fetch custom fields and custom modules in parallel
+  const [customFields, customModules] = await Promise.all([
+    prisma.customFieldDefinition.findMany({
+      where: { orgId },
+      orderBy: [{ displayOrder: "asc" }],
+    }),
+    prisma.customModule.findMany({
+      where: { orgId, isActive: true },
+      orderBy: [{ displayOrder: "asc" }, { name: "asc" }],
+    }),
+  ]);
 
-  // Group by module
-  const fieldsByModule = modules.reduce((acc, module) => {
-    acc[module] = customFields.filter((f) => f.module === module);
+  // Group fields by built-in module
+  const fieldsByBuiltInModule = builtInModules.reduce((acc, module) => {
+    acc[module] = customFields.filter((f) => f.module === module && !f.customModuleId);
     return acc;
   }, {} as Record<string, typeof customFields>);
+
+  // Group fields by custom module ID
+  const fieldsByCustomModule = customModules.reduce((acc, module) => {
+    acc[module.id] = customFields.filter((f) => f.customModuleId === module.id);
+    return acc;
+  }, {} as Record<string, typeof customFields>);
+
+  // Prepare custom modules data for the client component
+  const customModulesForClient = customModules.map((m) => ({
+    id: m.id,
+    name: m.name,
+    pluralName: m.pluralName,
+    slug: m.slug,
+    icon: m.icon,
+  }));
+
+  // Calculate total tabs
+  const totalTabs = builtInModules.length + customModules.length;
+  const gridCols = totalTabs <= 4 ? totalTabs : 4;
 
   return (
     <div className="space-y-6">
@@ -39,30 +67,75 @@ export default async function CustomFieldsSettingsPage() {
               Define custom fields for each module to capture additional data
             </CardDescription>
           </div>
-          <AddCustomFieldButton />
+          <AddCustomFieldButton customModules={customModulesForClient} />
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="LEAD">
-            <TabsList className="grid w-full grid-cols-4">
-              {modules.map((module) => (
-                <TabsTrigger key={module} value={module}>
-                  {moduleLabels[module]}
-                  <Badge variant="secondary" className="ml-2">
-                    {fieldsByModule[module].length}
-                  </Badge>
-                </TabsTrigger>
-              ))}
-            </TabsList>
+            {/* Tab triggers */}
+            <div className="overflow-x-auto">
+              <TabsList className={`inline-flex w-auto min-w-full lg:grid lg:grid-cols-${gridCols > 4 ? 4 : gridCols}`}>
+                {/* Built-in modules */}
+                {builtInModules.map((module) => (
+                  <TabsTrigger key={module} value={module} className="whitespace-nowrap">
+                    {moduleLabels[module]}
+                    <Badge variant="secondary" className="ml-2">
+                      {fieldsByBuiltInModule[module].length}
+                    </Badge>
+                  </TabsTrigger>
+                ))}
+                {/* Custom modules */}
+                {customModules.map((module) => (
+                  <TabsTrigger 
+                    key={module.id} 
+                    value={`custom_${module.id}`}
+                    className="whitespace-nowrap"
+                  >
+                    <Box className="h-3.5 w-3.5 mr-1.5" />
+                    {module.pluralName}
+                    <Badge variant="secondary" className="ml-2">
+                      {fieldsByCustomModule[module.id]?.length || 0}
+                    </Badge>
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </div>
 
-            {modules.map((module) => (
+            {/* Built-in module contents */}
+            {builtInModules.map((module) => (
               <TabsContent key={module} value={module} className="mt-4">
                 <CustomFieldsList
-                  fields={fieldsByModule[module]}
-                  module={module}
+                  fields={fieldsByBuiltInModule[module]}
+                  moduleType="builtin"
+                  moduleIdentifier={module}
+                />
+              </TabsContent>
+            ))}
+
+            {/* Custom module contents */}
+            {customModules.map((module) => (
+              <TabsContent key={module.id} value={`custom_${module.id}`} className="mt-4">
+                <CustomFieldsList
+                  fields={fieldsByCustomModule[module.id] || []}
+                  moduleType="custom"
+                  moduleIdentifier={module.id}
+                  moduleName={module.pluralName}
                 />
               </TabsContent>
             ))}
           </Tabs>
+
+          {/* Info about custom modules */}
+          {customModules.length === 0 && (
+            <div className="mt-6 p-4 bg-muted/50 rounded-lg">
+              <p className="text-sm text-muted-foreground">
+                <strong>Tip:</strong> You can create custom modules in{" "}
+                <a href="/settings/modules" className="text-primary hover:underline">
+                  Settings → Custom Modules
+                </a>{" "}
+                and then define custom fields for them here.
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

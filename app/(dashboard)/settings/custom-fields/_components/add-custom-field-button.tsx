@@ -33,10 +33,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Loader2 } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { Plus, Loader2, Box } from "lucide-react";
 
 const customFieldSchema = z.object({
-  module: z.enum(["LEAD", "CONTACT", "ACCOUNT", "OPPORTUNITY"]),
+  moduleType: z.enum(["builtin", "custom"]),
+  module: z.string().optional(),
+  customModuleId: z.string().optional(),
   fieldName: z.string().min(1, "Field name is required").max(100),
   fieldKey: z
     .string()
@@ -48,7 +51,10 @@ const customFieldSchema = z.object({
     ),
   fieldType: z.enum([
     "TEXT",
+    "TEXTAREA",
     "NUMBER",
+    "CURRENCY",
+    "PERCENT",
     "DATE",
     "SELECT",
     "MULTISELECT",
@@ -60,11 +66,32 @@ const customFieldSchema = z.object({
   required: z.boolean().default(false),
   placeholder: z.string().max(200).optional(),
   helpText: z.string().max(500).optional(),
+  options: z.string().optional(), // Comma-separated for SELECT/MULTISELECT
+}).refine((data) => {
+  if (data.moduleType === "builtin") {
+    return !!data.module;
+  }
+  return !!data.customModuleId;
+}, {
+  message: "Please select a module",
+  path: ["module"],
 });
 
 type CustomFieldFormValues = z.infer<typeof customFieldSchema>;
 
-const modules = [
+interface CustomModule {
+  id: string;
+  name: string;
+  pluralName: string;
+  slug: string;
+  icon: string;
+}
+
+interface AddCustomFieldButtonProps {
+  customModules?: CustomModule[];
+}
+
+const builtInModules = [
   { value: "LEAD", label: "Leads" },
   { value: "CONTACT", label: "Contacts" },
   { value: "ACCOUNT", label: "Accounts" },
@@ -72,33 +99,43 @@ const modules = [
 ];
 
 const fieldTypes = [
-  { value: "TEXT", label: "Text" },
-  { value: "NUMBER", label: "Number" },
-  { value: "DATE", label: "Date" },
-  { value: "SELECT", label: "Single Select" },
-  { value: "MULTISELECT", label: "Multi Select" },
-  { value: "BOOLEAN", label: "Checkbox" },
-  { value: "URL", label: "URL" },
-  { value: "EMAIL", label: "Email" },
-  { value: "PHONE", label: "Phone" },
+  { value: "TEXT", label: "Text", description: "Single line text" },
+  { value: "TEXTAREA", label: "Text Area", description: "Multi-line text" },
+  { value: "NUMBER", label: "Number", description: "Numeric value" },
+  { value: "CURRENCY", label: "Currency", description: "Money amount" },
+  { value: "PERCENT", label: "Percent", description: "Percentage value" },
+  { value: "DATE", label: "Date", description: "Date picker" },
+  { value: "SELECT", label: "Single Select", description: "Choose one option" },
+  { value: "MULTISELECT", label: "Multi Select", description: "Choose multiple" },
+  { value: "BOOLEAN", label: "Checkbox", description: "Yes/No toggle" },
+  { value: "URL", label: "URL", description: "Web link" },
+  { value: "EMAIL", label: "Email", description: "Email address" },
+  { value: "PHONE", label: "Phone", description: "Phone number" },
 ];
 
-export function AddCustomFieldButton() {
+export function AddCustomFieldButton({ customModules = [] }: AddCustomFieldButtonProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
 
   const form = useForm<CustomFieldFormValues>({
     resolver: zodResolver(customFieldSchema),
     defaultValues: {
+      moduleType: "builtin",
       module: "LEAD",
+      customModuleId: "",
       fieldName: "",
       fieldKey: "",
       fieldType: "TEXT",
       required: false,
       placeholder: "",
       helpText: "",
+      options: "",
     },
   });
+
+  const moduleType = form.watch("moduleType");
+  const fieldType = form.watch("fieldType");
+  const showOptionsField = fieldType === "SELECT" || fieldType === "MULTISELECT";
 
   // Auto-generate fieldKey from fieldName
   const handleFieldNameChange = (value: string) => {
@@ -113,10 +150,32 @@ export function AddCustomFieldButton() {
 
   const onSubmit = async (data: CustomFieldFormValues) => {
     try {
+      // Prepare payload
+      const payload: Record<string, unknown> = {
+        fieldName: data.fieldName,
+        fieldKey: data.fieldKey,
+        fieldType: data.fieldType,
+        required: data.required,
+        placeholder: data.placeholder || null,
+        helpText: data.helpText || null,
+      };
+
+      // Add module reference
+      if (data.moduleType === "builtin") {
+        payload.module = data.module;
+      } else {
+        payload.customModuleId = data.customModuleId;
+      }
+
+      // Add options for SELECT/MULTISELECT
+      if (showOptionsField && data.options) {
+        payload.options = data.options.split(",").map((o) => o.trim()).filter(Boolean);
+      }
+
       const response = await fetch("/api/settings/custom-fields", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
@@ -141,7 +200,7 @@ export function AddCustomFieldButton() {
           Add Field
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Add Custom Field</DialogTitle>
           <DialogDescription>
@@ -151,12 +210,13 @@ export function AddCustomFieldButton() {
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            {/* Module Type Selection */}
             <FormField
               control={form.control}
-              name="module"
+              name="moduleType"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Module</FormLabel>
+                  <FormLabel>Module Type</FormLabel>
                   <Select value={field.value} onValueChange={field.onChange}>
                     <FormControl>
                       <SelectTrigger>
@@ -164,17 +224,77 @@ export function AddCustomFieldButton() {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {modules.map((module) => (
-                        <SelectItem key={module.value} value={module.value}>
-                          {module.label}
-                        </SelectItem>
-                      ))}
+                      <SelectItem value="builtin">Built-in Module</SelectItem>
+                      {customModules.length > 0 && (
+                        <SelectItem value="custom">Custom Module</SelectItem>
+                      )}
                     </SelectContent>
                   </Select>
                   <FormMessage />
                 </FormItem>
               )}
             />
+
+            {/* Built-in Module Selection */}
+            {moduleType === "builtin" && (
+              <FormField
+                control={form.control}
+                name="module"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Module</FormLabel>
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a module" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {builtInModules.map((module) => (
+                          <SelectItem key={module.value} value={module.value}>
+                            {module.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
+            {/* Custom Module Selection */}
+            {moduleType === "custom" && (
+              <FormField
+                control={form.control}
+                name="customModuleId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Custom Module</FormLabel>
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a custom module" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {customModules.map((module) => (
+                          <SelectItem key={module.id} value={module.id}>
+                            <div className="flex items-center">
+                              <Box className="h-4 w-4 mr-2 text-muted-foreground" />
+                              {module.pluralName}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
+            <Separator />
 
             <FormField
               control={form.control}
@@ -225,7 +345,12 @@ export function AddCustomFieldButton() {
                     <SelectContent>
                       {fieldTypes.map((type) => (
                         <SelectItem key={type.value} value={type.value}>
-                          {type.label}
+                          <div>
+                            <span>{type.label}</span>
+                            <span className="ml-2 text-xs text-muted-foreground">
+                              ({type.description})
+                            </span>
+                          </div>
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -235,6 +360,29 @@ export function AddCustomFieldButton() {
               )}
             />
 
+            {/* Options for SELECT/MULTISELECT */}
+            {showOptionsField && (
+              <FormField
+                control={form.control}
+                name="options"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Options</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Option 1, Option 2, Option 3"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Comma-separated list of options
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
             <FormField
               control={form.control}
               name="placeholder"
@@ -243,6 +391,20 @@ export function AddCustomFieldButton() {
                   <FormLabel>Placeholder (optional)</FormLabel>
                   <FormControl>
                     <Input placeholder="Enter a placeholder..." {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="helpText"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Help Text (optional)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Help text shown below the field..." {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

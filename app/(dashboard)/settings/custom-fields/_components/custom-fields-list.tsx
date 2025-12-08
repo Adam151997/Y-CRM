@@ -17,7 +17,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Pencil, Trash2, GripVertical } from "lucide-react";
+import { MoreHorizontal, Pencil, Trash2, GripVertical, Inbox } from "lucide-react";
 import { toast } from "sonner";
 
 interface CustomField {
@@ -29,16 +29,22 @@ interface CustomField {
   options: unknown; // Prisma JsonValue
   displayOrder: number;
   isActive: boolean;
+  isSystem?: boolean;
 }
 
 interface CustomFieldsListProps {
   fields: CustomField[];
-  module: string;
+  moduleType: "builtin" | "custom";
+  moduleIdentifier: string; // Module name for builtin, module ID for custom
+  moduleName?: string; // Display name for custom modules
 }
 
 const fieldTypeLabels: Record<string, string> = {
   TEXT: "Text",
+  TEXTAREA: "Text Area",
   NUMBER: "Number",
+  CURRENCY: "Currency",
+  PERCENT: "Percent",
   DATE: "Date",
   SELECT: "Select",
   MULTISELECT: "Multi-Select",
@@ -46,11 +52,15 @@ const fieldTypeLabels: Record<string, string> = {
   URL: "URL",
   EMAIL: "Email",
   PHONE: "Phone",
+  RELATIONSHIP: "Relationship",
 };
 
 const fieldTypeColors: Record<string, string> = {
   TEXT: "bg-blue-500/10 text-blue-500",
+  TEXTAREA: "bg-blue-500/10 text-blue-500",
   NUMBER: "bg-green-500/10 text-green-500",
+  CURRENCY: "bg-emerald-500/10 text-emerald-500",
+  PERCENT: "bg-lime-500/10 text-lime-500",
   DATE: "bg-purple-500/10 text-purple-500",
   SELECT: "bg-orange-500/10 text-orange-500",
   MULTISELECT: "bg-pink-500/10 text-pink-500",
@@ -58,12 +68,23 @@ const fieldTypeColors: Record<string, string> = {
   URL: "bg-cyan-500/10 text-cyan-500",
   EMAIL: "bg-indigo-500/10 text-indigo-500",
   PHONE: "bg-teal-500/10 text-teal-500",
+  RELATIONSHIP: "bg-violet-500/10 text-violet-500",
 };
 
-export function CustomFieldsList({ fields, module }: CustomFieldsListProps) {
+export function CustomFieldsList({ 
+  fields, 
+  moduleType, 
+  moduleIdentifier,
+  moduleName 
+}: CustomFieldsListProps) {
   const router = useRouter();
 
-  const handleDelete = async (id: string, name: string) => {
+  const handleDelete = async (id: string, name: string, isSystem?: boolean) => {
+    if (isSystem) {
+      toast.error("System fields cannot be deleted");
+      return;
+    }
+
     if (!confirm(`Are you sure you want to delete "${name}"? This cannot be undone.`)) {
       return;
     }
@@ -84,11 +105,14 @@ export function CustomFieldsList({ fields, module }: CustomFieldsListProps) {
     }
   };
 
+  const displayName = moduleName || moduleIdentifier;
+
   if (fields.length === 0) {
     return (
-      <div className="text-center py-12 text-muted-foreground">
-        <p>No custom fields defined for this module</p>
-        <p className="text-sm mt-1">Click "Add Field" to create one</p>
+      <div className="text-center py-12">
+        <Inbox className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+        <p className="text-muted-foreground">No custom fields defined for {displayName}</p>
+        <p className="text-sm mt-1 text-muted-foreground">Click &quot;Add Field&quot; to create one</p>
       </div>
     );
   }
@@ -112,15 +136,22 @@ export function CustomFieldsList({ fields, module }: CustomFieldsListProps) {
             <TableCell>
               <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
             </TableCell>
-            <TableCell className="font-medium">{field.fieldName}</TableCell>
+            <TableCell className="font-medium">
+              {field.fieldName}
+              {field.isSystem && (
+                <Badge variant="outline" className="ml-2 text-xs">
+                  System
+                </Badge>
+              )}
+            </TableCell>
             <TableCell>
               <code className="text-xs bg-muted px-1.5 py-0.5 rounded">
                 {field.fieldKey}
               </code>
             </TableCell>
             <TableCell>
-              <Badge className={fieldTypeColors[field.fieldType]}>
-                {fieldTypeLabels[field.fieldType]}
+              <Badge className={fieldTypeColors[field.fieldType] || "bg-gray-500/10 text-gray-500"}>
+                {fieldTypeLabels[field.fieldType] || field.fieldType}
               </Badge>
             </TableCell>
             <TableCell>
@@ -157,7 +188,8 @@ export function CustomFieldsList({ fields, module }: CustomFieldsListProps) {
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     className="text-red-600"
-                    onClick={() => handleDelete(field.id, field.fieldName)}
+                    onClick={() => handleDelete(field.id, field.fieldName, field.isSystem)}
+                    disabled={field.isSystem}
                   >
                     <Trash2 className="h-4 w-4 mr-2" />
                     Delete
