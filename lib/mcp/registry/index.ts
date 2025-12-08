@@ -71,9 +71,9 @@ export class ToolRegistry {
    * Register multiple internal tools
    */
   registerInternalTools(definitions: InternalToolDefinition[]): void {
-    for (const def of definitions) {
+    definitions.forEach((def) => {
       this.registerInternalTool(def);
-    }
+    });
   }
 
   /**
@@ -85,7 +85,7 @@ export class ToolRegistry {
     // Fetch and register tools from the client
     if (client.hasToolsCapability()) {
       const tools = await client.listTools();
-      for (const tool of tools) {
+      tools.forEach((tool) => {
         const prefixedName = `${name}_${tool.name}`;
         this.externalTools.set(prefixedName, {
           name: prefixedName,
@@ -93,7 +93,7 @@ export class ToolRegistry {
           client,
           serverName: name,
         });
-      }
+      });
     }
   }
 
@@ -107,11 +107,13 @@ export class ToolRegistry {
       this.mcpClients.delete(name);
 
       // Remove associated external tools
-      for (const [toolName, ref] of this.externalTools) {
+      const toolsToRemove: string[] = [];
+      this.externalTools.forEach((ref, toolName) => {
         if (ref.serverName === name) {
-          this.externalTools.delete(toolName);
+          toolsToRemove.push(toolName);
         }
-      }
+      });
+      toolsToRemove.forEach((toolName) => this.externalTools.delete(toolName));
     }
   }
 
@@ -122,17 +124,17 @@ export class ToolRegistry {
     const tools: UnifiedTool[] = [];
 
     // Add internal tools
-    for (const def of this.internalTools.values()) {
+    this.internalTools.forEach((def) => {
       tools.push({
         name: def.name,
         description: def.tool.description,
         source: "internal",
         inputSchema: def.tool.inputSchema,
       });
-    }
+    });
 
     // Add external tools
-    for (const ref of this.externalTools.values()) {
+    this.externalTools.forEach((ref) => {
       tools.push({
         name: ref.name,
         description: ref.tool.description,
@@ -140,7 +142,7 @@ export class ToolRegistry {
         serverName: ref.serverName,
         inputSchema: ref.tool.inputSchema,
       });
-    }
+    });
 
     return tools;
   }
@@ -151,16 +153,16 @@ export class ToolRegistry {
   getMCPTools(): MCPTool[] {
     const tools: MCPTool[] = [];
 
-    for (const def of this.internalTools.values()) {
+    this.internalTools.forEach((def) => {
       tools.push(def.tool);
-    }
+    });
 
-    for (const ref of this.externalTools.values()) {
+    this.externalTools.forEach((ref) => {
       tools.push({
         ...ref.tool,
         name: ref.name, // Use prefixed name
       });
-    }
+    });
 
     return tools;
   }
@@ -300,13 +302,15 @@ export class ToolRegistry {
    */
   async clear(): Promise<void> {
     // Disconnect all clients
-    for (const [name, client] of this.mcpClients) {
-      try {
-        await client.disconnect();
-      } catch (error) {
-        console.error(`Error disconnecting ${name}:`, error);
-      }
-    }
+    const disconnectPromises: Promise<void>[] = [];
+    this.mcpClients.forEach((client, name) => {
+      disconnectPromises.push(
+        client.disconnect().catch((error) => {
+          console.error(`Error disconnecting ${name}:`, error);
+        })
+      );
+    });
+    await Promise.all(disconnectPromises);
 
     this.internalTools.clear();
     this.externalTools.clear();

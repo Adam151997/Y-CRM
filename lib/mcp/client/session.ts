@@ -224,11 +224,11 @@ export class MCPSession {
     console.error("[MCP Session] Transport error:", error);
 
     // Reject all pending requests
-    for (const [id, pending] of this.pendingRequests) {
+    this.pendingRequests.forEach((pending, id) => {
       clearTimeout(pending.timeout);
       pending.reject(error);
-      this.pendingRequests.delete(id);
-    }
+    });
+    this.pendingRequests.clear();
   }
 
   /**
@@ -239,11 +239,11 @@ export class MCPSession {
     this.initialized = false;
 
     // Reject all pending requests
-    for (const [id, pending] of this.pendingRequests) {
+    this.pendingRequests.forEach((pending) => {
       clearTimeout(pending.timeout);
       pending.reject(new Error("Connection closed"));
-      this.pendingRequests.delete(id);
-    }
+    });
+    this.pendingRequests.clear();
   }
 
   /**
