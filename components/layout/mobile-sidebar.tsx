@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Sidebar } from "./sidebar";
+import { DynamicSidebar } from "./dynamic-sidebar";
 import { cn } from "@/lib/utils";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,7 @@ export function MobileSidebar() {
 
   return (
     <>
-      {/* Mobile menu button - rendered in header via portal or passed via context */}
+      {/* Mobile menu button */}
       <div className="lg:hidden fixed top-3 left-3 z-50">
         <Button
           variant="ghost"
@@ -42,7 +42,7 @@ export function MobileSidebar() {
             open ? "translate-x-0" : "-translate-x-full"
           )}
         >
-          <Sidebar onNavigate={() => setOpen(false)} />
+          <DynamicSidebar onNavigate={() => setOpen(false)} />
         </div>
       </div>
     </>
