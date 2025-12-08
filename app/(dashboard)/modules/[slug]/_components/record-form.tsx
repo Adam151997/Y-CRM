@@ -31,8 +31,8 @@ interface Field {
   fieldType: string;
   required: boolean;
   options?: unknown;
-  placeholder?: string;
-  helpText?: string;
+  placeholder?: string | null;
+  helpText?: string | null;
   defaultValue?: unknown;
 }
 
@@ -129,7 +129,7 @@ export function RecordForm({ module, record }: RecordFormProps) {
                 ? "tel"
                 : "text"
             }
-            placeholder={field.placeholder}
+            placeholder={field.placeholder || undefined}
             value={String(value || "")}
             onChange={(e) => handleChange(field.fieldKey, e.target.value)}
             required={field.required}
@@ -139,7 +139,7 @@ export function RecordForm({ module, record }: RecordFormProps) {
       case "TEXTAREA":
         return (
           <Textarea
-            placeholder={field.placeholder}
+            placeholder={field.placeholder || undefined}
             value={String(value || "")}
             onChange={(e) => handleChange(field.fieldKey, e.target.value)}
             required={field.required}
@@ -153,7 +153,7 @@ export function RecordForm({ module, record }: RecordFormProps) {
         return (
           <Input
             type="number"
-            placeholder={field.placeholder}
+            placeholder={field.placeholder || undefined}
             value={value !== undefined && value !== "" ? String(value) : ""}
             onChange={(e) =>
               handleChange(
@@ -240,7 +240,7 @@ export function RecordForm({ module, record }: RecordFormProps) {
       default:
         return (
           <Input
-            placeholder={field.placeholder}
+            placeholder={field.placeholder || undefined}
             value={String(value || "")}
             onChange={(e) => handleChange(field.fieldKey, e.target.value)}
             required={field.required}
