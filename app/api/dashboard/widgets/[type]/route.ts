@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthContext } from "@/lib/auth";
 import prisma from "@/lib/db";
-import { startOfDay, endOfDay, addDays, subDays, startOfMonth, subMonths } from "date-fns";
+import { startOfDay, endOfDay, addDays, startOfMonth, subMonths } from "date-fns";
 
 export async function GET(
   request: NextRequest,
@@ -44,10 +44,11 @@ export async function GET(
 // === SALES WIDGETS ===
 
 async function getPipelineValue(orgId: string) {
+  // Opportunity uses closedWon: null means open, true/false means closed
   const opportunities = await prisma.opportunity.findMany({
     where: {
       orgId,
-      status: { notIn: ["CLOSED_WON", "CLOSED_LOST"] },
+      closedWon: null, // Open opportunities only
     },
     select: { value: true },
   });
@@ -61,7 +62,7 @@ async function getPipelineValue(orgId: string) {
     where: {
       orgId,
       createdAt: { gte: lastMonthStart, lt: startOfMonth(new Date()) },
-      status: { notIn: ["CLOSED_WON", "CLOSED_LOST"] },
+      closedWon: null,
     },
     select: { value: true },
   });
@@ -91,13 +92,14 @@ async function getLeadsByStatus(orgId: string) {
 async function getDealsClosing(orgId: string) {
   const thirtyDaysFromNow = addDays(new Date(), 30);
 
+  // Use expectedCloseDate and closedWon for filtering
   const opportunities = await prisma.opportunity.findMany({
     where: {
       orgId,
-      status: { notIn: ["CLOSED_WON", "CLOSED_LOST"] },
-      closeDate: { lte: thirtyDaysFromNow },
+      closedWon: null, // Open opportunities only
+      expectedCloseDate: { lte: thirtyDaysFromNow },
     },
-    orderBy: { closeDate: "asc" },
+    orderBy: { expectedCloseDate: "asc" },
     take: 5,
     include: {
       account: { select: { name: true } },
@@ -109,7 +111,7 @@ async function getDealsClosing(orgId: string) {
     name: o.name,
     value: o.value?.toNumber() || 0,
     probability: o.probability || 50,
-    closeDate: o.closeDate?.toISOString() || new Date().toISOString(),
+    closeDate: o.expectedCloseDate?.toISOString() || new Date().toISOString(),
     accountName: o.account?.name || "Unknown",
   }));
 
@@ -200,16 +202,21 @@ async function getUpcomingRenewals(orgId: string) {
 async function getTasksDueToday(orgId: string, workspace: string) {
   const today = new Date();
 
-  const tasks = await prisma.task.findMany({
-    where: {
-      orgId,
-      dueDate: {
-        gte: startOfDay(today),
-        lte: endOfDay(today),
-      },
-      status: { not: "COMPLETED" },
-      ...(workspace !== "all" && { workspace }),
+  const whereClause: Record<string, unknown> = {
+    orgId,
+    dueDate: {
+      gte: startOfDay(today),
+      lte: endOfDay(today),
     },
+    status: { not: "COMPLETED" },
+  };
+  
+  if (workspace !== "all") {
+    whereClause.workspace = workspace;
+  }
+
+  const tasks = await prisma.task.findMany({
+    where: whereClause,
     orderBy: [{ priority: "desc" }, { dueDate: "asc" }],
     take: 10,
     include: {
@@ -249,23 +256,12 @@ async function getTasksDueToday(orgId: string, workspace: string) {
 }
 
 async function getRecentActivity(orgId: string, workspace: string) {
-  const activities = await prisma.activity.findMany({
-    where: {
-      orgId,
-      ...(workspace !== "all" && { workspace }),
-    },
-    orderBy: { createdAt: "desc" },
-    take: 10,
-    select: {
-      id: true,
-      type: true,
-      description: true,
-      createdAt: true,
-      createdById: true,
-    },
-  });
+  const whereClause: Record<string, unknown> = { orgId };
+  if (workspace !== "all") {
+    whereClause.workspace = workspace;
+  }
 
-  // Also get recent audit logs for more activity context
+  // Get recent audit logs for activity context
   const auditLogs = await prisma.auditLog.findMany({
     where: { orgId },
     orderBy: { createdAt: "desc" },
@@ -279,7 +275,7 @@ async function getRecentActivity(orgId: string, workspace: string) {
     },
   });
 
-  // Combine and format
+  // Format activities
   const formatted = auditLogs.map((log) => ({
     id: log.id,
     type: log.action,
@@ -296,12 +292,12 @@ async function getQuickStats(orgId: string, workspace: string) {
   const stats: { label: string; value: string | number; change?: number; changeLabel?: string }[] = [];
 
   if (workspace === "sales") {
-    // Sales stats
+    // Sales stats - use closedWon: null for open opportunities
     const [leads, opportunities, accounts, tasks] = await Promise.all([
       prisma.lead.count({ where: { orgId } }),
-      prisma.opportunity.count({ where: { orgId, status: { notIn: ["CLOSED_WON", "CLOSED_LOST"] } } }),
+      prisma.opportunity.count({ where: { orgId, closedWon: null } }),
       prisma.account.count({ where: { orgId } }),
-      prisma.task.count({ where: { orgId, status: "TODO", workspace: "sales" } }),
+      prisma.task.count({ where: { orgId, status: "PENDING", workspace: "sales" } }),
     ]);
 
     stats.push(
