@@ -1,15 +1,41 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
 
 const isPublicRoute = createRouteMatcher([
   "/sign-in(.*)",
   "/sign-up(.*)",
   "/api/webhooks(.*)",
+  "/api/mcp(.*)", // MCP endpoints use API key auth
 ]);
 
 export default clerkMiddleware(async (auth, request) => {
+  // Protect non-public routes
   if (!isPublicRoute(request)) {
     await auth.protect();
   }
+
+  // Get response
+  const response = NextResponse.next();
+
+  // Add security headers
+  response.headers.set("X-Frame-Options", "DENY");
+  response.headers.set("X-Content-Type-Options", "nosniff");
+  response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  response.headers.set("X-XSS-Protection", "1; mode=block");
+  response.headers.set(
+    "Permissions-Policy",
+    "camera=(), microphone=(self), geolocation=()"
+  );
+
+  // Allow microphone for voice input
+  if (request.nextUrl.pathname.includes("/assistant")) {
+    response.headers.set(
+      "Permissions-Policy",
+      "camera=(), microphone=(self), geolocation=()"
+    );
+  }
+
+  return response;
 });
 
 export const config = {

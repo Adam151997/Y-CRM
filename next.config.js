@@ -1,4 +1,9 @@
 /** @type {import('next').NextConfig} */
+
+const withBundleAnalyzer = require('@next/bundle-analyzer')({
+  enabled: process.env.ANALYZE === 'true',
+});
+
 const nextConfig = {
   experimental: {
     serverActions: {
@@ -31,6 +36,17 @@ const nextConfig = {
   compress: true,
   // Generate ETags for caching
   generateEtags: true,
+  // Reduce bundle size
+  modularizeImports: {
+    'lucide-react': {
+      transform: 'lucide-react/dist/esm/icons/{{kebabCase member}}',
+    },
+    '@radix-ui/react-icons': {
+      transform: '@radix-ui/react-icons/dist/{{member}}',
+    },
+  },
+  // Optimize package imports
+  transpilePackages: ['lucide-react'],
 };
 
-module.exports = nextConfig;
+module.exports = withBundleAnalyzer(nextConfig);
