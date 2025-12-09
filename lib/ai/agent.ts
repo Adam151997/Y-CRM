@@ -8,24 +8,59 @@ import {
   ModelType,
 } from "./providers";
 import {
+  // Lead tools
   createLeadTool,
   searchLeadsTool,
   updateLeadTool,
+  // Contact tools
   createContactTool,
   searchContactsTool,
+  // Account tools
   createAccountTool,
   searchAccountsTool,
+  // Task tools
   createTaskTool,
   completeTaskTool,
   searchTasksTool,
+  // Opportunity tools
   createOpportunityTool,
   searchOpportunitiesTool,
+  // Note tools
   createNoteTool,
+  // Dashboard tools
   getDashboardStatsTool,
+  // Semantic search
   semanticSearchTool,
+  // Document tools
   searchDocumentsTool,
   getDocumentStatsTool,
   analyzeDocumentTool,
+  // CS Workspace - Tickets
+  createTicketTool,
+  searchTicketsTool,
+  updateTicketTool,
+  addTicketMessageTool,
+  // CS Workspace - Health
+  getHealthScoreTool,
+  searchAtRiskAccountsTool,
+  // CS Workspace - Playbooks
+  searchPlaybooksTool,
+  runPlaybookTool,
+  // Marketing Workspace - Campaigns
+  createCampaignTool,
+  searchCampaignsTool,
+  // Marketing Workspace - Segments
+  createSegmentTool,
+  searchSegmentsTool,
+  // Marketing Workspace - Forms
+  createFormTool,
+  searchFormsTool,
+  // Custom Modules
+  createCustomModuleTool,
+  createCustomFieldTool,
+  createCustomModuleRecordTool,
+  searchCustomModuleRecordsTool,
+  listCustomModulesTool,
   // Composio Integration Tools
   getConnectedIntegrationsTool,
   sendEmailTool,
@@ -40,51 +75,73 @@ export interface AgentContext {
   orgId: string;
   userId: string;
   requestId?: string;
-  modelType?: ModelType; // Optional: "fast" (default) or "advanced"
+  modelType?: ModelType;
+  workspace?: "sales" | "cs" | "marketing";
 }
 
 export interface AgentResult {
   success: boolean;
   response: string;
   toolsCalled: string[];
-  toolResults: Record<string, unknown>[]; // Track tool results for context
+  toolResults: Record<string, unknown>[];
   modelUsed: string;
   error?: string;
 }
 
 /**
  * Get all available tools for the CRM agent
+ * Includes tools from all workspaces: Sales, CS, Marketing, and Global
  */
 export function getCRMTools(orgId: string, userId: string) {
   return {
-    // Lead tools
+    // SALES WORKSPACE TOOLS
     createLead: createLeadTool(orgId, userId),
     searchLeads: searchLeadsTool(orgId),
     updateLead: updateLeadTool(orgId, userId),
-    // Contact tools
     createContact: createContactTool(orgId, userId),
     searchContacts: searchContactsTool(orgId),
-    // Account tools
     createAccount: createAccountTool(orgId, userId),
     searchAccounts: searchAccountsTool(orgId),
-    // Task tools
+    createOpportunity: createOpportunityTool(orgId, userId),
+    searchOpportunities: searchOpportunitiesTool(orgId),
+
+    // CS WORKSPACE TOOLS
+    createTicket: createTicketTool(orgId, userId),
+    searchTickets: searchTicketsTool(orgId),
+    updateTicket: updateTicketTool(orgId, userId),
+    addTicketMessage: addTicketMessageTool(orgId, userId),
+    getHealthScore: getHealthScoreTool(orgId),
+    searchAtRiskAccounts: searchAtRiskAccountsTool(orgId),
+    searchPlaybooks: searchPlaybooksTool(orgId),
+    runPlaybook: runPlaybookTool(orgId, userId),
+
+    // MARKETING WORKSPACE TOOLS
+    createCampaign: createCampaignTool(orgId, userId),
+    searchCampaigns: searchCampaignsTool(orgId),
+    createSegment: createSegmentTool(orgId, userId),
+    searchSegments: searchSegmentsTool(orgId),
+    createForm: createFormTool(orgId, userId),
+    searchForms: searchFormsTool(orgId),
+
+    // GLOBAL TOOLS (All Workspaces)
     createTask: createTaskTool(orgId, userId),
     completeTask: completeTaskTool(orgId, userId),
     searchTasks: searchTasksTool(orgId),
-    // Opportunity tools
-    createOpportunity: createOpportunityTool(orgId, userId),
-    searchOpportunities: searchOpportunitiesTool(orgId),
-    // Note tools
     createNote: createNoteTool(orgId, userId),
-    // Dashboard tools
     getDashboardStats: getDashboardStatsTool(orgId),
-    // Semantic search
     semanticSearch: semanticSearchTool(orgId),
-    // Document tools
     searchDocuments: searchDocumentsTool(orgId),
     getDocumentStats: getDocumentStatsTool(orgId),
     analyzeDocument: analyzeDocumentTool(orgId),
-    // Composio Integration tools
+
+    // CUSTOM MODULE TOOLS
+    createCustomModule: createCustomModuleTool(orgId, userId),
+    createCustomField: createCustomFieldTool(orgId, userId),
+    createCustomModuleRecord: createCustomModuleRecordTool(orgId, userId),
+    searchCustomModuleRecords: searchCustomModuleRecordsTool(orgId),
+    listCustomModules: listCustomModulesTool(orgId),
+
+    // EXTERNAL INTEGRATION TOOLS (Composio)
     getConnectedIntegrations: getConnectedIntegrationsTool(orgId),
     sendEmail: sendEmailTool(orgId),
     createCalendarEvent: createCalendarEventTool(orgId),
@@ -94,26 +151,44 @@ export function getCRMTools(orgId: string, userId: string) {
   };
 }
 
-/**
- * Detect if the message requires advanced model
- */
 function detectAdvancedIntent(message: string): boolean {
   const advancedKeywords = [
     "analyze", "analysis", "report", "insight", "trend",
     "forecast", "predict", "compare", "summary", "breakdown",
     "performance", "metrics", "statistics", "evaluate", "assess",
     "strategy", "recommendation", "why", "how come", "explain why",
-    "document stats", "storage used", "analyze document",
+    "health score", "at risk", "churn", "retention",
+    "campaign performance", "conversion rate", "roi",
   ];
   
   const lowerMessage = message.toLowerCase();
   return advancedKeywords.some(keyword => lowerMessage.includes(keyword));
 }
 
-/**
- * Execute agent request with tool support
- * Uses Gemini 2.0 Flash by default, Gemini 2.5 Pro for complex tasks
- */
+function detectWorkspace(message: string): "sales" | "cs" | "marketing" | null {
+  const lower = message.toLowerCase();
+  
+  if (lower.includes("ticket") || lower.includes("support") || 
+      lower.includes("health score") || lower.includes("playbook") ||
+      lower.includes("at risk") || lower.includes("customer success")) {
+    return "cs";
+  }
+  
+  if (lower.includes("campaign") || lower.includes("segment") ||
+      lower.includes("form") || lower.includes("marketing") ||
+      lower.includes("audience") || lower.includes("email blast")) {
+    return "marketing";
+  }
+  
+  if (lower.includes("lead") || lower.includes("opportunity") ||
+      lower.includes("pipeline") || lower.includes("deal") ||
+      lower.includes("sales") || lower.includes("prospect")) {
+    return "sales";
+  }
+  
+  return null;
+}
+
 export async function executeAgent(
   messages: CoreMessage[],
   context: AgentContext
@@ -122,7 +197,6 @@ export async function executeAgent(
   const toolsCalled: string[] = [];
   const toolResults: Record<string, unknown>[] = [];
 
-  // Check if AI is configured
   if (!isAIConfigured()) {
     return {
       success: false,
@@ -134,7 +208,6 @@ export async function executeAgent(
     };
   }
 
-  // Determine which model to use
   const lastUserMessage = messages.filter(m => m.role === "user").pop();
   const userContent = typeof lastUserMessage?.content === "string" 
     ? lastUserMessage.content 
@@ -144,12 +217,15 @@ export async function executeAgent(
   const model = useAdvancedModel ? geminiPro : geminiFlash;
   const modelName = useAdvancedModel ? "gemini-2.5-pro" : "gemini-2.0-flash";
   const systemPrompt = useAdvancedModel ? ANALYTICS_SYSTEM_PROMPT : CRM_SYSTEM_PROMPT;
+  const detectedWorkspace = context.workspace || detectWorkspace(userContent);
 
   try {
     const tools = getCRMTools(orgId, userId);
 
     console.log(`[Agent] Starting execution with ${modelName}`);
+    console.log("[Agent] Workspace:", detectedWorkspace || "auto-detect");
     console.log("[Agent] Message:", userContent.substring(0, 100));
+    console.log("[Agent] Available tools:", Object.keys(tools).length);
 
     const result = await generateText({
       model,
@@ -170,7 +246,6 @@ export async function executeAgent(
           });
         }
         
-        // Capture tool results for context
         if (stepToolResults && stepToolResults.length > 0) {
           stepToolResults.forEach((tr) => {
             if (tr.result && typeof tr.result === 'object') {
@@ -187,7 +262,6 @@ export async function executeAgent(
       toolsCalled,
     });
 
-    // Log the AI interaction
     await createAuditLog({
       orgId,
       action: "AI_EXECUTION",
@@ -197,6 +271,7 @@ export async function executeAgent(
       requestId,
       metadata: {
         model: modelName,
+        workspace: detectedWorkspace,
         toolsCalled,
         messageCount: messages.length,
         finishReason: result.finishReason,
@@ -222,6 +297,7 @@ export async function executeAgent(
       requestId,
       metadata: {
         model: modelName,
+        workspace: detectedWorkspace,
         error: error instanceof Error ? error.message : "Unknown error",
         toolsCalled,
       },
@@ -238,9 +314,6 @@ export async function executeAgent(
   }
 }
 
-/**
- * Parse user intent from natural language
- */
 export async function parseIntent(
   userMessage: string,
   context: AgentContext
@@ -248,29 +321,25 @@ export async function parseIntent(
   intent: string;
   confidence: number;
   entities: Record<string, unknown>;
+  workspace: string | null;
 }> {
   if (!isAIConfigured()) {
-    return {
-      intent: "UNKNOWN",
-      confidence: 0,
-      entities: {},
-    };
+    return { intent: "UNKNOWN", confidence: 0, entities: {}, workspace: null };
   }
 
-  const intentPrompt = `Analyze this CRM-related message and extract the intent and entities.
-
+  const intentPrompt = `Analyze this CRM-related message and extract the intent, entities, and workspace.
 Message: "${userMessage}"
-
 Respond with JSON only:
 {
-  "intent": "CREATE_LEAD" | "UPDATE_LEAD" | "SEARCH_LEADS" | "CREATE_CONTACT" | "CREATE_ACCOUNT" | "CREATE_TASK" | "COMPLETE_TASK" | "CREATE_OPPORTUNITY" | "SEARCH_OPPORTUNITIES" | "GET_STATS" | "GENERATE_REPORT" | "ANALYZE_DATA" | "GENERAL_QUESTION",
+  "intent": "CREATE_LEAD" | "UPDATE_LEAD" | "SEARCH_LEADS" | "CREATE_CONTACT" | "CREATE_ACCOUNT" | "CREATE_TASK" | "COMPLETE_TASK" | "CREATE_OPPORTUNITY" | "SEARCH_OPPORTUNITIES" | "CREATE_TICKET" | "SEARCH_TICKETS" | "CREATE_CAMPAIGN" | "SEARCH_CAMPAIGNS" | "GET_STATS" | "GENERATE_REPORT" | "ANALYZE_DATA" | "GENERAL_QUESTION",
   "confidence": 0.0-1.0,
-  "entities": {}
+  "entities": {},
+  "workspace": "sales" | "cs" | "marketing" | null
 }`;
 
   try {
     const result = await generateText({
-      model: geminiFlash, // Always use fast model for intent parsing
+      model: geminiFlash,
       messages: [{ role: "user", content: intentPrompt }],
     });
 
@@ -286,17 +355,15 @@ Respond with JSON only:
     intent: "GENERAL_QUESTION",
     confidence: 0.5,
     entities: {},
+    workspace: detectWorkspace(userMessage),
   };
 }
 
-/**
- * Generate confirmation message for destructive operations
- */
 export function generateConfirmation(
   intent: string,
   entities: Record<string, unknown>
 ): string | null {
-  const destructiveIntents = ["UPDATE_LEAD", "DELETE_LEAD", "COMPLETE_TASK"];
+  const destructiveIntents = ["UPDATE_LEAD", "DELETE_LEAD", "COMPLETE_TASK", "UPDATE_TICKET"];
 
   if (!destructiveIntents.includes(intent)) {
     return null;
@@ -309,6 +376,8 @@ export function generateConfirmation(
       return `This will permanently delete the lead. Are you sure?`;
     case "COMPLETE_TASK":
       return `I'll mark this task as completed. Confirm?`;
+    case "UPDATE_TICKET":
+      return `I'll update the ticket status. Proceed?`;
     default:
       return null;
   }
