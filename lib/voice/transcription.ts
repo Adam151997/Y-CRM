@@ -5,10 +5,20 @@
 
 import OpenAI from "openai";
 
-// Initialize OpenAI client (uses OPENAI_API_KEY env var)
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Lazy initialization of OpenAI client
+let openaiClient: OpenAI | null = null;
+
+function getOpenAIClient(): OpenAI {
+  if (!openaiClient) {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error("OPENAI_API_KEY environment variable is not set");
+    }
+    openaiClient = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+  }
+  return openaiClient;
+}
 
 export interface TranscriptionResult {
   success: boolean;
@@ -33,6 +43,7 @@ export async function transcribeAudio(
 ): Promise<TranscriptionResult> {
   try {
     const startTime = Date.now();
+    const openai = getOpenAIClient();
 
     // Convert Blob to File if needed
     const file = audioFile instanceof File 
