@@ -78,7 +78,7 @@ export default async function PlaybookDetailPage({ params }: PageProps) {
     notFound();
   }
 
-  const steps = (playbook.steps as PlaybookStep[]) || [];
+  const steps = (playbook.steps as unknown as PlaybookStep[]) || [];
   
   // Get account names for runs
   const accountIds = playbook.runs.map(r => r.accountId);
