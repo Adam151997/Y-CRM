@@ -1732,7 +1732,7 @@ export const createCustomModuleRecordTool = (orgId: string, userId: string) =>
           data: {
             orgId,
             moduleId,
-            data,
+            data: data as unknown as import("@prisma/client").Prisma.InputJsonValue,
             createdById: userId,
             createdByType: "AI_AGENT",
           },
