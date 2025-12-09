@@ -1,4 +1,4 @@
-import {
+﻿import {
   LayoutDashboard,
   Users,
   Building2,
@@ -60,7 +60,6 @@ const salesNavigation: NavSection[] = [
     title: "Productivity",
     items: [
       { name: "Tasks", href: "/sales/tasks", icon: CheckSquare },
-      { name: "Reports", href: "/sales/reports", icon: BarChart3 },
     ],
   },
 ];
@@ -101,7 +100,7 @@ const csNavigation: NavSection[] = [
   },
 ];
 
-// Marketing workspace navigation (placeholder for future)
+// Marketing workspace navigation
 const marketingNavigation: NavSection[] = [
   {
     items: [
@@ -141,3 +140,8 @@ export const WORKSPACE_NAVIGATION: Record<WorkspaceType, NavSection[]> = {
 export function getWorkspaceNavigation(workspace: WorkspaceType): NavSection[] {
   return WORKSPACE_NAVIGATION[workspace] || salesNavigation;
 }
+
+// Global navigation - available across all workspaces
+export const GLOBAL_NAVIGATION: NavItem[] = [
+  { name: "Reports", href: "/reports", icon: BarChart3 },
+];
