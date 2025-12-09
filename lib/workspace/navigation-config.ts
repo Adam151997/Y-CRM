@@ -1,4 +1,4 @@
-﻿import {
+import {
   LayoutDashboard,
   Users,
   Building2,
@@ -11,11 +11,9 @@
   Ticket,
   HeartPulse,
   BookOpen,
-  RefreshCw,
   Megaphone,
   UsersRound,
   FileInput,
-  Image,
   LucideIcon,
 } from "lucide-react";
 import { WorkspaceType } from "./workspace-context";
@@ -89,7 +87,6 @@ const csNavigation: NavSection[] = [
     title: "Success Programs",
     items: [
       { name: "Playbooks", href: "/cs/playbooks", icon: BookOpen },
-      { name: "Renewals", href: "/cs/renewals", icon: RefreshCw },
     ],
   },
   {
@@ -119,12 +116,6 @@ const marketingNavigation: NavSection[] = [
     items: [
       { name: "Segments", href: "/marketing/segments", icon: UsersRound },
       { name: "Forms", href: "/marketing/forms", icon: FileInput },
-    ],
-  },
-  {
-    title: "Assets",
-    items: [
-      { name: "Assets", href: "/marketing/assets", icon: Image },
     ],
   },
 ];
