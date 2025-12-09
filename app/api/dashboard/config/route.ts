@@ -4,6 +4,7 @@ import prisma from "@/lib/db";
 import { DEFAULT_LAYOUTS } from "@/lib/dashboard/widget-registry";
 import { WorkspaceType } from "@/lib/workspace";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 
 // GET /api/dashboard/config - Get user's dashboard config
 export async function GET(request: NextRequest) {
@@ -101,15 +102,15 @@ export async function PUT(request: NextRequest) {
         },
       },
       update: {
-        layout: layout as unknown as Record<string, unknown>[],
-        widgets: widgets as unknown as Record<string, unknown>[],
+        layout: layout as Prisma.InputJsonValue,
+        widgets: widgets as Prisma.InputJsonValue,
       },
       create: {
         orgId,
         userId,
         workspace,
-        layout: layout as unknown as Record<string, unknown>[],
-        widgets: widgets as unknown as Record<string, unknown>[],
+        layout: layout as Prisma.InputJsonValue,
+        widgets: widgets as Prisma.InputJsonValue,
       },
     });
 
