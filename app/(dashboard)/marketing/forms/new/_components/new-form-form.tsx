@@ -85,7 +85,7 @@ export function NewFormForm() {
 
   const updateField = (index: number, key: keyof FormField, value: string | boolean) => {
     const newFields = [...fields];
-    (newFields[index] as Record<string, unknown>)[key] = value;
+    (newFields[index] as unknown as Record<string, unknown>)[key] = value;
     setFields(newFields);
   };
 
