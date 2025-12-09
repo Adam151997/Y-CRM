@@ -101,15 +101,15 @@ export async function PUT(request: NextRequest) {
         },
       },
       update: {
-        layout,
-        widgets,
+        layout: layout as unknown as Record<string, unknown>[],
+        widgets: widgets as unknown as Record<string, unknown>[],
       },
       create: {
         orgId,
         userId,
         workspace,
-        layout,
-        widgets,
+        layout: layout as unknown as Record<string, unknown>[],
+        widgets: widgets as unknown as Record<string, unknown>[],
       },
     });
 
