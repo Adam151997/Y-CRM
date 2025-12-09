@@ -32,6 +32,11 @@ export type AuditModule =
   | "PLAYBOOK"
   | "PLAYBOOK_RUN"
   | "RENEWAL"
+  // Marketing
+  | "CAMPAIGN"
+  | "SEGMENT"
+  | "FORM"
+  | "FORM_SUBMISSION"
   // System
   | "SYSTEM"
   | "AUTH";

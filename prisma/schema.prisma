@@ -73,6 +73,11 @@ model Organization {
   playbooks           Playbook[]
   renewals            Renewal[]
   
+  // Relations - Marketing
+  campaigns           Campaign[]
+  segments            Segment[]
+  forms               Form[]
+  
   // Relations - Shared
   customFields        CustomFieldDefinition[]
   customModules       CustomModule[]
@@ -820,4 +825,158 @@ model Integration {
   @@unique([orgId, provider])
   @@index([orgId])
   @@index([provider, status])
+}
+
+// =============================================================================
+// MARKETING MODULES
+// =============================================================================
+
+model Campaign {
+  id              String    @id @default(uuid())
+  orgId           String
+  org             Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  
+  name            String
+  description     String?   @db.Text
+  type            String    // EMAIL, SOCIAL, EVENT, WEBINAR, SMS, ADS
+  status          String    @default("DRAFT") // DRAFT, SCHEDULED, ACTIVE, PAUSED, COMPLETED, CANCELLED
+  
+  // Targeting
+  segmentId       String?
+  segment         Segment?  @relation(fields: [segmentId], references: [id])
+  
+  // Schedule
+  scheduledAt     DateTime?
+  startedAt       DateTime?
+  completedAt     DateTime?
+  
+  // Content
+  subject         String?   // Email subject or campaign headline
+  content         Json?     // Rich content, template data, or configuration
+  settings        Json?     // Campaign-specific settings
+  
+  // Metrics
+  metrics         Json?     // { sent, delivered, opened, clicked, converted, bounced, unsubscribed }
+  
+  // Budget (for ads)
+  budget          Decimal?  @db.Decimal(15, 2)
+  spent           Decimal?  @db.Decimal(15, 2)
+  
+  // Attribution
+  createdById     String
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([orgId, status])
+  @@index([orgId, type])
+  @@index([segmentId])
+}
+
+model Segment {
+  id              String   @id @default(uuid())
+  orgId           String
+  org             Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  
+  name            String
+  description     String?
+  
+  // Dynamic rules for segment membership
+  // [{ field: "industry", operator: "equals", value: "Technology" }, ...]
+  rules           Json     @default("[]")
+  
+  // Rule logic: AND (all rules must match) or OR (any rule matches)
+  ruleLogic       String   @default("AND") // AND, OR
+  
+  // Computed member count (updated periodically)
+  memberCount     Int      @default(0)
+  lastCalculatedAt DateTime?
+  
+  // Segment type
+  type            String   @default("DYNAMIC") // DYNAMIC, STATIC
+  
+  // For static segments - manually added member IDs
+  staticMembers   Json?    // ["contact-id-1", "contact-id-2", ...]
+  
+  isActive        Boolean  @default(true)
+  
+  // Relations
+  campaigns       Campaign[]
+  
+  createdById     String
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([orgId])
+  @@index([orgId, isActive])
+}
+
+model Form {
+  id              String   @id @default(uuid())
+  orgId           String
+  org             Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  
+  name            String
+  description     String?
+  
+  // Form configuration
+  // [{ id, type, label, required, placeholder, options, validation }, ...]
+  fields          Json     @default("[]")
+  
+  // Form settings
+  settings        Json?    // { redirectUrl, notifyEmails, confirmationMessage, styling }
+  
+  // Lead/Contact creation settings
+  createLead      Boolean  @default(true)
+  assignToUserId  String?  // Auto-assign new leads to this user
+  leadSource      String   @default("FORM") // Source value for created leads
+  
+  // Stats
+  views           Int      @default(0)
+  submissions     Int      @default(0)
+  conversionRate  Decimal? @db.Decimal(5, 2) // Calculated: submissions/views * 100
+  
+  // Status
+  isActive        Boolean  @default(true)
+  
+  // Public access
+  slug            String?  // For public form URL
+  
+  createdById     String
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Submissions
+  formSubmissions FormSubmission[]
+
+  @@unique([orgId, slug])
+  @@index([orgId])
+  @@index([orgId, isActive])
+}
+
+model FormSubmission {
+  id              String   @id @default(uuid())
+  orgId           String
+  
+  formId          String
+  form            Form     @relation(fields: [formId], references: [id], onDelete: Cascade)
+  
+  // Submitted data
+  data            Json     // { fieldId: value, ... }
+  
+  // Created lead/contact reference
+  leadId          String?
+  contactId       String?
+  
+  // Submission metadata
+  ipAddress       String?
+  userAgent       String?
+  referrer        String?
+  
+  createdAt       DateTime @default(now())
+
+  @@index([formId])
+  @@index([formId, createdAt])
 }
