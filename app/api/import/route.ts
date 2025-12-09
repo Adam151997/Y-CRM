@@ -66,7 +66,8 @@ const FIELD_MAPPINGS: Record<ImportModule, Record<string, string>> = {
     "industry": "industry",
     "type": "type",
     "annual_revenue": "annualRevenue",
-    "employees": "employees",
+    "employees": "employeeCount",
+    "employee_count": "employeeCount",
   },
   opportunities: {
     "name": "name",
@@ -121,7 +122,7 @@ function mapFields(row: Record<string, string>, module: ImportModule): Record<st
       if (mappedField === "annualRevenue" || mappedField === "value") {
         const numValue = parseFloat(value.replace(/[^0-9.-]/g, ""));
         result[mappedField] = isNaN(numValue) ? null : numValue;
-      } else if (mappedField === "employees" || mappedField === "probability") {
+      } else if (mappedField === "employeeCount" || mappedField === "probability") {
         const intValue = parseInt(value.replace(/[^0-9-]/g, ""), 10);
         result[mappedField] = isNaN(intValue) ? null : intValue;
       } else if (mappedField === "expectedCloseDate" || mappedField === "dueDate") {
@@ -233,7 +234,7 @@ async function importRecords(
               industry: data.industry as string | undefined,
               type: data.type as string | undefined,
               annualRevenue: data.annualRevenue as number | undefined,
-              employees: data.employees as number | undefined,
+              employeeCount: data.employeeCount as number | undefined,
             },
           });
           break;

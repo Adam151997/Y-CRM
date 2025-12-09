@@ -34,7 +34,7 @@ const MODULE_CONFIGS: Record<ExportModule, {
     headers: ["First Name", "Last Name", "Email", "Phone", "Title", "Department", "Is Primary", "Created At"],
   },
   accounts: {
-    fields: ["name", "website", "phone", "industry", "type", "rating", "annualRevenue", "employees", "createdAt"],
+    fields: ["name", "website", "phone", "industry", "type", "rating", "annualRevenue", "employeeCount", "createdAt"],
     headers: ["Name", "Website", "Phone", "Industry", "Type", "Rating", "Annual Revenue", "Employees", "Created At"],
   },
   opportunities: {

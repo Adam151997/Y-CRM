@@ -48,7 +48,7 @@ const MODULE_OPTIONS = [
 const SAMPLE_HEADERS: Record<ImportModule, string> = {
   leads: "First Name,Last Name,Email,Phone,Company,Title,Source,Status",
   contacts: "First Name,Last Name,Email,Phone,Title,Department",
-  accounts: "Name,Website,Phone,Industry,Type,Annual Revenue,Employees",
+  accounts: "Name,Website,Phone,Industry,Type,Annual Revenue,Employee Count",
   tasks: "Title,Description,Due Date,Priority,Status,Task Type",
 };
 
