@@ -6,10 +6,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthContext } from "@/lib/auth";
 import prisma from "@/lib/db";
-import { createAuditLog } from "@/lib/audit";
+import { createAuditLog, AuditModule } from "@/lib/audit";
 import Papa from "papaparse";
 
 type ExportModule = "leads" | "contacts" | "accounts" | "opportunities" | "tasks" | "tickets";
+
+// Map export module names to audit module names
+const AUDIT_MODULE_MAP: Record<ExportModule, AuditModule> = {
+  leads: "LEAD",
+  contacts: "CONTACT",
+  accounts: "ACCOUNT",
+  opportunities: "OPPORTUNITY",
+  tasks: "TASK",
+  tickets: "TICKET",
+};
 
 const MODULE_CONFIGS: Record<ExportModule, {
   fields: string[];
@@ -146,7 +156,7 @@ export async function GET(request: NextRequest) {
     await createAuditLog({
       orgId: auth.orgId,
       action: "EXPORT",
-      module: module.toUpperCase(),
+      module: AUDIT_MODULE_MAP[module],
       actorType: "USER",
       actorId: auth.userId,
       metadata: {

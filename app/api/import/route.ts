@@ -6,13 +6,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthContext } from "@/lib/auth";
 import prisma from "@/lib/db";
-import { createAuditLog } from "@/lib/audit";
+import { createAuditLog, AuditModule } from "@/lib/audit";
 import Papa from "papaparse";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
 type ImportModule = "leads" | "contacts" | "accounts" | "opportunities" | "tasks";
+
+// Map import module names to audit module names
+const AUDIT_MODULE_MAP: Record<ImportModule, AuditModule> = {
+  leads: "LEAD",
+  contacts: "CONTACT",
+  accounts: "ACCOUNT",
+  opportunities: "OPPORTUNITY",
+  tasks: "TASK",
+};
 
 interface ImportResult {
   success: boolean;
@@ -258,7 +267,7 @@ async function importRecords(
   await createAuditLog({
     orgId,
     action: "IMPORT",
-    module: module.toUpperCase(),
+    module: AUDIT_MODULE_MAP[module],
     actorType: "USER",
     actorId: userId,
     metadata: {
