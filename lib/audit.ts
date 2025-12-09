@@ -25,6 +25,7 @@ export type AuditModule =
   | "DOCUMENT"
   | "CUSTOM_MODULE"
   | "CUSTOM_MODULE_RECORD"
+  | "CUSTOM_FIELD"
   // Customer Success
   | "TICKET"
   | "TICKET_MESSAGE"
