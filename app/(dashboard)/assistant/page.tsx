@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
+import { VoiceInput } from "@/components/voice/voice-input";
 import {
   Send,
   StopCircle,
@@ -90,6 +91,19 @@ export default function AssistantPage() {
   const handleSuggestionClick = (suggestion: string) => {
     setInput(suggestion);
     inputRef.current?.focus();
+  };
+
+  // Handle voice transcription
+  const handleVoiceTranscript = (text: string) => {
+    if (text.trim()) {
+      // Automatically send the voice message
+      sendMessage(text);
+      toast.success("Voice command sent");
+    }
+  };
+
+  const handleVoiceError = (error: string) => {
+    toast.error(`Voice error: ${error}`);
   };
 
   return (
@@ -182,7 +196,7 @@ export default function AssistantPage() {
               </h3>
               <p className="text-muted-foreground max-w-md mb-6">
                 I can help you manage leads, contacts, accounts, tasks, and
-                opportunities. Try one of these:
+                opportunities. Try one of these or use voice input:
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm max-w-2xl">
                 {[
@@ -204,7 +218,7 @@ export default function AssistantPage() {
                 ))}
               </div>
               <p className="text-xs text-muted-foreground mt-4">
-                ⚡ Fast (Gemini 2.0 Flash) • 🧠 Advanced (Gemini 2.5 Pro)
+                ⚡ Fast (Gemini 2.0 Flash) • 🧠 Advanced (Gemini 2.5 Pro) • 🎤 Voice enabled
               </p>
             </div>
           ) : (
@@ -275,9 +289,15 @@ export default function AssistantPage() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Type your message... (e.g., 'Create a lead for John Doe')"
+              placeholder="Type or speak your message..."
               disabled={isLoading}
               className="flex-1"
+            />
+            <VoiceInput
+              onTranscript={handleVoiceTranscript}
+              onError={handleVoiceError}
+              disabled={isLoading}
+              size="default"
             />
             {isLoading ? (
               <Button
@@ -294,7 +314,7 @@ export default function AssistantPage() {
             )}
           </form>
           <p className="text-xs text-muted-foreground mt-2 text-center">
-            ⚡ CRUD operations use Flash • 🧠 Analytics auto-switch to Pro
+            ⚡ CRUD → Flash • 🧠 Analytics → Pro • 🎤 Click mic to speak
           </p>
         </div>
       </Card>

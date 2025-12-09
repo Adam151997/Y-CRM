@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { User, Building, Layers, Plug, Bell, Shield, Box } from "lucide-react";
+import { User, Building, Layers, Plug, Bell, Shield, Box, Database } from "lucide-react";
 
 const settingsNav = [
   {
@@ -41,6 +41,12 @@ const settingsNav = [
     href: "/settings/pipeline",
     icon: Layers,
     description: "Configure pipeline stages",
+  },
+  {
+    title: "Data Management",
+    href: "/settings/data",
+    icon: Database,
+    description: "Import and export data",
   },
 ];
 

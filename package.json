@@ -64,7 +64,9 @@
     "tailwind-merge": "^2.5.4",
     "tailwindcss-animate": "^1.0.7",
     "zod": "^3.23.8",
-    "zustand": "^5.0.0"
+    "zustand": "^5.0.0",
+    "@vercel/analytics": "^1.4.0",
+    "@vercel/speed-insights": "^1.1.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
