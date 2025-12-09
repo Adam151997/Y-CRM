@@ -249,6 +249,8 @@ async function importRecords(
               priority: (data.priority as string) || "MEDIUM",
               status: (data.status as string) || "PENDING",
               taskType: data.taskType as string | undefined,
+              createdById: userId,
+              createdByType: "USER",
             },
           });
           break;
