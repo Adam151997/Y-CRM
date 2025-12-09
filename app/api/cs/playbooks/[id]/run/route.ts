@@ -55,7 +55,7 @@ export async function POST(request: Request, { params }: RouteParams) {
       );
     }
 
-    const steps = (playbook.steps as PlaybookStep[]) || [];
+    const steps = (playbook.steps as unknown as PlaybookStep[]) || [];
     const startDate = new Date();
 
     // Create playbook run
