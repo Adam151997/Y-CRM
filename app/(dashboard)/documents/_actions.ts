@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import prisma from "@/lib/db";
 import { getAuthContext } from "@/lib/auth";
 import { createAuditLog } from "@/lib/audit";
-import { deleteFromR2 } from "@/lib/r2";
+import { deleteFromBlob } from "@/lib/blob";
 
 interface CreateDocumentInput {
   name: string;
@@ -66,8 +66,8 @@ export async function deleteDocument(documentId: string) {
       return { success: false, error: "Document not found" };
     }
 
-    // Delete from R2
-    await deleteFromR2(document.fileKey);
+    // Delete from Vercel Blob using the URL
+    await deleteFromBlob(document.fileUrl);
 
     // Delete from database
     await prisma.document.delete({
@@ -113,5 +113,28 @@ export async function getDocumentsByEntity(
   } catch (error) {
     console.error("Failed to get documents:", error);
     return { success: false, documents: [] };
+  }
+}
+
+export async function getDocumentById(documentId: string) {
+  try {
+    const { orgId } = await getAuthContext();
+
+    const document = await prisma.document.findFirst({
+      where: { id: documentId, orgId },
+      include: {
+        lead: { select: { id: true, firstName: true, lastName: true } },
+        account: { select: { id: true, name: true } },
+      },
+    });
+
+    if (!document) {
+      return { success: false, error: "Document not found" };
+    }
+
+    return { success: true, document };
+  } catch (error) {
+    console.error("Failed to get document:", error);
+    return { success: false, error: "Failed to get document" };
   }
 }

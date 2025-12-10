@@ -31,6 +31,7 @@ import {
   Award,
   LucideIcon,
 } from "lucide-react";
+import { Logo } from "@/components/ui/logo";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 
@@ -175,12 +176,13 @@ export function Sidebar({ onNavigate }: SidebarProps) {
     >
       {/* Logo */}
       <div className="flex items-center justify-between h-16 px-4 border-b">
-        {!collapsed && (
+        {!collapsed ? (
           <Link href="/dashboard" className="flex items-center space-x-2" onClick={handleNavClick}>
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-lg">Y</span>
-            </div>
-            <span className="font-semibold text-lg">CRM</span>
+            <Logo size={32} showText />
+          </Link>
+        ) : (
+          <Link href="/dashboard" className="mx-auto" onClick={handleNavClick}>
+            <Logo size={32} />
           </Link>
         )}
         <Button
@@ -244,12 +246,7 @@ export function Sidebar({ onNavigate }: SidebarProps) {
         {/* Custom Modules Section */}
         {customModules.length > 0 && (
           <>
-            <div className="my-4 border-t" />
-            {!collapsed && (
-              <div className="px-3 py-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Custom Modules
-              </div>
-            )}
+            <div className="my-2" />
             {customModules.map((module) => {
               const isActive = pathname.startsWith(`/modules/${module.slug}`);
               const IconComponent = iconMap[module.icon] || Box;

@@ -66,6 +66,7 @@
     "zod": "^3.23.8",
     "zustand": "^5.0.0",
     "@vercel/analytics": "^1.4.0",
+    "@vercel/blob": "^0.24.0",
     "@vercel/speed-insights": "^1.1.0"
   },
   "devDependencies": {

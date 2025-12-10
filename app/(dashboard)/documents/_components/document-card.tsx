@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +8,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -20,6 +22,7 @@ import {
   ExternalLink,
   Building2,
   User,
+  Eye,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { formatBytes } from "@/lib/utils";
@@ -41,11 +44,11 @@ interface DocumentCardProps {
 }
 
 const typeColors: Record<string, string> = {
-  CONTRACT: "bg-blue-100 text-blue-800",
-  PROPOSAL: "bg-purple-100 text-purple-800",
-  INVOICE: "bg-green-100 text-green-800",
-  PRESENTATION: "bg-orange-100 text-orange-800",
-  OTHER: "bg-gray-100 text-gray-800",
+  CONTRACT: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
+  PROPOSAL: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400",
+  INVOICE: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
+  PRESENTATION: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400",
+  OTHER: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400",
 };
 
 function getFileIcon(mimeType: string) {
@@ -72,23 +75,31 @@ export function DocumentCard({ document }: DocumentCardProps) {
   };
 
   return (
-    <Card className="group hover:shadow-md transition-shadow">
+    <Card className="group hover:border-primary/20 transition-colors">
       <CardContent className="p-4">
         <div className="flex items-start justify-between mb-3">
-          <div className="p-2 rounded-lg bg-muted">
-            <FileIcon className="h-6 w-6 text-muted-foreground" />
-          </div>
+          <Link href={`/documents/${document.id}`}>
+            <div className="p-2 rounded-lg bg-muted hover:bg-muted/80 transition-colors cursor-pointer">
+              <FileIcon className="h-6 w-6 text-muted-foreground" />
+            </div>
+          </Link>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
                 size="icon"
-                className="opacity-0 group-hover:opacity-100 transition-opacity"
+                className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8"
               >
                 <MoreVertical className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              <DropdownMenuItem asChild>
+                <Link href={`/documents/${document.id}`}>
+                  <Eye className="h-4 w-4 mr-2" />
+                  View
+                </Link>
+              </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <a
                   href={document.fileUrl}
@@ -96,7 +107,7 @@ export function DocumentCard({ document }: DocumentCardProps) {
                   rel="noopener noreferrer"
                 >
                   <ExternalLink className="h-4 w-4 mr-2" />
-                  Open
+                  Open in New Tab
                 </a>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
@@ -105,8 +116,9 @@ export function DocumentCard({ document }: DocumentCardProps) {
                   Download
                 </a>
               </DropdownMenuItem>
+              <DropdownMenuSeparator />
               <DropdownMenuItem
-                className="text-destructive"
+                className="text-destructive focus:text-destructive"
                 onClick={handleDelete}
               >
                 <Trash2 className="h-4 w-4 mr-2" />
@@ -116,9 +128,11 @@ export function DocumentCard({ document }: DocumentCardProps) {
           </DropdownMenu>
         </div>
 
-        <h3 className="font-medium truncate mb-1" title={document.name}>
-          {document.name}
-        </h3>
+        <Link href={`/documents/${document.id}`} className="block">
+          <h3 className="font-medium truncate mb-1 hover:text-primary transition-colors" title={document.name}>
+            {document.name}
+          </h3>
+        </Link>
 
         <div className="flex items-center gap-2 mb-3">
           <Badge variant="secondary" className={typeColors[document.type]}>
@@ -132,23 +146,29 @@ export function DocumentCard({ document }: DocumentCardProps) {
         {(document.lead || document.account) && (
           <div className="flex items-center gap-1 text-xs text-muted-foreground mb-2">
             {document.lead ? (
-              <>
+              <Link 
+                href={`/leads/${document.lead.id}`}
+                className="flex items-center gap-1 hover:text-foreground transition-colors"
+              >
                 <User className="h-3 w-3" />
                 <span>
                   {document.lead.firstName} {document.lead.lastName}
                 </span>
-              </>
+              </Link>
             ) : document.account ? (
-              <>
+              <Link 
+                href={`/accounts/${document.account.id}`}
+                className="flex items-center gap-1 hover:text-foreground transition-colors"
+              >
                 <Building2 className="h-3 w-3" />
                 <span>{document.account.name}</span>
-              </>
+              </Link>
             ) : null}
           </div>
         )}
       </CardContent>
 
-      <CardFooter className="px-4 py-3 border-t bg-muted/50">
+      <CardFooter className="px-4 py-3 border-t bg-muted/30">
         <span className="text-xs text-muted-foreground">
           {formatDistanceToNow(new Date(document.createdAt), {
             addSuffix: true,

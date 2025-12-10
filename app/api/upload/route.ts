@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getApiAuthContext } from "@/lib/auth";
-import { uploadToR2, isR2Configured } from "@/lib/r2";
+import { uploadToBlob, isBlobConfigured } from "@/lib/blob";
+
+// Force dynamic rendering
+export const dynamic = "force-dynamic";
 
 // Max file size: 16MB
 const MAX_FILE_SIZE = 16 * 1024 * 1024;
@@ -24,14 +27,14 @@ const ALLOWED_TYPES = [
 
 /**
  * POST /api/upload
- * Upload file to Cloudflare R2
+ * Upload file to Vercel Blob
  */
 export async function POST(request: NextRequest) {
   try {
-    // Check if R2 is configured
-    if (!isR2Configured()) {
+    // Check if Blob is configured
+    if (!isBlobConfigured()) {
       return NextResponse.json(
-        { error: "File storage not configured" },
+        { error: "File storage not configured. Please add BLOB_READ_WRITE_TOKEN." },
         { status: 503 }
       );
     }
@@ -69,13 +72,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Convert file to buffer
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-
-    // Upload to R2
-    const result = await uploadToR2({
-      file: buffer,
+    // Upload to Vercel Blob
+    const result = await uploadToBlob({
+      file,
       fileName: file.name,
       contentType: file.type,
       folder: `orgs/${auth.orgId}`,
@@ -109,4 +108,3 @@ export async function POST(request: NextRequest) {
 
 // Route segment config for file uploads
 export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
