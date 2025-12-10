@@ -151,6 +151,143 @@ export function getCRMTools(orgId: string, userId: string) {
   };
 }
 
+/**
+ * Get filtered tools based on detected intent
+ * This reduces schema complexity for Gemini when using toolChoice: "required"
+ */
+export function getFilteredTools(
+  orgId: string, 
+  userId: string, 
+  message: string
+): Record<string, ReturnType<typeof createLeadTool>> {
+  const lower = message.toLowerCase();
+  const allTools = getCRMTools(orgId, userId);
+  
+  // Always include these core tools
+  const filtered: Record<string, unknown> = {
+    getDashboardStats: allTools.getDashboardStats,
+    searchTasks: allTools.searchTasks,
+    createTask: allTools.createTask,
+  };
+  
+  // Lead-related
+  if (lower.includes("lead") || lower.includes("prospect")) {
+    filtered.createLead = allTools.createLead;
+    filtered.searchLeads = allTools.searchLeads;
+    filtered.updateLead = allTools.updateLead;
+  }
+  
+  // Contact-related
+  if (lower.includes("contact")) {
+    filtered.createContact = allTools.createContact;
+    filtered.searchContacts = allTools.searchContacts;
+  }
+  
+  // Account-related
+  if (lower.includes("account") || lower.includes("company") || lower.includes("organization")) {
+    filtered.createAccount = allTools.createAccount;
+    filtered.searchAccounts = allTools.searchAccounts;
+  }
+  
+  // Opportunity-related
+  if (lower.includes("opportunity") || lower.includes("deal") || lower.includes("pipeline")) {
+    filtered.createOpportunity = allTools.createOpportunity;
+    filtered.searchOpportunities = allTools.searchOpportunities;
+  }
+  
+  // Task-related
+  if (lower.includes("task") || lower.includes("todo") || lower.includes("follow")) {
+    filtered.createTask = allTools.createTask;
+    filtered.completeTask = allTools.completeTask;
+    filtered.searchTasks = allTools.searchTasks;
+  }
+  
+  // Ticket-related (CS)
+  if (lower.includes("ticket") || lower.includes("support") || lower.includes("issue")) {
+    filtered.createTicket = allTools.createTicket;
+    filtered.searchTickets = allTools.searchTickets;
+    filtered.updateTicket = allTools.updateTicket;
+    filtered.addTicketMessage = allTools.addTicketMessage;
+  }
+  
+  // Health score (CS)
+  if (lower.includes("health") || lower.includes("risk") || lower.includes("churn")) {
+    filtered.getHealthScore = allTools.getHealthScore;
+    filtered.searchAtRiskAccounts = allTools.searchAtRiskAccounts;
+  }
+  
+  // Playbook (CS)
+  if (lower.includes("playbook")) {
+    filtered.searchPlaybooks = allTools.searchPlaybooks;
+    filtered.runPlaybook = allTools.runPlaybook;
+  }
+  
+  // Campaign (Marketing)
+  if (lower.includes("campaign")) {
+    filtered.createCampaign = allTools.createCampaign;
+    filtered.searchCampaigns = allTools.searchCampaigns;
+  }
+  
+  // Segment (Marketing)
+  if (lower.includes("segment") || lower.includes("audience")) {
+    filtered.createSegment = allTools.createSegment;
+    filtered.searchSegments = allTools.searchSegments;
+  }
+  
+  // Form (Marketing)
+  if (lower.includes("form")) {
+    filtered.createForm = allTools.createForm;
+    filtered.searchForms = allTools.searchForms;
+  }
+  
+  // Note-related
+  if (lower.includes("note")) {
+    filtered.createNote = allTools.createNote;
+  }
+  
+  // Document-related
+  if (lower.includes("document") || lower.includes("file")) {
+    filtered.searchDocuments = allTools.searchDocuments;
+    filtered.getDocumentStats = allTools.getDocumentStats;
+    filtered.analyzeDocument = allTools.analyzeDocument;
+  }
+  
+  // Search/find general
+  if (lower.includes("search") || lower.includes("find")) {
+    filtered.semanticSearch = allTools.semanticSearch;
+  }
+  
+  // Stats/dashboard
+  if (lower.includes("stat") || lower.includes("dashboard") || lower.includes("overview") || lower.includes("summary")) {
+    filtered.getDashboardStats = allTools.getDashboardStats;
+  }
+  
+  // Email
+  if (lower.includes("email") || lower.includes("mail")) {
+    filtered.sendEmail = allTools.sendEmail;
+  }
+  
+  // Calendar
+  if (lower.includes("calendar") || lower.includes("meeting") || lower.includes("schedule")) {
+    filtered.createCalendarEvent = allTools.createCalendarEvent;
+  }
+  
+  // If no specific tools detected, return a minimal set for general queries
+  if (Object.keys(filtered).length <= 3) {
+    return {
+      getDashboardStats: allTools.getDashboardStats,
+      searchLeads: allTools.searchLeads,
+      searchContacts: allTools.searchContacts,
+      searchAccounts: allTools.searchAccounts,
+      searchTasks: allTools.searchTasks,
+      createLead: allTools.createLead,
+      createTask: allTools.createTask,
+    } as Record<string, ReturnType<typeof createLeadTool>>;
+  }
+  
+  return filtered as Record<string, ReturnType<typeof createLeadTool>>;
+}
+
 function detectAdvancedIntent(message: string): boolean {
   const advancedKeywords = [
     "analyze", "analysis", "report", "insight", "trend",
@@ -255,14 +392,18 @@ export async function executeAgent(
   const requiresToolExecution = detectToolRequiredIntent(userContent);
 
   try {
-    const tools = getCRMTools(orgId, userId);
+    // Use filtered tools when tool execution is required (reduces schema complexity)
+    // Use all tools when in "auto" mode for flexibility
+    const tools = requiresToolExecution 
+      ? getFilteredTools(orgId, userId, userContent)
+      : getCRMTools(orgId, userId);
 
     console.log(`[Agent] Starting execution with ${modelName}`);
     console.log("[Agent] Context:", { orgId, userId, requestId });
     console.log("[Agent] Workspace:", detectedWorkspace || "auto-detect");
     console.log("[Agent] Message:", userContent.substring(0, 100));
-    console.log("[Agent] Available tools:", Object.keys(tools).length);
     console.log("[Agent] Requires tool execution:", requiresToolExecution);
+    console.log("[Agent] Available tools:", Object.keys(tools).length, Object.keys(tools));
 
     // Use "required" when we detect clear tool-requiring intent
     // This forces Gemini to actually call tools instead of hallucinating
