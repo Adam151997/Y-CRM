@@ -3,6 +3,9 @@ import { getApiAuthContext } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { z } from "zod";
 
+// Force dynamic rendering - this route uses auth headers
+export const dynamic = 'force-dynamic';
+
 // Filter schema for audit logs
 const auditLogFilterSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
