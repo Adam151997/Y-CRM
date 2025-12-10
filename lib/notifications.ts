@@ -41,7 +41,7 @@ export async function createNotification(params: CreateNotificationParams) {
         message: params.message,
         entityType: params.entityType,
         entityId: params.entityId,
-        metadata: params.metadata,
+        metadata: params.metadata as Record<string, unknown> | undefined,
       },
     });
     return notification;
@@ -67,7 +67,7 @@ export async function createNotifications(
         message: n.message,
         entityType: n.entityType,
         entityId: n.entityId,
-        metadata: n.metadata,
+        metadata: n.metadata as Record<string, unknown> | undefined,
       })),
     });
     return result;
