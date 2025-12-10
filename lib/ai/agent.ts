@@ -392,11 +392,14 @@ export async function executeAgent(
   const requiresToolExecution = detectToolRequiredIntent(userContent);
 
   try {
+    // Get all tools first
+    const allTools = getCRMTools(orgId, userId);
+    
     // Use filtered tools when tool execution is required (reduces schema complexity)
     // Use all tools when in "auto" mode for flexibility
     const tools = requiresToolExecution 
       ? getFilteredTools(orgId, userId, userContent)
-      : getCRMTools(orgId, userId);
+      : allTools;
 
     console.log(`[Agent] Starting execution with ${modelName}`);
     console.log("[Agent] Context:", { orgId, userId, requestId });
@@ -414,7 +417,7 @@ export async function executeAgent(
       model,
       system: systemPrompt,
       messages,
-      tools,
+      tools: tools as Parameters<typeof generateText>[0]["tools"],
       toolChoice: toolChoiceMode as "auto" | "required",
       maxSteps: 5,
       onStepFinish: ({ toolCalls, toolResults: stepToolResults, finishReason, text }) => {
