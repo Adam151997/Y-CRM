@@ -84,6 +84,12 @@ export interface AgentResult {
   error?: string;
 }
 
+// Primary action types
+type PrimaryAction = 
+  | "task" | "lead" | "contact" | "account" | "opportunity" 
+  | "ticket" | "note" | "campaign" | "segment" | "form"
+  | "search" | "stats" | "email" | "calendar" | null;
+
 /**
  * Get all available tools for the CRM agent
  */
@@ -147,157 +153,179 @@ export function getCRMTools(orgId: string, userId: string) {
 }
 
 /**
- * Get filtered tools based on detected intent
- * This reduces schema complexity for Gemini when using toolChoice: "required"
- * IMPORTANT: Always include relevant search tools with create tools for entity resolution
+ * Detect the PRIMARY action the user wants to perform
+ * This distinguishes between "create task ON lead" (primary=task) vs "create lead" (primary=lead)
+ */
+function detectPrimaryAction(message: string): PrimaryAction {
+  const lower = message.toLowerCase();
+  
+  // Check for action + entity patterns (order matters - most specific first)
+  // Task patterns
+  if (lower.match(/\b(create|add|make|new|set)\s+(a\s+)?(task|todo|reminder|follow[\s-]?up)/)) return "task";
+  if (lower.match(/\b(complete|finish|done|close)\s+(the\s+)?(task|todo)/)) return "task";
+  
+  // Note patterns
+  if (lower.match(/\b(create|add|make|write)\s+(a\s+)?(note|comment)/)) return "note";
+  
+  // Ticket patterns  
+  if (lower.match(/\b(create|add|make|new|open)\s+(a\s+)?(ticket|support|issue)/)) return "ticket";
+  if (lower.match(/\b(update|close|resolve)\s+(the\s+)?(ticket)/)) return "ticket";
+  
+  // Lead patterns
+  if (lower.match(/\b(create|add|make|new)\s+(a\s+)?(lead|prospect)/)) return "lead";
+  if (lower.match(/\b(update|edit|modify)\s+(the\s+)?(lead)/)) return "lead";
+  
+  // Contact patterns
+  if (lower.match(/\b(create|add|make|new)\s+(a\s+)?(contact)/)) return "contact";
+  
+  // Account patterns
+  if (lower.match(/\b(create|add|make|new)\s+(a\s+)?(account|company|organization)/)) return "account";
+  
+  // Opportunity patterns
+  if (lower.match(/\b(create|add|make|new)\s+(a\s+)?(opportunity|deal)/)) return "opportunity";
+  
+  // Campaign patterns
+  if (lower.match(/\b(create|add|make|new|launch)\s+(a\s+)?(campaign)/)) return "campaign";
+  
+  // Segment patterns
+  if (lower.match(/\b(create|add|make|new)\s+(a\s+)?(segment|audience)/)) return "segment";
+  
+  // Form patterns
+  if (lower.match(/\b(create|add|make|new)\s+(a\s+)?(form)/)) return "form";
+  
+  // Search patterns
+  if (lower.match(/\b(search|find|show|list|get)\s/)) return "search";
+  
+  // Stats patterns
+  if (lower.match(/\b(dashboard|stats|statistics|overview|summary)/)) return "stats";
+  
+  // Email patterns
+  if (lower.match(/\b(send|compose|write)\s+(an?\s+)?(email|mail)/)) return "email";
+  
+  // Calendar patterns
+  if (lower.match(/\b(schedule|create|add)\s+(a\s+)?(meeting|event|calendar)/)) return "calendar";
+  
+  return null;
+}
+
+/**
+ * Get filtered tools based on PRIMARY action
+ * Only includes the CREATE tool for the primary action
+ * Other entities get SEARCH tools only (for entity resolution)
  */
 export function getFilteredTools(
   orgId: string, 
   userId: string, 
-  message: string
+  message: string,
+  primaryAction: PrimaryAction
 ): Record<string, unknown> {
-  const lower = message.toLowerCase();
   const allTools = getCRMTools(orgId, userId);
+  const filtered: Record<string, unknown> = {};
   
-  // Always include these core tools for entity resolution
-  const filtered: Record<string, unknown> = {
-    getDashboardStats: allTools.getDashboardStats,
-    searchTasks: allTools.searchTasks,
-    searchAccounts: allTools.searchAccounts, // Always needed for entity resolution
-  };
-  
-  // Lead-related - include search for entity resolution
-  if (lower.includes("lead") || lower.includes("prospect")) {
-    filtered.createLead = allTools.createLead;
-    filtered.searchLeads = allTools.searchLeads;
-    filtered.updateLead = allTools.updateLead;
-    filtered.createTask = allTools.createTask; // Often need to create follow-up tasks
-  }
-  
-  // Contact-related - include account search for linking
-  if (lower.includes("contact")) {
-    filtered.createContact = allTools.createContact;
-    filtered.searchContacts = allTools.searchContacts;
-    filtered.searchAccounts = allTools.searchAccounts;
-  }
-  
-  // Account-related
-  if (lower.includes("account") || lower.includes("company") || lower.includes("organization")) {
-    filtered.createAccount = allTools.createAccount;
-    filtered.searchAccounts = allTools.searchAccounts;
-  }
-  
-  // Opportunity-related - MUST have searchAccounts for accountId resolution
-  if (lower.includes("opportunity") || lower.includes("deal") || lower.includes("pipeline")) {
-    filtered.createOpportunity = allTools.createOpportunity;
-    filtered.searchOpportunities = allTools.searchOpportunities;
-    filtered.searchAccounts = allTools.searchAccounts; // Required for accountId
-  }
-  
-  // Task-related - include entity searches for linking
-  if (lower.includes("task") || lower.includes("todo") || lower.includes("follow")) {
-    filtered.createTask = allTools.createTask;
-    filtered.completeTask = allTools.completeTask;
-    filtered.searchTasks = allTools.searchTasks;
-    filtered.searchLeads = allTools.searchLeads; // For linking to leads
-    filtered.searchContacts = allTools.searchContacts; // For linking to contacts
-    filtered.searchAccounts = allTools.searchAccounts; // For linking to accounts
-  }
-  
-  // Ticket-related (CS) - MUST have searchAccounts for accountId resolution
-  if (lower.includes("ticket") || lower.includes("support") || lower.includes("issue")) {
-    filtered.createTicket = allTools.createTicket;
-    filtered.searchTickets = allTools.searchTickets;
-    filtered.updateTicket = allTools.updateTicket;
-    filtered.addTicketMessage = allTools.addTicketMessage;
-    filtered.searchAccounts = allTools.searchAccounts; // Required for accountId
-    filtered.searchContacts = allTools.searchContacts; // Optional for contactId
-  }
-  
-  // Health score (CS)
-  if (lower.includes("health") || lower.includes("risk") || lower.includes("churn")) {
-    filtered.getHealthScore = allTools.getHealthScore;
-    filtered.searchAtRiskAccounts = allTools.searchAtRiskAccounts;
-    filtered.searchAccounts = allTools.searchAccounts;
-  }
-  
-  // Playbook (CS)
-  if (lower.includes("playbook")) {
-    filtered.searchPlaybooks = allTools.searchPlaybooks;
-    filtered.runPlaybook = allTools.runPlaybook;
-    filtered.searchAccounts = allTools.searchAccounts; // Required for accountId
-  }
-  
-  // Campaign (Marketing)
-  if (lower.includes("campaign")) {
-    filtered.createCampaign = allTools.createCampaign;
-    filtered.searchCampaigns = allTools.searchCampaigns;
-    filtered.searchSegments = allTools.searchSegments; // For segment targeting
-  }
-  
-  // Segment (Marketing)
-  if (lower.includes("segment") || lower.includes("audience")) {
-    filtered.createSegment = allTools.createSegment;
-    filtered.searchSegments = allTools.searchSegments;
-  }
-  
-  // Form (Marketing)
-  if (lower.includes("form")) {
-    filtered.createForm = allTools.createForm;
-    filtered.searchForms = allTools.searchForms;
-  }
-  
-  // Note-related - include entity searches for linking
-  if (lower.includes("note")) {
-    filtered.createNote = allTools.createNote;
-    filtered.searchLeads = allTools.searchLeads;
-    filtered.searchContacts = allTools.searchContacts;
-    filtered.searchAccounts = allTools.searchAccounts;
-    filtered.searchOpportunities = allTools.searchOpportunities;
-  }
-  
-  // Document-related
-  if (lower.includes("document") || lower.includes("file")) {
-    filtered.searchDocuments = allTools.searchDocuments;
-    filtered.getDocumentStats = allTools.getDocumentStats;
-    filtered.analyzeDocument = allTools.analyzeDocument;
-  }
-  
-  // Search/find general
-  if (lower.includes("search") || lower.includes("find")) {
-    filtered.semanticSearch = allTools.semanticSearch;
-    filtered.searchLeads = allTools.searchLeads;
-    filtered.searchContacts = allTools.searchContacts;
-    filtered.searchAccounts = allTools.searchAccounts;
-  }
-  
-  // Stats/dashboard
-  if (lower.includes("stat") || lower.includes("dashboard") || lower.includes("overview") || lower.includes("summary")) {
-    filtered.getDashboardStats = allTools.getDashboardStats;
-  }
-  
-  // Email
-  if (lower.includes("email") || lower.includes("mail")) {
-    filtered.sendEmail = allTools.sendEmail;
-  }
-  
-  // Calendar
-  if (lower.includes("calendar") || lower.includes("meeting") || lower.includes("schedule")) {
-    filtered.createCalendarEvent = allTools.createCalendarEvent;
-  }
-  
-  // If minimal tools detected, return a useful default set
-  if (Object.keys(filtered).length <= 3) {
-    return {
-      getDashboardStats: allTools.getDashboardStats,
-      searchLeads: allTools.searchLeads,
-      searchContacts: allTools.searchContacts,
-      searchAccounts: allTools.searchAccounts,
-      searchTasks: allTools.searchTasks,
-      createLead: allTools.createLead,
-      createTask: allTools.createTask,
-      createAccount: allTools.createAccount,
-    };
+  // Based on primary action, add the CREATE tool and relevant SEARCH tools
+  switch (primaryAction) {
+    case "task":
+      filtered.createTask = allTools.createTask;
+      filtered.completeTask = allTools.completeTask;
+      filtered.searchTasks = allTools.searchTasks;
+      // Search tools for entity resolution (NO create tools for other entities)
+      filtered.searchLeads = allTools.searchLeads;
+      filtered.searchContacts = allTools.searchContacts;
+      filtered.searchAccounts = allTools.searchAccounts;
+      filtered.searchOpportunities = allTools.searchOpportunities;
+      break;
+      
+    case "lead":
+      filtered.createLead = allTools.createLead;
+      filtered.searchLeads = allTools.searchLeads;
+      filtered.updateLead = allTools.updateLead;
+      filtered.createTask = allTools.createTask; // Often create follow-up task
+      break;
+      
+    case "contact":
+      filtered.createContact = allTools.createContact;
+      filtered.searchContacts = allTools.searchContacts;
+      filtered.searchAccounts = allTools.searchAccounts; // For linking
+      break;
+      
+    case "account":
+      filtered.createAccount = allTools.createAccount;
+      filtered.searchAccounts = allTools.searchAccounts;
+      break;
+      
+    case "opportunity":
+      filtered.createOpportunity = allTools.createOpportunity;
+      filtered.searchOpportunities = allTools.searchOpportunities;
+      filtered.searchAccounts = allTools.searchAccounts; // Required for accountId
+      break;
+      
+    case "ticket":
+      filtered.createTicket = allTools.createTicket;
+      filtered.searchTickets = allTools.searchTickets;
+      filtered.updateTicket = allTools.updateTicket;
+      filtered.addTicketMessage = allTools.addTicketMessage;
+      filtered.searchAccounts = allTools.searchAccounts; // Required for accountId
+      filtered.searchContacts = allTools.searchContacts; // Optional for contactId
+      break;
+      
+    case "note":
+      filtered.createNote = allTools.createNote;
+      // Search tools for entity resolution
+      filtered.searchLeads = allTools.searchLeads;
+      filtered.searchContacts = allTools.searchContacts;
+      filtered.searchAccounts = allTools.searchAccounts;
+      filtered.searchOpportunities = allTools.searchOpportunities;
+      break;
+      
+    case "campaign":
+      filtered.createCampaign = allTools.createCampaign;
+      filtered.searchCampaigns = allTools.searchCampaigns;
+      filtered.searchSegments = allTools.searchSegments;
+      break;
+      
+    case "segment":
+      filtered.createSegment = allTools.createSegment;
+      filtered.searchSegments = allTools.searchSegments;
+      break;
+      
+    case "form":
+      filtered.createForm = allTools.createForm;
+      filtered.searchForms = allTools.searchForms;
+      break;
+      
+    case "search":
+      filtered.searchLeads = allTools.searchLeads;
+      filtered.searchContacts = allTools.searchContacts;
+      filtered.searchAccounts = allTools.searchAccounts;
+      filtered.searchTasks = allTools.searchTasks;
+      filtered.searchOpportunities = allTools.searchOpportunities;
+      filtered.searchTickets = allTools.searchTickets;
+      filtered.semanticSearch = allTools.semanticSearch;
+      break;
+      
+    case "stats":
+      filtered.getDashboardStats = allTools.getDashboardStats;
+      break;
+      
+    case "email":
+      filtered.sendEmail = allTools.sendEmail;
+      filtered.searchContacts = allTools.searchContacts;
+      filtered.searchLeads = allTools.searchLeads;
+      break;
+      
+    case "calendar":
+      filtered.createCalendarEvent = allTools.createCalendarEvent;
+      filtered.searchContacts = allTools.searchContacts;
+      break;
+      
+    default:
+      // Default set for unknown intents
+      filtered.getDashboardStats = allTools.getDashboardStats;
+      filtered.searchLeads = allTools.searchLeads;
+      filtered.searchContacts = allTools.searchContacts;
+      filtered.searchAccounts = allTools.searchAccounts;
+      filtered.searchTasks = allTools.searchTasks;
+      break;
   }
   
   return filtered;
@@ -333,9 +361,10 @@ function detectToolRequiredIntent(message: string): boolean {
 
 /**
  * Build a response from tool results when model text is empty
+ * Only shows results relevant to the primary action
  */
 function buildResponseFromToolResults(
-  toolsCalled: string[],
+  primaryAction: PrimaryAction,
   toolResults: Record<string, unknown>[]
 ): string {
   if (toolResults.length === 0) {
@@ -345,38 +374,63 @@ function buildResponseFromToolResults(
   const responses: string[] = [];
   
   for (const result of toolResults) {
+    // Skip failures unless they're for the primary action
     if (result.success === false) {
-      responses.push(result.message as string || "An operation failed.");
+      const message = result.message as string || "";
+      // Only show error if it's related to the primary action
+      const isPrimaryActionError = 
+        (primaryAction === "task" && message.toLowerCase().includes("task")) ||
+        (primaryAction === "lead" && message.toLowerCase().includes("lead")) ||
+        (primaryAction === "contact" && message.toLowerCase().includes("contact")) ||
+        (primaryAction === "account" && message.toLowerCase().includes("account")) ||
+        (primaryAction === "ticket" && message.toLowerCase().includes("ticket")) ||
+        (primaryAction === "note" && message.toLowerCase().includes("note")) ||
+        (primaryAction === "opportunity" && message.toLowerCase().includes("opportunity"));
+      
+      if (isPrimaryActionError) {
+        responses.push(message);
+      }
       continue;
     }
     
-    // Handle different tool result types
-    if (result.message) {
-      responses.push(result.message as string);
-    } else if (result.leadId) {
-      responses.push(`Created lead (ID: ${result.leadId})`);
-    } else if (result.contactId) {
-      responses.push(`Created contact (ID: ${result.contactId})`);
-    } else if (result.accountId) {
-      responses.push(`Created account (ID: ${result.accountId})`);
-    } else if (result.taskId) {
+    // Handle successful results
+    if (result.message && typeof result.message === "string") {
+      // Filter out "Found 0 results" for search operations that were just for entity resolution
+      if (result.message.includes("Found 0") && primaryAction !== "search") {
+        continue; // Skip this result
+      }
+      responses.push(result.message);
+    } else if (result.taskId && primaryAction === "task") {
       responses.push(`Created task (ID: ${result.taskId})`);
-    } else if (result.ticketId) {
+    } else if (result.leadId && primaryAction === "lead") {
+      responses.push(`Created lead (ID: ${result.leadId})`);
+    } else if (result.contactId && primaryAction === "contact") {
+      responses.push(`Created contact (ID: ${result.contactId})`);
+    } else if (result.accountId && primaryAction === "account") {
+      responses.push(`Created account (ID: ${result.accountId})`);
+    } else if (result.ticketId && primaryAction === "ticket") {
       responses.push(`Created ticket #${result.ticketNumber || ''} (ID: ${result.ticketId})`);
-    } else if (result.opportunityId) {
+    } else if (result.opportunityId && primaryAction === "opportunity") {
       responses.push(`Created opportunity (ID: ${result.opportunityId})`);
-    } else if (result.campaignId) {
+    } else if (result.campaignId && primaryAction === "campaign") {
       responses.push(`Created campaign (ID: ${result.campaignId})`);
-    } else if (result.count !== undefined) {
-      responses.push(`Found ${result.count} results.`);
-    } else if (result.stats) {
+    } else if (result.noteId && primaryAction === "note") {
+      responses.push(`Added note (ID: ${result.noteId})`);
+    } else if (result.stats && primaryAction === "stats") {
       responses.push("Retrieved dashboard statistics.");
+    } else if (result.count !== undefined && primaryAction === "search") {
+      responses.push(`Found ${result.count} results.`);
     }
   }
   
-  return responses.length > 0 
-    ? responses.join(" ") 
-    : "Operation completed successfully.";
+  // If no responses collected, provide a generic success message
+  if (responses.length === 0) {
+    return "Action completed successfully.";
+  }
+  
+  // Remove duplicates and join
+  const uniqueResponses = [...new Set(responses)];
+  return uniqueResponses.join(" ");
 }
 
 export async function executeAgent(
@@ -386,6 +440,7 @@ export async function executeAgent(
   const { orgId, userId, requestId } = context;
   const toolsCalled: string[] = [];
   const toolResults: Record<string, unknown>[] = [];
+  const executedCallHashes = new Set<string>(); // Track executed tool+args to prevent duplicates
   const modelName = "gemini-2.5-pro";
 
   if (!isAIConfigured()) {
@@ -404,21 +459,17 @@ export async function executeAgent(
     ? lastUserMessage.content 
     : "";
   
-  // Detect if message requires tool execution
+  // Detect primary action and whether tool execution is required
+  const primaryAction = detectPrimaryAction(userContent);
   const requiresToolExecution = detectToolRequiredIntent(userContent);
 
   try {
-    // Get all tools first
-    const allTools = getCRMTools(orgId, userId);
-    
-    // Use filtered tools when tool execution is required (reduces schema complexity)
-    // Use all tools when in "auto" mode for flexibility
-    const tools = requiresToolExecution 
-      ? getFilteredTools(orgId, userId, userContent)
-      : allTools;
+    // Get filtered tools based on primary action
+    const tools = requiresToolExecution && primaryAction
+      ? getFilteredTools(orgId, userId, userContent, primaryAction)
+      : getCRMTools(orgId, userId);
 
     // Use "required" when we detect clear tool-requiring intent
-    // This forces Gemini to actually call tools instead of hallucinating
     const toolChoiceMode = requiresToolExecution ? "required" : "auto";
 
     const result = await generateText({
@@ -428,13 +479,19 @@ export async function executeAgent(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       tools: tools as any,
       toolChoice: toolChoiceMode as "auto" | "required",
-      maxSteps: 3, // Reduced from 5 to prevent duplicate executions
+      maxSteps: 2, // Reduced to prevent duplicate executions
       onStepFinish: ({ toolCalls, toolResults: stepToolResults }) => {
         if (toolCalls && toolCalls.length > 0) {
           toolCalls.forEach((tc) => {
-            // Prevent duplicate tool calls
-            if (!toolsCalled.includes(tc.toolName)) {
-              toolsCalled.push(tc.toolName);
+            // Create hash of tool name + args to detect duplicates
+            const callHash = `${tc.toolName}:${JSON.stringify(tc.args)}`;
+            
+            // Only track if not already executed
+            if (!executedCallHashes.has(callHash)) {
+              executedCallHashes.add(callHash);
+              if (!toolsCalled.includes(tc.toolName)) {
+                toolsCalled.push(tc.toolName);
+              }
             }
           });
         }
@@ -442,7 +499,14 @@ export async function executeAgent(
         if (stepToolResults && stepToolResults.length > 0) {
           stepToolResults.forEach((tr) => {
             if (tr.result && typeof tr.result === 'object') {
-              toolResults.push(tr.result as Record<string, unknown>);
+              // Check for duplicate results
+              const resultHash = JSON.stringify(tr.result);
+              const isDuplicate = toolResults.some(
+                existing => JSON.stringify(existing) === resultHash
+              );
+              if (!isDuplicate) {
+                toolResults.push(tr.result as Record<string, unknown>);
+              }
             }
           });
         }
@@ -452,7 +516,7 @@ export async function executeAgent(
     // Build response - use model text if available, otherwise construct from tool results
     let response = result.text;
     if (!response || response.trim() === "") {
-      response = buildResponseFromToolResults(toolsCalled, toolResults);
+      response = buildResponseFromToolResults(primaryAction, toolResults);
     }
 
     await createAuditLog({
@@ -464,6 +528,7 @@ export async function executeAgent(
       requestId,
       metadata: {
         model: modelName,
+        primaryAction,
         toolsCalled,
         messageCount: messages.length,
         finishReason: result.finishReason,
@@ -489,6 +554,7 @@ export async function executeAgent(
       requestId,
       metadata: {
         model: modelName,
+        primaryAction,
         error: errorMessage,
         toolsCalled,
       },
@@ -538,7 +604,7 @@ Respond with JSON only:
     if (jsonMatch) {
       return JSON.parse(jsonMatch[0]);
     }
-  } catch (error) {
+  } catch {
     // Silent fail, return default
   }
 
@@ -551,8 +617,7 @@ Respond with JSON only:
 }
 
 export function generateConfirmation(
-  intent: string,
-  entities: Record<string, unknown>
+  intent: string
 ): string | null {
   const destructiveIntents = ["UPDATE_LEAD", "DELETE_LEAD", "COMPLETE_TASK", "UPDATE_TICKET"];
 
