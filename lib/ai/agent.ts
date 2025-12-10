@@ -429,7 +429,7 @@ function buildResponseFromToolResults(
   }
   
   // Remove duplicates and join
-  const uniqueResponses = [...new Set(responses)];
+  const uniqueResponses = Array.from(new Set(responses));
   return uniqueResponses.join(" ");
 }
 
