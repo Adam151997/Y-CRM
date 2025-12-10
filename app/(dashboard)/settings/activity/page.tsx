@@ -234,8 +234,15 @@ export default async function AuditLogPage({ searchParams }: PageProps) {
                     
                     // Get record name from newState if available
                     const newState = log.newState as Record<string, unknown> | null;
-                    const recordName = newState?.name || newState?.title || newState?.subject ||
-                      (newState?.firstName ? `${newState?.firstName} ${newState?.lastName || ""}`.trim() : null);
+                    let recordName: string | null = null;
+                    if (newState) {
+                      if (typeof newState.name === 'string') recordName = newState.name;
+                      else if (typeof newState.title === 'string') recordName = newState.title;
+                      else if (typeof newState.subject === 'string') recordName = newState.subject;
+                      else if (typeof newState.firstName === 'string') {
+                        recordName = `${newState.firstName} ${typeof newState.lastName === 'string' ? newState.lastName : ''}`.trim();
+                      }
+                    }
 
                     return (
                       <TableRow key={log.id}>
