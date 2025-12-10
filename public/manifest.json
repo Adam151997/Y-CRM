@@ -5,98 +5,35 @@
   "start_url": "/dashboard",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#0f172a",
+  "theme_color": "#FF5757",
   "orientation": "portrait-primary",
   "scope": "/",
   "lang": "en",
   "categories": ["business", "productivity"],
   "icons": [
     {
-      "src": "/icon-72.png",
-      "sizes": "72x72",
-      "type": "image/png",
-      "purpose": "maskable any"
+      "src": "/icon",
+      "sizes": "32x32",
+      "type": "image/png"
     },
     {
-      "src": "/icon-96.png",
-      "sizes": "96x96",
-      "type": "image/png",
-      "purpose": "maskable any"
-    },
-    {
-      "src": "/icon-128.png",
-      "sizes": "128x128",
-      "type": "image/png",
-      "purpose": "maskable any"
-    },
-    {
-      "src": "/icon-144.png",
-      "sizes": "144x144",
-      "type": "image/png",
-      "purpose": "maskable any"
-    },
-    {
-      "src": "/icon-152.png",
-      "sizes": "152x152",
-      "type": "image/png",
-      "purpose": "maskable any"
-    },
-    {
-      "src": "/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "maskable any"
-    },
-    {
-      "src": "/icon-384.png",
-      "sizes": "384x384",
-      "type": "image/png",
-      "purpose": "maskable any"
-    },
-    {
-      "src": "/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable any"
+      "src": "/apple-icon",
+      "sizes": "180x180",
+      "type": "image/png"
     }
   ],
   "shortcuts": [
     {
-      "name": "Sales Dashboard",
-      "short_name": "Sales",
-      "description": "Open Sales workspace",
-      "url": "/sales",
-      "icons": [{ "src": "/icon-96.png", "sizes": "96x96" }]
-    },
-    {
-      "name": "New Lead",
-      "short_name": "Add Lead",
-      "description": "Create a new lead",
-      "url": "/sales/leads/new",
-      "icons": [{ "src": "/icon-96.png", "sizes": "96x96" }]
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "Open Dashboard",
+      "url": "/dashboard"
     },
     {
       "name": "AI Assistant",
       "short_name": "Assistant",
       "description": "Open AI Assistant",
-      "url": "/assistant",
-      "icons": [{ "src": "/icon-96.png", "sizes": "96x96" }]
-    }
-  ],
-  "screenshots": [
-    {
-      "src": "/screenshot-wide.png",
-      "sizes": "1280x720",
-      "type": "image/png",
-      "form_factor": "wide",
-      "label": "Y CRM Dashboard"
-    },
-    {
-      "src": "/screenshot-narrow.png",
-      "sizes": "750x1334",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "Y CRM Mobile"
+      "url": "/assistant"
     }
   ],
   "related_applications": [],
