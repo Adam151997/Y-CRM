@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
+import { Logo } from "@/components/ui/logo";
 import { WorkspaceSwitcher } from "./workspace-switcher";
 import { 
   useWorkspace, 
@@ -65,6 +66,11 @@ interface CustomModule {
   showInSidebar: boolean;
 }
 
+interface Branding {
+  brandName: string;
+  brandLogo: string | null;
+}
+
 interface DynamicSidebarProps {
   onNavigate?: () => void;
 }
@@ -74,8 +80,39 @@ export function DynamicSidebar({ onNavigate }: DynamicSidebarProps) {
   const { workspace, config } = useWorkspace();
   const [collapsed, setCollapsed] = useState(false);
   const [customModules, setCustomModules] = useState<CustomModule[]>([]);
+  const [branding, setBranding] = useState<Branding>({ brandName: "Y CRM", brandLogo: null });
 
   const navigation = getWorkspaceNavigation(workspace);
+
+  // Fetch branding
+  useEffect(() => {
+    const fetchBranding = async () => {
+      try {
+        const response = await fetch("/api/organization/branding");
+        if (response.ok) {
+          const data = await response.json();
+          setBranding({
+            brandName: data.brandName || "Y CRM",
+            brandLogo: data.brandLogo || null,
+          });
+        }
+      } catch (error) {
+        console.error("Failed to fetch branding:", error);
+      }
+    };
+
+    fetchBranding();
+
+    // Listen for branding updates
+    const handleBrandingUpdate = () => {
+      fetchBranding();
+    };
+
+    window.addEventListener("branding-updated", handleBrandingUpdate);
+    return () => {
+      window.removeEventListener("branding-updated", handleBrandingUpdate);
+    };
+  }, []);
 
   useEffect(() => {
     const fetchModules = async () => {
@@ -126,25 +163,57 @@ export function DynamicSidebar({ onNavigate }: DynamicSidebarProps) {
       {/* Logo & Collapse Button */}
       <div className="flex items-center justify-between h-14 px-3 border-b border-border">
         {!collapsed && (
-          <Link href={`/${workspace}`} className="flex items-center gap-2" onClick={handleNavClick}>
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-sm">Y</span>
-            </div>
-            <span className="font-semibold text-foreground">CRM</span>
+          <Link href={`/${workspace}`} className="flex items-center gap-2 min-w-0" onClick={handleNavClick}>
+            {branding.brandLogo ? (
+              <img 
+                src={branding.brandLogo} 
+                alt={branding.brandName} 
+                className="h-8 w-8 object-contain rounded"
+              />
+            ) : (
+              <Logo size={28} />
+            )}
+            <span className="font-semibold text-foreground truncate">{branding.brandName}</span>
           </Link>
         )}
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setCollapsed(!collapsed)}
-          className={cn(
-            "h-8 w-8 text-muted-foreground hover:text-foreground",
-            collapsed && "mx-auto"
-          )}
-        >
-          {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-        </Button>
+        {collapsed && (
+          <Link href={`/${workspace}`} className="mx-auto" onClick={handleNavClick}>
+            {branding.brandLogo ? (
+              <img 
+                src={branding.brandLogo} 
+                alt={branding.brandName} 
+                className="h-8 w-8 object-contain rounded"
+              />
+            ) : (
+              <Logo size={28} />
+            )}
+          </Link>
+        )}
+        {!collapsed && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setCollapsed(!collapsed)}
+            className="h-8 w-8 text-muted-foreground hover:text-foreground"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+        )}
       </div>
+
+      {/* Collapsed expand button */}
+      {collapsed && (
+        <div className="flex justify-center py-2 border-b border-border">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setCollapsed(false)}
+            className="h-8 w-8 text-muted-foreground hover:text-foreground"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
 
       {/* Workspace Switcher */}
       <div className="p-2 border-b border-border">
@@ -156,7 +225,7 @@ export function DynamicSidebar({ onNavigate }: DynamicSidebarProps) {
         <Link href={`/${workspace}/assistant`} onClick={handleNavClick}>
           <Button
             className={cn(
-              "w-full h-9 bg-primary hover:bg-primary/90 text-primary-foreground font-medium",
+              "w-full h-9 bg-gradient-to-r from-[#FF5757] to-[#FF3D3D] hover:from-[#FF4040] hover:to-[#FF2020] text-white font-medium",
               collapsed && "px-0"
             )}
           >
@@ -185,7 +254,7 @@ export function DynamicSidebar({ onNavigate }: DynamicSidebarProps) {
                     active
                       ? "bg-background text-foreground shadow-sm border border-border"
                       : isHighlight
-                      ? "text-primary hover:bg-background/80"
+                      ? "text-[#FF5757] hover:bg-background/80"
                       : "text-muted-foreground hover:bg-background/80 hover:text-foreground",
                     collapsed && "justify-center px-2"
                   )}
@@ -194,7 +263,7 @@ export function DynamicSidebar({ onNavigate }: DynamicSidebarProps) {
                   <item.icon className={cn("h-4 w-4 flex-shrink-0", !collapsed && "mr-2.5")} />
                   {!collapsed && <span className="truncate">{item.name}</span>}
                   {!collapsed && item.badge && (
-                    <span className="ml-auto text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded">
+                    <span className="ml-auto text-xs bg-[#FF5757]/10 text-[#FF5757] px-1.5 py-0.5 rounded">
                       {item.badge}
                     </span>
                   )}
