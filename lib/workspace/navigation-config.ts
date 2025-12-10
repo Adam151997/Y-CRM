@@ -31,89 +31,44 @@ export interface NavSection {
   items: NavItem[];
 }
 
-// Sales workspace navigation
+// Sales workspace navigation - flat list without section headers
 const salesNavigation: NavSection[] = [
   {
     items: [
       { name: "Dashboard", href: "/sales", icon: LayoutDashboard },
       { name: "AI Assistant", href: "/sales/assistant", icon: Sparkles, highlight: true },
-    ],
-  },
-  {
-    title: "Pipeline",
-    items: [
       { name: "Leads", href: "/sales/leads", icon: Users },
       { name: "Opportunities", href: "/sales/opportunities", icon: Target },
       { name: "Pipeline Board", href: "/sales/pipeline", icon: FolderKanban },
-    ],
-  },
-  {
-    title: "Relationships",
-    items: [
       { name: "Contacts", href: "/sales/contacts", icon: UserCircle },
       { name: "Accounts", href: "/sales/accounts", icon: Building2 },
-    ],
-  },
-  {
-    title: "Productivity",
-    items: [
       { name: "Tasks", href: "/sales/tasks", icon: CheckSquare },
     ],
   },
 ];
 
-// Customer Success workspace navigation
+// Customer Success workspace navigation - flat list without section headers
 const csNavigation: NavSection[] = [
   {
     items: [
       { name: "Dashboard", href: "/cs", icon: LayoutDashboard },
       { name: "AI Assistant", href: "/cs/assistant", icon: Sparkles, highlight: true },
-    ],
-  },
-  {
-    title: "Support",
-    items: [
       { name: "Tickets", href: "/cs/tickets", icon: Ticket },
-    ],
-  },
-  {
-    title: "Customer Health",
-    items: [
       { name: "Health Scores", href: "/cs/health", icon: HeartPulse },
       { name: "Accounts", href: "/cs/accounts", icon: Building2 },
-    ],
-  },
-  {
-    title: "Success Programs",
-    items: [
       { name: "Playbooks", href: "/cs/playbooks", icon: BookOpen },
-    ],
-  },
-  {
-    title: "Productivity",
-    items: [
       { name: "Tasks", href: "/cs/tasks", icon: CheckSquare },
     ],
   },
 ];
 
-// Marketing workspace navigation
+// Marketing workspace navigation - flat list without section headers
 const marketingNavigation: NavSection[] = [
   {
     items: [
       { name: "Dashboard", href: "/marketing", icon: LayoutDashboard },
       { name: "AI Assistant", href: "/marketing/assistant", icon: Sparkles, highlight: true },
-    ],
-  },
-  {
-    title: "Campaigns",
-    items: [
       { name: "Campaigns", href: "/marketing/campaigns", icon: Megaphone },
-    ],
-  },
-  {
-    title: "Audience",
-    items: [
       { name: "Segments", href: "/marketing/segments", icon: UsersRound },
       { name: "Forms", href: "/marketing/forms", icon: FileInput },
     ],

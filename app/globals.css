@@ -4,56 +4,114 @@
 
 @layer base {
   :root {
+    /* Pure white background with Zinc-based neutrals */
     --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --foreground: 240 10% 3.9%;
+    
+    /* Cards - slight off-white for layering */
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 240 10% 3.9%;
+    
+    /* Popovers with subtle shadow bg */
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 221.2 83.2% 53.3%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --success: 142.1 76.2% 36.3%;
-    --success-foreground: 355.7 100% 97.3%;
+    --popover-foreground: 240 10% 3.9%;
+    
+    /* Vibrant Violet Primary - single unified accent */
+    --primary: 262 83% 58%;
+    --primary-foreground: 0 0% 100%;
+    
+    /* Secondary - Zinc-100 */
+    --secondary: 240 5% 96%;
+    --secondary-foreground: 240 6% 10%;
+    
+    /* Muted - for labels and secondary text */
+    --muted: 240 5% 96%;
+    --muted-foreground: 240 4% 46%;
+    
+    /* Accent - hover states */
+    --accent: 240 5% 96%;
+    --accent-foreground: 240 6% 10%;
+    
+    /* Destructive */
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    
+    /* Success - Emerald */
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+    
+    /* Warning - Amber */
     --warning: 38 92% 50%;
-    --warning-foreground: 48 96% 89%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
+    --warning-foreground: 0 0% 100%;
+    
+    /* Hairline borders - Zinc-200 */
+    --border: 240 6% 90%;
+    --input: 240 6% 90%;
+    
+    /* Focus ring - Violet */
+    --ring: 262 83% 58%;
+    
+    /* Border radius */
     --radius: 0.5rem;
+    
+    /* Sidebar specific */
+    --sidebar-background: 240 5% 98%;
+    --sidebar-foreground: 240 6% 10%;
+    --sidebar-border: 240 6% 90%;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --success: 142.1 70.6% 45.3%;
-    --success-foreground: 144.9 80.4% 10%;
+    /* Deep black background - Zinc-950 */
+    --background: 240 10% 4%;
+    --foreground: 0 0% 98%;
+    
+    /* Cards - Zinc-900 */
+    --card: 240 6% 10%;
+    --card-foreground: 0 0% 98%;
+    
+    /* Popovers */
+    --popover: 240 6% 10%;
+    --popover-foreground: 0 0% 98%;
+    
+    /* Vibrant Violet Primary */
+    --primary: 262 83% 58%;
+    --primary-foreground: 0 0% 100%;
+    
+    /* Secondary - Zinc-800 */
+    --secondary: 240 4% 16%;
+    --secondary-foreground: 0 0% 98%;
+    
+    /* Muted */
+    --muted: 240 4% 16%;
+    --muted-foreground: 240 5% 65%;
+    
+    /* Accent */
+    --accent: 240 4% 16%;
+    --accent-foreground: 0 0% 98%;
+    
+    /* Destructive */
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 0 0% 98%;
+    
+    /* Success */
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 100%;
+    
+    /* Warning */
     --warning: 48 96% 53%;
-    --warning-foreground: 20.5 14.3% 4.1%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 48%;
+    --warning-foreground: 0 0% 0%;
+    
+    /* Borders - Zinc-800 */
+    --border: 240 4% 16%;
+    --input: 240 4% 16%;
+    
+    /* Focus ring */
+    --ring: 262 83% 58%;
+    
+    /* Sidebar */
+    --sidebar-background: 240 6% 6%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-border: 240 4% 16%;
   }
 }
 
@@ -61,27 +119,44 @@
   * {
     @apply border-border;
   }
+  
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  
+  /* Tabular numbers for data */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
   }
 }
 
-/* Custom scrollbar */
+/* Custom scrollbar - minimal */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  @apply bg-muted;
+  @apply bg-transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-muted-foreground/20 rounded-full;
+  @apply bg-border rounded-full;
 }
 
 ::-webkit-scrollbar-thumb:hover {
   @apply bg-muted-foreground/30;
+}
+
+/* Smooth transitions for theme switching */
+html {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Focus visible for accessibility */
+*:focus-visible {
+  @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
 }
 
 /* Animation for AI thinking state */
@@ -101,16 +176,91 @@
 /* Voice recording animation */
 @keyframes voice-pulse {
   0% {
-    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+    box-shadow: 0 0 0 0 hsl(var(--primary) / 0.7);
   }
   70% {
-    box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+    box-shadow: 0 0 0 10px hsl(var(--primary) / 0);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+    box-shadow: 0 0 0 0 hsl(var(--primary) / 0);
   }
 }
 
 .voice-recording {
   animation: voice-pulse 1.5s infinite;
+}
+
+/* Skeleton shimmer animation */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    hsl(var(--muted)) 25%,
+    hsl(var(--muted-foreground) / 0.1) 50%,
+    hsl(var(--muted)) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+/* Button press effect */
+.btn-press:active {
+  transform: scale(0.98);
+}
+
+/* Subtle card hover effect */
+.card-hover {
+  @apply transition-all duration-200;
+}
+
+.card-hover:hover {
+  @apply border-primary/20;
+}
+
+/* Table row hover */
+.table-row-hover {
+  @apply transition-colors duration-150;
+}
+
+.table-row-hover:hover {
+  @apply bg-muted/50;
+}
+
+/* Status badge styles */
+.status-success {
+  @apply bg-emerald-500/10 text-emerald-600 dark:text-emerald-400;
+}
+
+.status-warning {
+  @apply bg-amber-500/10 text-amber-600 dark:text-amber-400;
+}
+
+.status-danger {
+  @apply bg-red-500/10 text-red-600 dark:text-red-400;
+}
+
+.status-info {
+  @apply bg-blue-500/10 text-blue-600 dark:text-blue-400;
+}
+
+/* Gradient text for emphasis */
+.gradient-text {
+  @apply bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent;
+}
+
+/* Glassmorphism effect - subtle */
+.glass {
+  @apply bg-background/80 backdrop-blur-sm;
+}
+
+.glass-strong {
+  @apply bg-background/95 backdrop-blur-md;
 }

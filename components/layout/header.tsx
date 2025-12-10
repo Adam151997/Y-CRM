@@ -93,31 +93,32 @@ export function Header() {
   };
 
   return (
-    <header className="h-16 border-b bg-card flex items-center justify-between px-4 lg:px-6">
-      {/* Left side - Page title (with left padding on mobile for menu button) */}
+    <header className="h-14 border-b border-border bg-background/95 backdrop-blur-sm flex items-center justify-between px-4 lg:px-6">
+      {/* Left side - Page title */}
       <div className="flex items-center pl-12 lg:pl-0">
-        <h1 className="text-xl font-semibold">{getPageTitle()}</h1>
+        <h1 className="text-lg font-semibold text-foreground">{getPageTitle()}</h1>
       </div>
 
       {/* Right side - Search, notifications, theme toggle */}
-      <div className="flex items-center space-x-2">
+      <div className="flex items-center gap-1">
         {/* Search */}
         <div className="hidden md:flex items-center">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search..."
-              className="pl-9 w-64"
+              className="pl-8 h-9 w-56 bg-secondary/50 border-transparent focus:border-border focus:bg-background text-sm"
             />
           </div>
         </div>
+        
         <Button
           variant="ghost"
           size="icon"
-          className="md:hidden"
+          className="md:hidden h-9 w-9 text-muted-foreground hover:text-foreground"
           onClick={() => setSearchOpen(!searchOpen)}
         >
-          <Search className="h-5 w-5" />
+          <Search className="h-4 w-4" />
         </Button>
 
         {/* Notifications */}
@@ -127,10 +128,11 @@ export function Header() {
         <Button
           variant="ghost"
           size="icon"
+          className="h-9 w-9 text-muted-foreground hover:text-foreground"
           onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
         >
-          <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-          <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+          <Sun className="h-4 w-4 rotate-0 scale-100 transition-transform dark:-rotate-90 dark:scale-0" />
+          <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-transform dark:rotate-0 dark:scale-100" />
           <span className="sr-only">Toggle theme</span>
         </Button>
       </div>

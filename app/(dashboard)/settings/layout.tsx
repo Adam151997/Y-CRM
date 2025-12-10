@@ -49,10 +49,10 @@ const settingsNav = [
     description: "Import and export data",
   },
   {
-    title: "Activity & Audit Log",
+    title: "Audit Log",
     href: "/settings/activity",
     icon: History,
-    description: "View all CRM activity and changes",
+    description: "View all CRM changes",
   },
 ];
 
