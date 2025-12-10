@@ -417,7 +417,8 @@ export async function executeAgent(
       model,
       system: systemPrompt,
       messages,
-      tools: tools as Parameters<typeof generateText>[0]["tools"],
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      tools: tools as any,
       toolChoice: toolChoiceMode as "auto" | "required",
       maxSteps: 5,
       onStepFinish: ({ toolCalls, toolResults: stepToolResults, finishReason, text }) => {
