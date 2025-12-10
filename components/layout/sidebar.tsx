@@ -123,6 +123,11 @@ interface CustomModule {
   showInSidebar: boolean;
 }
 
+interface Branding {
+  brandName: string;
+  brandLogo: string | null;
+}
+
 interface SidebarProps {
   onNavigate?: () => void;
 }
@@ -131,6 +136,37 @@ export function Sidebar({ onNavigate }: SidebarProps) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [customModules, setCustomModules] = useState<CustomModule[]>([]);
+  const [branding, setBranding] = useState<Branding>({ brandName: "Y CRM", brandLogo: null });
+
+  // Fetch branding
+  useEffect(() => {
+    const fetchBranding = async () => {
+      try {
+        const response = await fetch("/api/organization/branding");
+        if (response.ok) {
+          const data = await response.json();
+          setBranding({
+            brandName: data.brandName || "Y CRM",
+            brandLogo: data.brandLogo || null,
+          });
+        }
+      } catch (error) {
+        console.error("Failed to fetch branding:", error);
+      }
+    };
+
+    fetchBranding();
+
+    // Listen for branding updates
+    const handleBrandingUpdate = () => {
+      fetchBranding();
+    };
+
+    window.addEventListener("branding-updated", handleBrandingUpdate);
+    return () => {
+      window.removeEventListener("branding-updated", handleBrandingUpdate);
+    };
+  }, []);
 
   // Fetch custom modules
   useEffect(() => {
@@ -174,15 +210,32 @@ export function Sidebar({ onNavigate }: SidebarProps) {
         collapsed ? "w-16" : "w-64"
       )}
     >
-      {/* Logo */}
+      {/* Branding / Logo */}
       <div className="flex items-center justify-between h-16 px-4 border-b">
         {!collapsed ? (
-          <Link href="/dashboard" className="flex items-center space-x-2" onClick={handleNavClick}>
-            <Logo size={32} showText />
+          <Link href="/dashboard" className="flex items-center gap-2 min-w-0" onClick={handleNavClick}>
+            {branding.brandLogo ? (
+              <img 
+                src={branding.brandLogo} 
+                alt={branding.brandName} 
+                className="h-8 w-8 object-contain rounded"
+              />
+            ) : (
+              <Logo size={28} />
+            )}
+            <span className="font-semibold text-lg truncate">{branding.brandName}</span>
           </Link>
         ) : (
           <Link href="/dashboard" className="mx-auto" onClick={handleNavClick}>
-            <Logo size={32} />
+            {branding.brandLogo ? (
+              <img 
+                src={branding.brandLogo} 
+                alt={branding.brandName} 
+                className="h-8 w-8 object-contain rounded"
+              />
+            ) : (
+              <Logo size={28} />
+            )}
           </Link>
         )}
         <Button
@@ -204,7 +257,7 @@ export function Sidebar({ onNavigate }: SidebarProps) {
         <Link href="/assistant" onClick={handleNavClick}>
           <Button
             className={cn(
-              "w-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700",
+              "w-full bg-gradient-to-r from-[#FF5757] to-[#FF3D3D] hover:from-[#FF4040] hover:to-[#FF2020] text-white",
               collapsed && "px-2"
             )}
           >
@@ -231,7 +284,7 @@ export function Sidebar({ onNavigate }: SidebarProps) {
                 isActive
                   ? "bg-primary/10 text-primary"
                   : isHighlight
-                  ? "text-violet-600 hover:bg-violet-50 dark:text-violet-400 dark:hover:bg-violet-950/50"
+                  ? "text-[#FF5757] hover:bg-[#FF5757]/10"
                   : "text-muted-foreground hover:bg-accent hover:text-foreground",
                 collapsed && "justify-center px-2"
               )}
@@ -274,7 +327,7 @@ export function Sidebar({ onNavigate }: SidebarProps) {
           </>
         )}
 
-        <div className="my-4 border-t" />
+        <div className="my-2" />
 
         {secondaryNavigation.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);

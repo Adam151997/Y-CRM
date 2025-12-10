@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { User, Building, Layers, Plug, Box, Database, History } from "lucide-react";
+import { User, Building, Layers, Plug, Box, Database, History, Palette } from "lucide-react";
 
 const settingsNav = [
   {
@@ -17,6 +17,12 @@ const settingsNav = [
     href: "/settings/organization",
     icon: Building,
     description: "Manage your organization settings",
+  },
+  {
+    title: "Branding",
+    href: "/settings/branding",
+    icon: Palette,
+    description: "Customize your CRM appearance",
   },
   {
     title: "Integrations",

@@ -1,114 +1,232 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getApiAuthContext } from "@/lib/auth";
-import { keywordSearch } from "@/lib/embeddings";
 import prisma from "@/lib/db";
 
+export const dynamic = "force-dynamic";
+
 /**
- * POST /api/search
- * Search across CRM entities using keyword matching
+ * GET /api/search
+ * Omni-search across all CRM modules
  */
-export async function POST(request: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
     const auth = await getApiAuthContext();
     if (!auth) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await request.json();
-    const { query, entityTypes, limit = 10 } = body;
+    const { searchParams } = new URL(request.url);
+    const query = searchParams.get("q")?.trim();
+    const limit = Math.min(parseInt(searchParams.get("limit") || "5"), 10);
 
-    if (!query || typeof query !== "string") {
-      return NextResponse.json(
-        { error: "Query string required" },
-        { status: 400 }
-      );
+    if (!query || query.length < 2) {
+      return NextResponse.json({ results: [] });
     }
 
-    // Perform keyword search
-    const results = await keywordSearch({
-      orgId: auth.orgId,
-      query,
-      entityTypes,
-      limit,
-    });
+    const searchTerm = `%${query}%`;
 
-    // Fetch full entity data for each result
-    const enrichedResults = await Promise.all(
-      results.map(async (result) => {
-        let entity = null;
+    // Search all modules in parallel
+    const [leads, contacts, accounts, opportunities, tasks, tickets, documents] = await Promise.all([
+      // Leads
+      prisma.lead.findMany({
+        where: {
+          orgId: auth.orgId,
+          OR: [
+            { firstName: { contains: query, mode: "insensitive" } },
+            { lastName: { contains: query, mode: "insensitive" } },
+            { email: { contains: query, mode: "insensitive" } },
+            { company: { contains: query, mode: "insensitive" } },
+            { phone: { contains: query, mode: "insensitive" } },
+          ],
+        },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          company: true,
+          status: true,
+        },
+        take: limit,
+        orderBy: { updatedAt: "desc" },
+      }),
 
-        switch (result.entityType) {
-          case "LEAD":
-            entity = await prisma.lead.findUnique({
-              where: { id: result.entityId },
-              select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-                email: true,
-                company: true,
-                status: true,
-              },
-            });
-            break;
+      // Contacts
+      prisma.contact.findMany({
+        where: {
+          orgId: auth.orgId,
+          OR: [
+            { firstName: { contains: query, mode: "insensitive" } },
+            { lastName: { contains: query, mode: "insensitive" } },
+            { email: { contains: query, mode: "insensitive" } },
+            { phone: { contains: query, mode: "insensitive" } },
+          ],
+        },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          account: { select: { name: true } },
+        },
+        take: limit,
+        orderBy: { updatedAt: "desc" },
+      }),
 
-          case "CONTACT":
-            entity = await prisma.contact.findUnique({
-              where: { id: result.entityId },
-              select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-                email: true,
-                title: true,
-                account: { select: { name: true } },
-              },
-            });
-            break;
+      // Accounts
+      prisma.account.findMany({
+        where: {
+          orgId: auth.orgId,
+          OR: [
+            { name: { contains: query, mode: "insensitive" } },
+            { industry: { contains: query, mode: "insensitive" } },
+            { website: { contains: query, mode: "insensitive" } },
+          ],
+        },
+        select: {
+          id: true,
+          name: true,
+          industry: true,
+          type: true,
+        },
+        take: limit,
+        orderBy: { updatedAt: "desc" },
+      }),
 
-          case "ACCOUNT":
-            entity = await prisma.account.findUnique({
-              where: { id: result.entityId },
-              select: {
-                id: true,
-                name: true,
-                industry: true,
-                type: true,
-              },
-            });
-            break;
+      // Opportunities
+      prisma.opportunity.findMany({
+        where: {
+          orgId: auth.orgId,
+          OR: [
+            { name: { contains: query, mode: "insensitive" } },
+          ],
+        },
+        select: {
+          id: true,
+          name: true,
+          value: true,
+          account: { select: { name: true } },
+          stage: { select: { name: true } },
+        },
+        take: limit,
+        orderBy: { updatedAt: "desc" },
+      }),
 
-          case "NOTE":
-            entity = await prisma.note.findUnique({
-              where: { id: result.entityId },
-              select: {
-                id: true,
-                content: true,
-                createdAt: true,
-                lead: { select: { firstName: true, lastName: true } },
-                contact: { select: { firstName: true, lastName: true } },
-                account: { select: { name: true } },
-              },
-            });
-            break;
-        }
+      // Tasks
+      prisma.task.findMany({
+        where: {
+          orgId: auth.orgId,
+          OR: [
+            { title: { contains: query, mode: "insensitive" } },
+            { description: { contains: query, mode: "insensitive" } },
+          ],
+        },
+        select: {
+          id: true,
+          title: true,
+          status: true,
+          priority: true,
+          dueDate: true,
+        },
+        take: limit,
+        orderBy: { updatedAt: "desc" },
+      }),
 
-        return {
-          ...result,
-          entity,
-        };
-      })
-    );
+      // Tickets
+      prisma.ticket.findMany({
+        where: {
+          orgId: auth.orgId,
+          OR: [
+            { subject: { contains: query, mode: "insensitive" } },
+            { description: { contains: query, mode: "insensitive" } },
+          ],
+        },
+        select: {
+          id: true,
+          ticketNumber: true,
+          subject: true,
+          status: true,
+          priority: true,
+        },
+        take: limit,
+        orderBy: { updatedAt: "desc" },
+      }),
 
-    // Filter out results where entity was not found (deleted)
-    const validResults = enrichedResults.filter((r) => r.entity !== null);
+      // Documents
+      prisma.document.findMany({
+        where: {
+          orgId: auth.orgId,
+          name: { contains: query, mode: "insensitive" },
+        },
+        select: {
+          id: true,
+          name: true,
+          type: true,
+          mimeType: true,
+        },
+        take: limit,
+        orderBy: { createdAt: "desc" },
+      }),
+    ]);
 
-    return NextResponse.json({
-      success: true,
-      query,
-      count: validResults.length,
-      results: validResults,
-    });
+    // Format results
+    const results = [
+      ...leads.map((lead) => ({
+        id: lead.id,
+        type: "lead" as const,
+        title: `${lead.firstName} ${lead.lastName}`,
+        subtitle: lead.company || lead.email || "",
+        status: lead.status,
+        href: `/leads/${lead.id}`,
+      })),
+      ...contacts.map((contact) => ({
+        id: contact.id,
+        type: "contact" as const,
+        title: `${contact.firstName} ${contact.lastName}`,
+        subtitle: contact.account?.name || contact.email || "",
+        href: `/contacts/${contact.id}`,
+      })),
+      ...accounts.map((account) => ({
+        id: account.id,
+        type: "account" as const,
+        title: account.name,
+        subtitle: account.industry || account.type || "",
+        href: `/accounts/${account.id}`,
+      })),
+      ...opportunities.map((opp) => ({
+        id: opp.id,
+        type: "opportunity" as const,
+        title: opp.name,
+        subtitle: `${opp.account?.name || ""} • ${opp.stage?.name || ""}`,
+        value: opp.value,
+        href: `/opportunities/${opp.id}`,
+      })),
+      ...tasks.map((task) => ({
+        id: task.id,
+        type: "task" as const,
+        title: task.title,
+        subtitle: task.status,
+        priority: task.priority,
+        href: `/tasks/${task.id}`,
+      })),
+      ...tickets.map((ticket) => ({
+        id: ticket.id,
+        type: "ticket" as const,
+        title: `#${ticket.ticketNumber} ${ticket.subject}`,
+        subtitle: ticket.status,
+        priority: ticket.priority,
+        href: `/tickets/${ticket.id}`,
+      })),
+      ...documents.map((doc) => ({
+        id: doc.id,
+        type: "document" as const,
+        title: doc.name,
+        subtitle: doc.type,
+        href: `/documents/${doc.id}`,
+      })),
+    ];
+
+    return NextResponse.json({ results, query });
   } catch (error) {
     console.error("Search error:", error);
     return NextResponse.json(
