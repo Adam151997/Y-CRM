@@ -1,11 +1,8 @@
 import { generateText, CoreMessage } from "ai";
 import { 
-  geminiFlash, 
   geminiPro,
   CRM_SYSTEM_PROMPT, 
-  ANALYTICS_SYSTEM_PROMPT,
   isAIConfigured,
-  ModelType,
 } from "./providers";
 import {
   // Lead tools
@@ -75,7 +72,6 @@ export interface AgentContext {
   orgId: string;
   userId: string;
   requestId?: string;
-  modelType?: ModelType;
   workspace?: "sales" | "cs" | "marketing";
 }
 
@@ -90,7 +86,6 @@ export interface AgentResult {
 
 /**
  * Get all available tools for the CRM agent
- * Includes tools from all workspaces: Sales, CS, Marketing, and Global
  */
 export function getCRMTools(orgId: string, userId: string) {
   return {
@@ -154,6 +149,7 @@ export function getCRMTools(orgId: string, userId: string) {
 /**
  * Get filtered tools based on detected intent
  * This reduces schema complexity for Gemini when using toolChoice: "required"
+ * IMPORTANT: Always include relevant search tools with create tools for entity resolution
  */
 export function getFilteredTools(
   orgId: string, 
@@ -163,24 +159,26 @@ export function getFilteredTools(
   const lower = message.toLowerCase();
   const allTools = getCRMTools(orgId, userId);
   
-  // Always include these core tools
+  // Always include these core tools for entity resolution
   const filtered: Record<string, unknown> = {
     getDashboardStats: allTools.getDashboardStats,
     searchTasks: allTools.searchTasks,
-    createTask: allTools.createTask,
+    searchAccounts: allTools.searchAccounts, // Always needed for entity resolution
   };
   
-  // Lead-related
+  // Lead-related - include search for entity resolution
   if (lower.includes("lead") || lower.includes("prospect")) {
     filtered.createLead = allTools.createLead;
     filtered.searchLeads = allTools.searchLeads;
     filtered.updateLead = allTools.updateLead;
+    filtered.createTask = allTools.createTask; // Often need to create follow-up tasks
   }
   
-  // Contact-related
+  // Contact-related - include account search for linking
   if (lower.includes("contact")) {
     filtered.createContact = allTools.createContact;
     filtered.searchContacts = allTools.searchContacts;
+    filtered.searchAccounts = allTools.searchAccounts;
   }
   
   // Account-related
@@ -189,43 +187,52 @@ export function getFilteredTools(
     filtered.searchAccounts = allTools.searchAccounts;
   }
   
-  // Opportunity-related
+  // Opportunity-related - MUST have searchAccounts for accountId resolution
   if (lower.includes("opportunity") || lower.includes("deal") || lower.includes("pipeline")) {
     filtered.createOpportunity = allTools.createOpportunity;
     filtered.searchOpportunities = allTools.searchOpportunities;
+    filtered.searchAccounts = allTools.searchAccounts; // Required for accountId
   }
   
-  // Task-related
+  // Task-related - include entity searches for linking
   if (lower.includes("task") || lower.includes("todo") || lower.includes("follow")) {
     filtered.createTask = allTools.createTask;
     filtered.completeTask = allTools.completeTask;
     filtered.searchTasks = allTools.searchTasks;
+    filtered.searchLeads = allTools.searchLeads; // For linking to leads
+    filtered.searchContacts = allTools.searchContacts; // For linking to contacts
+    filtered.searchAccounts = allTools.searchAccounts; // For linking to accounts
   }
   
-  // Ticket-related (CS)
+  // Ticket-related (CS) - MUST have searchAccounts for accountId resolution
   if (lower.includes("ticket") || lower.includes("support") || lower.includes("issue")) {
     filtered.createTicket = allTools.createTicket;
     filtered.searchTickets = allTools.searchTickets;
     filtered.updateTicket = allTools.updateTicket;
     filtered.addTicketMessage = allTools.addTicketMessage;
+    filtered.searchAccounts = allTools.searchAccounts; // Required for accountId
+    filtered.searchContacts = allTools.searchContacts; // Optional for contactId
   }
   
   // Health score (CS)
   if (lower.includes("health") || lower.includes("risk") || lower.includes("churn")) {
     filtered.getHealthScore = allTools.getHealthScore;
     filtered.searchAtRiskAccounts = allTools.searchAtRiskAccounts;
+    filtered.searchAccounts = allTools.searchAccounts;
   }
   
   // Playbook (CS)
   if (lower.includes("playbook")) {
     filtered.searchPlaybooks = allTools.searchPlaybooks;
     filtered.runPlaybook = allTools.runPlaybook;
+    filtered.searchAccounts = allTools.searchAccounts; // Required for accountId
   }
   
   // Campaign (Marketing)
   if (lower.includes("campaign")) {
     filtered.createCampaign = allTools.createCampaign;
     filtered.searchCampaigns = allTools.searchCampaigns;
+    filtered.searchSegments = allTools.searchSegments; // For segment targeting
   }
   
   // Segment (Marketing)
@@ -240,9 +247,13 @@ export function getFilteredTools(
     filtered.searchForms = allTools.searchForms;
   }
   
-  // Note-related
+  // Note-related - include entity searches for linking
   if (lower.includes("note")) {
     filtered.createNote = allTools.createNote;
+    filtered.searchLeads = allTools.searchLeads;
+    filtered.searchContacts = allTools.searchContacts;
+    filtered.searchAccounts = allTools.searchAccounts;
+    filtered.searchOpportunities = allTools.searchOpportunities;
   }
   
   // Document-related
@@ -255,6 +266,9 @@ export function getFilteredTools(
   // Search/find general
   if (lower.includes("search") || lower.includes("find")) {
     filtered.semanticSearch = allTools.semanticSearch;
+    filtered.searchLeads = allTools.searchLeads;
+    filtered.searchContacts = allTools.searchContacts;
+    filtered.searchAccounts = allTools.searchAccounts;
   }
   
   // Stats/dashboard
@@ -272,7 +286,7 @@ export function getFilteredTools(
     filtered.createCalendarEvent = allTools.createCalendarEvent;
   }
   
-  // If no specific tools detected, return a minimal set for general queries
+  // If minimal tools detected, return a useful default set
   if (Object.keys(filtered).length <= 3) {
     return {
       getDashboardStats: allTools.getDashboardStats,
@@ -282,58 +296,19 @@ export function getFilteredTools(
       searchTasks: allTools.searchTasks,
       createLead: allTools.createLead,
       createTask: allTools.createTask,
+      createAccount: allTools.createAccount,
     };
   }
   
   return filtered;
 }
 
-function detectAdvancedIntent(message: string): boolean {
-  const advancedKeywords = [
-    "analyze", "analysis", "report", "insight", "trend",
-    "forecast", "predict", "compare", "summary", "breakdown",
-    "performance", "metrics", "statistics", "evaluate", "assess",
-    "strategy", "recommendation", "why", "how come", "explain why",
-    "health score", "at risk", "churn", "retention",
-    "campaign performance", "conversion rate", "roi",
-  ];
-  
-  const lowerMessage = message.toLowerCase();
-  return advancedKeywords.some(keyword => lowerMessage.includes(keyword));
-}
-
-function detectWorkspace(message: string): "sales" | "cs" | "marketing" | null {
-  const lower = message.toLowerCase();
-  
-  if (lower.includes("ticket") || lower.includes("support") || 
-      lower.includes("health score") || lower.includes("playbook") ||
-      lower.includes("at risk") || lower.includes("customer success")) {
-    return "cs";
-  }
-  
-  if (lower.includes("campaign") || lower.includes("segment") ||
-      lower.includes("form") || lower.includes("marketing") ||
-      lower.includes("audience") || lower.includes("email blast")) {
-    return "marketing";
-  }
-  
-  if (lower.includes("lead") || lower.includes("opportunity") ||
-      lower.includes("pipeline") || lower.includes("deal") ||
-      lower.includes("sales") || lower.includes("prospect")) {
-    return "sales";
-  }
-  
-  return null;
-}
-
 /**
  * Detect if the user's message requires tool execution
- * Used to force toolChoice: "required" for clear action requests
  */
 function detectToolRequiredIntent(message: string): boolean {
   const lower = message.toLowerCase();
   
-  // Action verbs that clearly require tool execution
   const actionVerbs = [
     "create", "add", "make", "new",
     "update", "edit", "change", "modify",
@@ -343,7 +318,6 @@ function detectToolRequiredIntent(message: string): boolean {
     "send", "schedule",
   ];
   
-  // Entity nouns that indicate CRM operations
   const entityNouns = [
     "lead", "contact", "account", "task", "opportunity",
     "ticket", "note", "campaign", "segment", "form",
@@ -351,11 +325,58 @@ function detectToolRequiredIntent(message: string): boolean {
     "dashboard", "stats", "statistics", "report",
   ];
   
-  // Check if message contains action verb + entity noun pattern
   const hasActionVerb = actionVerbs.some(verb => lower.includes(verb));
   const hasEntityNoun = entityNouns.some(noun => lower.includes(noun));
   
   return hasActionVerb && hasEntityNoun;
+}
+
+/**
+ * Build a response from tool results when model text is empty
+ */
+function buildResponseFromToolResults(
+  toolsCalled: string[],
+  toolResults: Record<string, unknown>[]
+): string {
+  if (toolResults.length === 0) {
+    return "I processed your request.";
+  }
+
+  const responses: string[] = [];
+  
+  for (const result of toolResults) {
+    if (result.success === false) {
+      responses.push(result.message as string || "An operation failed.");
+      continue;
+    }
+    
+    // Handle different tool result types
+    if (result.message) {
+      responses.push(result.message as string);
+    } else if (result.leadId) {
+      responses.push(`Created lead (ID: ${result.leadId})`);
+    } else if (result.contactId) {
+      responses.push(`Created contact (ID: ${result.contactId})`);
+    } else if (result.accountId) {
+      responses.push(`Created account (ID: ${result.accountId})`);
+    } else if (result.taskId) {
+      responses.push(`Created task (ID: ${result.taskId})`);
+    } else if (result.ticketId) {
+      responses.push(`Created ticket #${result.ticketNumber || ''} (ID: ${result.ticketId})`);
+    } else if (result.opportunityId) {
+      responses.push(`Created opportunity (ID: ${result.opportunityId})`);
+    } else if (result.campaignId) {
+      responses.push(`Created campaign (ID: ${result.campaignId})`);
+    } else if (result.count !== undefined) {
+      responses.push(`Found ${result.count} results.`);
+    } else if (result.stats) {
+      responses.push("Retrieved dashboard statistics.");
+    }
+  }
+  
+  return responses.length > 0 
+    ? responses.join(" ") 
+    : "Operation completed successfully.";
 }
 
 export async function executeAgent(
@@ -365,6 +386,7 @@ export async function executeAgent(
   const { orgId, userId, requestId } = context;
   const toolsCalled: string[] = [];
   const toolResults: Record<string, unknown>[] = [];
+  const modelName = "gemini-2.5-pro";
 
   if (!isAIConfigured()) {
     return {
@@ -382,12 +404,6 @@ export async function executeAgent(
     ? lastUserMessage.content 
     : "";
   
-  const useAdvancedModel = context.modelType === "advanced" || detectAdvancedIntent(userContent);
-  const model = useAdvancedModel ? geminiPro : geminiFlash;
-  const modelName = useAdvancedModel ? "gemini-2.5-pro" : "gemini-2.0-flash";
-  const systemPrompt = useAdvancedModel ? ANALYTICS_SYSTEM_PROMPT : CRM_SYSTEM_PROMPT;
-  const detectedWorkspace = context.workspace || detectWorkspace(userContent);
-  
   // Detect if message requires tool execution
   const requiresToolExecution = detectToolRequiredIntent(userContent);
 
@@ -401,45 +417,30 @@ export async function executeAgent(
       ? getFilteredTools(orgId, userId, userContent)
       : allTools;
 
-    console.log(`[Agent] Starting execution with ${modelName}`);
-    console.log("[Agent] Context:", { orgId, userId, requestId });
-    console.log("[Agent] Workspace:", detectedWorkspace || "auto-detect");
-    console.log("[Agent] Message:", userContent.substring(0, 100));
-    console.log("[Agent] Requires tool execution:", requiresToolExecution);
-    console.log("[Agent] Available tools:", Object.keys(tools).length, Object.keys(tools));
-
     // Use "required" when we detect clear tool-requiring intent
     // This forces Gemini to actually call tools instead of hallucinating
     const toolChoiceMode = requiresToolExecution ? "required" : "auto";
-    console.log("[Agent] Tool choice mode:", toolChoiceMode);
 
     const result = await generateText({
-      model,
-      system: systemPrompt,
+      model: geminiPro,
+      system: CRM_SYSTEM_PROMPT,
       messages,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       tools: tools as any,
       toolChoice: toolChoiceMode as "auto" | "required",
-      maxSteps: 5,
-      onStepFinish: ({ toolCalls, toolResults: stepToolResults, finishReason, text }) => {
-        console.log("[Agent] ====== STEP FINISHED ======");
-        console.log("[Agent] Step finishReason:", finishReason);
-        console.log("[Agent] Step text preview:", text?.substring(0, 200));
-        console.log("[Agent] Step toolCalls:", JSON.stringify(toolCalls || []));
-        console.log("[Agent] Step toolResults:", JSON.stringify(stepToolResults || []));
-        
+      maxSteps: 3, // Reduced from 5 to prevent duplicate executions
+      onStepFinish: ({ toolCalls, toolResults: stepToolResults }) => {
         if (toolCalls && toolCalls.length > 0) {
           toolCalls.forEach((tc) => {
-            console.log("[Agent] Tool called:", tc.toolName, "args:", JSON.stringify(tc.args));
-            toolsCalled.push(tc.toolName);
+            // Prevent duplicate tool calls
+            if (!toolsCalled.includes(tc.toolName)) {
+              toolsCalled.push(tc.toolName);
+            }
           });
-        } else {
-          console.log("[Agent] WARNING: No tool calls in this step!");
         }
         
         if (stepToolResults && stepToolResults.length > 0) {
           stepToolResults.forEach((tr) => {
-            console.log("[Agent] Tool result:", JSON.stringify(tr));
             if (tr.result && typeof tr.result === 'object') {
               toolResults.push(tr.result as Record<string, unknown>);
             }
@@ -448,13 +449,11 @@ export async function executeAgent(
       },
     });
 
-    // Log the full result for debugging
-    console.log("[Agent] ====== FINAL RESULT ======");
-    console.log("[Agent] Result finishReason:", result.finishReason);
-    console.log("[Agent] Result text:", result.text?.substring(0, 500));
-    console.log("[Agent] Result toolCalls:", JSON.stringify(result.toolCalls || []));
-    console.log("[Agent] Result toolResults:", JSON.stringify(result.toolResults || []));
-    console.log("[Agent] Total tools called:", toolsCalled);
+    // Build response - use model text if available, otherwise construct from tool results
+    let response = result.text;
+    if (!response || response.trim() === "") {
+      response = buildResponseFromToolResults(toolsCalled, toolResults);
+    }
 
     await createAuditLog({
       orgId,
@@ -465,22 +464,21 @@ export async function executeAgent(
       requestId,
       metadata: {
         model: modelName,
-        workspace: detectedWorkspace,
         toolsCalled,
         messageCount: messages.length,
         finishReason: result.finishReason,
       },
-    }).catch(console.error);
+    }).catch(() => {}); // Silent fail for audit
 
     return {
       success: true,
-      response: result.text || "I processed your request but have no additional response.",
+      response,
       toolsCalled,
       toolResults,
       modelUsed: modelName,
     };
   } catch (error) {
-    console.error("[Agent] Execution error:", error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
 
     await createAuditLog({
       orgId,
@@ -491,19 +489,18 @@ export async function executeAgent(
       requestId,
       metadata: {
         model: modelName,
-        workspace: detectedWorkspace,
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: errorMessage,
         toolsCalled,
       },
-    }).catch(console.error);
+    }).catch(() => {});
 
     return {
       success: false,
-      response: `I encountered an error: ${error instanceof Error ? error.message : "Unknown error"}. Please try again.`,
+      response: `I encountered an error: ${errorMessage}. Please try again.`,
       toolsCalled,
       toolResults,
       modelUsed: modelName,
-      error: error instanceof Error ? error.message : "Unknown error",
+      error: errorMessage,
     };
   }
 }
@@ -533,7 +530,7 @@ Respond with JSON only:
 
   try {
     const result = await generateText({
-      model: geminiFlash,
+      model: geminiPro,
       messages: [{ role: "user", content: intentPrompt }],
     });
 
@@ -542,14 +539,14 @@ Respond with JSON only:
       return JSON.parse(jsonMatch[0]);
     }
   } catch (error) {
-    console.error("Intent parsing error:", error);
+    // Silent fail, return default
   }
 
   return {
     intent: "GENERAL_QUESTION",
     confidence: 0.5,
     entities: {},
-    workspace: detectWorkspace(userMessage),
+    workspace: null,
   };
 }
 
