@@ -159,7 +159,7 @@ export function getFilteredTools(
   orgId: string, 
   userId: string, 
   message: string
-): Record<string, ReturnType<typeof createLeadTool>> {
+): Record<string, unknown> {
   const lower = message.toLowerCase();
   const allTools = getCRMTools(orgId, userId);
   
@@ -282,10 +282,10 @@ export function getFilteredTools(
       searchTasks: allTools.searchTasks,
       createLead: allTools.createLead,
       createTask: allTools.createTask,
-    } as Record<string, ReturnType<typeof createLeadTool>>;
+    };
   }
   
-  return filtered as Record<string, ReturnType<typeof createLeadTool>>;
+  return filtered;
 }
 
 function detectAdvancedIntent(message: string): boolean {
