@@ -1,5 +1,6 @@
-import { getAuthContext } from "@/lib/auth";
-import prisma from "@/lib/db";
+"use client";
+
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -18,20 +19,35 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { 
   ChevronLeft, ChevronRight, History,
   Plus, Edit, Trash2, Bot, User, Settings, Mic
 } from "lucide-react";
 import { format } from "date-fns";
-import Link from "next/link";
 
-interface PageProps {
-  searchParams: Promise<{ 
-    page?: string; 
-    module?: string;
-    action?: string;
-    actorType?: string;
-  }>;
+interface AuditLog {
+  id: string;
+  module: string;
+  action: string;
+  actorType: string;
+  actorId: string | null;
+  recordId: string | null;
+  newState: Record<string, unknown> | null;
+  createdAt: string;
+}
+
+interface AuditLogResponse {
+  data: AuditLog[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  filters: {
+    modules: string[];
+    actions: string[];
+    actorTypes: string[];
+  };
 }
 
 const auditActionIcons: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -57,75 +73,63 @@ const actorTypeIcons: Record<string, React.ComponentType<{ className?: string }>
   API: Settings,
 };
 
-export default async function AuditLogPage({ searchParams }: PageProps) {
-  const { orgId } = await getAuthContext();
-  const params = await searchParams;
+export default function AuditLogPage() {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [data, setData] = useState<AuditLogResponse | null>(null);
   
-  const page = parseInt(params.page || "1");
-  const limit = 25;
-  const skip = (page - 1) * limit;
-  const moduleFilter = params.module;
-  const actionFilter = params.action;
-  const actorTypeFilter = params.actorType;
+  // Filters
+  const [page, setPage] = useState(1);
+  const [moduleFilter, setModuleFilter] = useState("_all");
+  const [actionFilter, setActionFilter] = useState("_all");
+  const [actorTypeFilter, setActorTypeFilter] = useState("_all");
 
-  // Build where clause for audit logs
-  const auditWhere: Record<string, unknown> = { orgId };
-  if (moduleFilter && moduleFilter !== "_all") {
-    auditWhere.module = moduleFilter;
-  }
-  if (actionFilter && actionFilter !== "_all") {
-    auditWhere.action = actionFilter;
-  }
-  if (actorTypeFilter && actorTypeFilter !== "_all") {
-    auditWhere.actorType = actorTypeFilter;
-  }
-
-  // Fetch audit logs and filter options
-  const [auditLogs, auditTotal, auditModules, auditActions, auditActorTypes] = await Promise.all([
-    prisma.auditLog.findMany({
-      where: auditWhere,
-      orderBy: { createdAt: "desc" },
-      skip,
-      take: limit,
-    }),
-    prisma.auditLog.count({ where: auditWhere }),
-    prisma.auditLog.groupBy({
-      by: ["module"],
-      where: { orgId },
-    }),
-    prisma.auditLog.groupBy({
-      by: ["action"],
-      where: { orgId },
-    }),
-    prisma.auditLog.groupBy({
-      by: ["actorType"],
-      where: { orgId },
-    }),
-  ]);
-
-  const totalPages = Math.ceil(auditTotal / limit);
-
-  const buildUrl = (newParams: Record<string, string | null>) => {
-    const current = new URLSearchParams();
-    if (params.page) current.set("page", params.page);
-    if (params.module) current.set("module", params.module);
-    if (params.action) current.set("action", params.action);
-    if (params.actorType) current.set("actorType", params.actorType);
+  const fetchAuditLogs = async () => {
+    setLoading(true);
+    setError(null);
     
-    Object.entries(newParams).forEach(([key, value]) => {
-      if (value === null) {
-        current.delete(key);
-      } else {
-        current.set(key, value);
+    try {
+      const params = new URLSearchParams();
+      params.set("page", String(page));
+      params.set("limit", "25");
+      if (moduleFilter !== "_all") params.set("module", moduleFilter);
+      if (actionFilter !== "_all") params.set("action", actionFilter);
+      if (actorTypeFilter !== "_all") params.set("actorType", actorTypeFilter);
+      
+      const response = await fetch(`/api/audit-logs?${params.toString()}`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch audit logs");
       }
-    });
-    
-    // Reset page when changing filters
-    if (!newParams.page) {
-      current.set("page", "1");
+      
+      const result = await response.json();
+      setData(result);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An error occurred");
+    } finally {
+      setLoading(false);
     }
-    
-    return `/settings/activity?${current.toString()}`;
+  };
+
+  useEffect(() => {
+    fetchAuditLogs();
+  }, [page, moduleFilter, actionFilter, actorTypeFilter]);
+
+  const handleFilterChange = (type: string, value: string) => {
+    setPage(1); // Reset to page 1 when filter changes
+    if (type === "module") setModuleFilter(value);
+    if (type === "action") setActionFilter(value);
+    if (type === "actorType") setActorTypeFilter(value);
+  };
+
+  const getRecordName = (newState: Record<string, unknown> | null): string | null => {
+    if (!newState) return null;
+    if (typeof newState.name === 'string') return newState.name;
+    if (typeof newState.title === 'string') return newState.title;
+    if (typeof newState.subject === 'string') return newState.subject;
+    if (typeof newState.firstName === 'string') {
+      return `${newState.firstName} ${typeof newState.lastName === 'string' ? newState.lastName : ''}`.trim();
+    }
+    return null;
   };
 
   return (
@@ -144,18 +148,13 @@ export default async function AuditLogPage({ searchParams }: PageProps) {
             </div>
             <div className="flex flex-wrap items-center gap-2">
               {/* Module Filter */}
-              <Select 
-                value={moduleFilter || "_all"}
-                onValueChange={(value) => {
-                  window.location.href = buildUrl({ module: value, page: "1" });
-                }}
-              >
+              <Select value={moduleFilter} onValueChange={(v) => handleFilterChange("module", v)}>
                 <SelectTrigger className="w-[130px]">
                   <SelectValue placeholder="Module" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="_all">All Modules</SelectItem>
-                  {auditModules.map(({ module }) => (
+                  {data?.filters.modules.map((module) => (
                     <SelectItem key={module} value={module}>
                       {module}
                     </SelectItem>
@@ -164,18 +163,13 @@ export default async function AuditLogPage({ searchParams }: PageProps) {
               </Select>
               
               {/* Action Filter */}
-              <Select 
-                value={actionFilter || "_all"}
-                onValueChange={(value) => {
-                  window.location.href = buildUrl({ action: value, page: "1" });
-                }}
-              >
+              <Select value={actionFilter} onValueChange={(v) => handleFilterChange("action", v)}>
                 <SelectTrigger className="w-[120px]">
                   <SelectValue placeholder="Action" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="_all">All Actions</SelectItem>
-                  {auditActions.map(({ action }) => (
+                  {data?.filters.actions.map((action) => (
                     <SelectItem key={action} value={action}>
                       {action}
                     </SelectItem>
@@ -184,18 +178,13 @@ export default async function AuditLogPage({ searchParams }: PageProps) {
               </Select>
 
               {/* Actor Type Filter */}
-              <Select 
-                value={actorTypeFilter || "_all"}
-                onValueChange={(value) => {
-                  window.location.href = buildUrl({ actorType: value, page: "1" });
-                }}
-              >
+              <Select value={actorTypeFilter} onValueChange={(v) => handleFilterChange("actorType", v)}>
                 <SelectTrigger className="w-[120px]">
                   <SelectValue placeholder="Actor" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="_all">All Actors</SelectItem>
-                  {auditActorTypes.map(({ actorType }) => (
+                  {data?.filters.actorTypes.map((actorType) => (
                     <SelectItem key={actorType} value={actorType}>
                       {actorType}
                     </SelectItem>
@@ -206,11 +195,30 @@ export default async function AuditLogPage({ searchParams }: PageProps) {
           </div>
         </CardHeader>
         <CardContent>
-          {auditLogs.length === 0 ? (
+          {error ? (
+            <div className="text-center py-12 text-destructive">
+              <p>{error}</p>
+              <Button variant="outline" className="mt-4" onClick={fetchAuditLogs}>
+                Try Again
+              </Button>
+            </div>
+          ) : loading ? (
+            <div className="space-y-3">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="flex items-center gap-4">
+                  <Skeleton className="h-8 w-8 rounded-md" />
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-4 w-20" />
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-4 w-24" />
+                </div>
+              ))}
+            </div>
+          ) : !data || data.data.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <History className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>No audit logs found</p>
-              {(moduleFilter || actionFilter || actorTypeFilter) && (
+              {(moduleFilter !== "_all" || actionFilter !== "_all" || actorTypeFilter !== "_all") && (
                 <p className="text-sm mt-1">Try adjusting your filters</p>
               )}
             </div>
@@ -227,22 +235,11 @@ export default async function AuditLogPage({ searchParams }: PageProps) {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {auditLogs.map((log) => {
+                  {data.data.map((log) => {
                     const ActionIcon = auditActionIcons[log.action] || Edit;
                     const ActorIcon = actorTypeIcons[log.actorType] || User;
                     const actionColor = auditActionColors[log.action] || "text-gray-600 bg-gray-500/10";
-                    
-                    // Get record name from newState if available
-                    const newState = log.newState as Record<string, unknown> | null;
-                    let recordName: string | null = null;
-                    if (newState) {
-                      if (typeof newState.name === 'string') recordName = newState.name;
-                      else if (typeof newState.title === 'string') recordName = newState.title;
-                      else if (typeof newState.subject === 'string') recordName = newState.subject;
-                      else if (typeof newState.firstName === 'string') {
-                        recordName = `${newState.firstName} ${typeof newState.lastName === 'string' ? newState.lastName : ''}`.trim();
-                      }
-                    }
+                    const recordName = getRecordName(log.newState);
 
                     return (
                       <TableRow key={log.id}>
@@ -290,39 +287,27 @@ export default async function AuditLogPage({ searchParams }: PageProps) {
               </Table>
 
               {/* Pagination */}
-              {totalPages > 1 && (
+              {data.totalPages > 1 && (
                 <div className="flex items-center justify-between mt-4 pt-4 border-t">
                   <p className="text-sm text-muted-foreground">
-                    Showing {skip + 1}-{Math.min(skip + limit, auditTotal)} of {auditTotal} logs
+                    Showing {(page - 1) * 25 + 1}-{Math.min(page * 25, data.total)} of {data.total} logs
                   </p>
                   <div className="flex gap-2">
                     <Button
                       variant="outline"
                       size="sm"
                       disabled={page <= 1}
-                      asChild={page > 1}
+                      onClick={() => setPage(page - 1)}
                     >
-                      {page > 1 ? (
-                        <Link href={buildUrl({ page: String(page - 1) })}>
-                          <ChevronLeft className="h-4 w-4" />
-                        </Link>
-                      ) : (
-                        <span><ChevronLeft className="h-4 w-4" /></span>
-                      )}
+                      <ChevronLeft className="h-4 w-4" />
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
-                      disabled={page >= totalPages}
-                      asChild={page < totalPages}
+                      disabled={page >= data.totalPages}
+                      onClick={() => setPage(page + 1)}
                     >
-                      {page < totalPages ? (
-                        <Link href={buildUrl({ page: String(page + 1) })}>
-                          <ChevronRight className="h-4 w-4" />
-                        </Link>
-                      ) : (
-                        <span><ChevronRight className="h-4 w-4" /></span>
-                      )}
+                      <ChevronRight className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
