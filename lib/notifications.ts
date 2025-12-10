@@ -1,4 +1,5 @@
 import prisma from "@/lib/db";
+import { Prisma } from "@prisma/client";
 
 export type NotificationType =
   | "LEAD_CREATED"
@@ -41,7 +42,7 @@ export async function createNotification(params: CreateNotificationParams) {
         message: params.message,
         entityType: params.entityType,
         entityId: params.entityId,
-        metadata: params.metadata as Record<string, unknown> | undefined,
+        metadata: params.metadata as Prisma.InputJsonValue | undefined,
       },
     });
     return notification;
@@ -67,7 +68,7 @@ export async function createNotifications(
         message: n.message,
         entityType: n.entityType,
         entityId: n.entityId,
-        metadata: n.metadata as Record<string, unknown> | undefined,
+        metadata: n.metadata as Prisma.InputJsonValue | undefined,
       })),
     });
     return result;
