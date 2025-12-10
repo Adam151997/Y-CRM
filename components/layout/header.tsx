@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import { usePathname } from "next/navigation";
-import { Search, Bell, Sun, Moon } from "lucide-react";
+import { Search, Sun, Moon } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useWorkspaceSafe } from "@/lib/workspace";
+import { NotificationDropdown } from "./notification-dropdown";
 
 // Page titles for each workspace
 const pageTitles: Record<string, Record<string, string>> = {
@@ -58,7 +59,7 @@ const pageTitles: Record<string, Record<string, string>> = {
 export function Header() {
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
-  const { workspace, config } = useWorkspaceSafe();
+  const { workspace } = useWorkspaceSafe();
   const [searchOpen, setSearchOpen] = useState(false);
 
   // Get page title from pathname
@@ -120,10 +121,7 @@ export function Header() {
         </Button>
 
         {/* Notifications */}
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="h-5 w-5" />
-          <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full" />
-        </Button>
+        <NotificationDropdown />
 
         {/* Theme toggle */}
         <Button

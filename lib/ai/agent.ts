@@ -67,6 +67,7 @@ import {
   executeExternalToolTool,
 } from "./tools";
 import { createAuditLog } from "@/lib/audit";
+import { createNotification, NotificationType } from "@/lib/notifications";
 
 export interface AgentContext {
   orgId: string;
@@ -360,6 +361,81 @@ function detectToolRequiredIntent(message: string): boolean {
 }
 
 /**
+ * Create notifications from tool results
+ */
+async function createNotificationsFromResults(
+  orgId: string,
+  userId: string,
+  toolResults: Record<string, unknown>[]
+): Promise<void> {
+  for (const result of toolResults) {
+    if (result.success === false) continue;
+
+    try {
+      // Create notification based on result type
+      if (result.leadId) {
+        await createNotification({
+          orgId,
+          userId,
+          type: "LEAD_CREATED" as NotificationType,
+          title: result.message as string || "New lead created",
+          entityType: "LEAD",
+          entityId: result.leadId as string,
+        });
+      } else if (result.contactId && !result.count) {
+        await createNotification({
+          orgId,
+          userId,
+          type: "CONTACT_CREATED" as NotificationType,
+          title: result.message as string || "New contact created",
+          entityType: "CONTACT",
+          entityId: result.contactId as string,
+        });
+      } else if (result.accountId && !result.count) {
+        await createNotification({
+          orgId,
+          userId,
+          type: "ACCOUNT_CREATED" as NotificationType,
+          title: result.message as string || "New account created",
+          entityType: "ACCOUNT",
+          entityId: result.accountId as string,
+        });
+      } else if (result.taskId) {
+        await createNotification({
+          orgId,
+          userId,
+          type: "TASK_CREATED" as NotificationType,
+          title: result.message as string || "New task created",
+          entityType: "TASK",
+          entityId: result.taskId as string,
+        });
+      } else if (result.opportunityId && !result.count) {
+        await createNotification({
+          orgId,
+          userId,
+          type: "OPPORTUNITY_CREATED" as NotificationType,
+          title: result.message as string || "New opportunity created",
+          entityType: "OPPORTUNITY",
+          entityId: result.opportunityId as string,
+        });
+      } else if (result.ticketId) {
+        await createNotification({
+          orgId,
+          userId,
+          type: "TICKET_CREATED" as NotificationType,
+          title: result.message as string || `Ticket #${result.ticketNumber || ''} created`,
+          entityType: "TICKET",
+          entityId: result.ticketId as string,
+        });
+      }
+    } catch (error) {
+      // Silent fail for notifications
+      console.error("[Agent] Failed to create notification:", error);
+    }
+  }
+}
+
+/**
  * Build a response from tool results when model text is empty
  * Only shows results relevant to the primary action
  */
@@ -518,6 +594,9 @@ export async function executeAgent(
     if (!response || response.trim() === "") {
       response = buildResponseFromToolResults(primaryAction, toolResults);
     }
+
+    // Create notifications for successful actions
+    await createNotificationsFromResults(orgId, userId, toolResults).catch(() => {});
 
     await createAuditLog({
       orgId,

@@ -26,13 +26,19 @@ export default async function TasksPage({ searchParams }: TasksPageProps) {
   // Build where clause
   const where: Record<string, unknown> = { orgId };
   
-  if (status && status !== "_all") {
+  // Handle status filter
+  // "_all" = explicit "show all", undefined = first visit (show default)
+  if (status === "_all") {
+    // User explicitly selected "All Statuses" - no status filter
+  } else if (status) {
+    // User selected a specific status
     where.status = status;
-  } else if (!status) {
-    // Default: show non-completed tasks
+  } else {
+    // No status param (first visit) - show pending/in-progress by default
     where.status = { in: ["PENDING", "IN_PROGRESS"] };
   }
   
+  // Handle priority filter
   if (priority && priority !== "_all") {
     where.priority = priority;
   }

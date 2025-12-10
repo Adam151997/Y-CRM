@@ -980,3 +980,35 @@ model FormSubmission {
   @@index([formId])
   @@index([formId, createdAt])
 }
+
+// =============================================================================
+// NOTIFICATIONS
+// =============================================================================
+
+model Notification {
+  id              String   @id @default(uuid())
+  orgId           String
+  userId          String   // Target user for this notification
+  
+  // Notification content
+  type            String   // LEAD_CREATED, TASK_ASSIGNED, TASK_COMPLETED, OPPORTUNITY_WON, TICKET_CREATED, etc.
+  title           String
+  message         String?
+  
+  // Related entity (optional)
+  entityType      String?  // LEAD, CONTACT, ACCOUNT, TASK, OPPORTUNITY, TICKET
+  entityId        String?
+  
+  // Status
+  isRead          Boolean  @default(false)
+  readAt          DateTime?
+  
+  // Metadata
+  metadata        Json?    // Additional context data
+  
+  createdAt       DateTime @default(now())
+
+  @@index([orgId, userId, isRead])
+  @@index([orgId, userId, createdAt])
+  @@index([userId, isRead])
+}

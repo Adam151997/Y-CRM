@@ -47,10 +47,20 @@ export function TasksFilters({
   const updateFilters = (key: string, value: string | null) => {
     const params = new URLSearchParams(searchParams.toString());
 
-    if (value && value !== ALL_VALUE) {
-      params.set(key, value);
+    // For status and priority, keep "_all" in URL to distinguish from default
+    if (key === "status" || key === "priority") {
+      if (value) {
+        params.set(key, value);
+      } else {
+        params.delete(key);
+      }
     } else {
-      params.delete(key);
+      // For other params (like view), remove if "_all" or null
+      if (value && value !== ALL_VALUE) {
+        params.set(key, value);
+      } else {
+        params.delete(key);
+      }
     }
 
     startTransition(() => {
@@ -64,6 +74,7 @@ export function TasksFilters({
     });
   };
 
+  // Has filters if any explicit filter is set (including _all for status/priority)
   const hasFilters = currentStatus || currentPriority || currentView !== "all";
 
   return (
@@ -80,13 +91,14 @@ export function TasksFilters({
       {/* Filters */}
       <div className="flex gap-2 flex-wrap">
         <Select
-          value={currentStatus || ALL_VALUE}
-          onValueChange={(value) => updateFilters("status", value)}
+          value={currentStatus || "default"}
+          onValueChange={(value) => updateFilters("status", value === "default" ? null : value)}
         >
-          <SelectTrigger className="w-[140px]">
+          <SelectTrigger className="w-[160px]">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value="default">Active (Default)</SelectItem>
             <SelectItem value={ALL_VALUE}>All Statuses</SelectItem>
             {statuses.map((status) => (
               <SelectItem key={status.value} value={status.value}>
@@ -98,7 +110,7 @@ export function TasksFilters({
 
         <Select
           value={currentPriority || ALL_VALUE}
-          onValueChange={(value) => updateFilters("priority", value)}
+          onValueChange={(value) => updateFilters("priority", value === ALL_VALUE ? null : value)}
         >
           <SelectTrigger className="w-[130px]">
             <SelectValue placeholder="Priority" />

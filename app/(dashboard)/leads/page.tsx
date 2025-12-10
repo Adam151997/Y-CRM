@@ -4,7 +4,7 @@ import { getAuthContext } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { getCachedLeadStages } from "@/lib/cache";
 import { Button } from "@/components/ui/button";
-import { Plus, Upload, Download } from "lucide-react";
+import { Plus } from "lucide-react";
 import { LeadsTable } from "./_components/leads-table";
 import { LeadsFilters } from "./_components/leads-filters";
 
@@ -71,22 +71,12 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
             Manage and track your sales leads
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm">
-            <Upload className="h-4 w-4 mr-2" />
-            Import
-          </Button>
-          <Button variant="outline" size="sm">
-            <Download className="h-4 w-4 mr-2" />
-            Export
-          </Button>
-          <Button asChild>
-            <Link href="/leads/new">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Lead
-            </Link>
-          </Button>
-        </div>
+        <Button asChild>
+          <Link href="/leads/new">
+            <Plus className="h-4 w-4 mr-2" />
+            Add Lead
+          </Link>
+        </Button>
       </div>
 
       {/* Filters */}

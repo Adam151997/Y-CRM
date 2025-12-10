@@ -3,7 +3,7 @@ import Link from "next/link";
 import { getAuthContext } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { Button } from "@/components/ui/button";
-import { Plus, Upload, Download } from "lucide-react";
+import { Plus } from "lucide-react";
 import { AccountsTable } from "./_components/accounts-table";
 import { AccountsFilters } from "./_components/accounts-filters";
 
@@ -69,22 +69,12 @@ export default async function AccountsPage({ searchParams }: AccountsPageProps) 
             Manage your companies and organizations
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm">
-            <Upload className="h-4 w-4 mr-2" />
-            Import
-          </Button>
-          <Button variant="outline" size="sm">
-            <Download className="h-4 w-4 mr-2" />
-            Export
-          </Button>
-          <Button asChild>
-            <Link href="/accounts/new">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Account
-            </Link>
-          </Button>
-        </div>
+        <Button asChild>
+          <Link href="/accounts/new">
+            <Plus className="h-4 w-4 mr-2" />
+            Add Account
+          </Link>
+        </Button>
       </div>
 
       {/* Filters */}
