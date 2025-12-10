@@ -189,6 +189,38 @@ function detectWorkspace(message: string): "sales" | "cs" | "marketing" | null {
   return null;
 }
 
+/**
+ * Detect if the user's message requires tool execution
+ * Used to force toolChoice: "required" for clear action requests
+ */
+function detectToolRequiredIntent(message: string): boolean {
+  const lower = message.toLowerCase();
+  
+  // Action verbs that clearly require tool execution
+  const actionVerbs = [
+    "create", "add", "make", "new",
+    "update", "edit", "change", "modify",
+    "delete", "remove",
+    "search", "find", "show", "list", "get",
+    "complete", "finish", "close",
+    "send", "schedule",
+  ];
+  
+  // Entity nouns that indicate CRM operations
+  const entityNouns = [
+    "lead", "contact", "account", "task", "opportunity",
+    "ticket", "note", "campaign", "segment", "form",
+    "playbook", "email", "event", "message",
+    "dashboard", "stats", "statistics", "report",
+  ];
+  
+  // Check if message contains action verb + entity noun pattern
+  const hasActionVerb = actionVerbs.some(verb => lower.includes(verb));
+  const hasEntityNoun = entityNouns.some(noun => lower.includes(noun));
+  
+  return hasActionVerb && hasEntityNoun;
+}
+
 export async function executeAgent(
   messages: CoreMessage[],
   context: AgentContext
@@ -218,6 +250,9 @@ export async function executeAgent(
   const modelName = useAdvancedModel ? "gemini-2.5-pro" : "gemini-2.0-flash";
   const systemPrompt = useAdvancedModel ? ANALYTICS_SYSTEM_PROMPT : CRM_SYSTEM_PROMPT;
   const detectedWorkspace = context.workspace || detectWorkspace(userContent);
+  
+  // Detect if message requires tool execution
+  const requiresToolExecution = detectToolRequiredIntent(userContent);
 
   try {
     const tools = getCRMTools(orgId, userId);
@@ -227,29 +262,39 @@ export async function executeAgent(
     console.log("[Agent] Workspace:", detectedWorkspace || "auto-detect");
     console.log("[Agent] Message:", userContent.substring(0, 100));
     console.log("[Agent] Available tools:", Object.keys(tools).length);
+    console.log("[Agent] Requires tool execution:", requiresToolExecution);
+
+    // Use "required" when we detect clear tool-requiring intent
+    // This forces Gemini to actually call tools instead of hallucinating
+    const toolChoiceMode = requiresToolExecution ? "required" : "auto";
+    console.log("[Agent] Tool choice mode:", toolChoiceMode);
 
     const result = await generateText({
       model,
       system: systemPrompt,
       messages,
       tools,
-      toolChoice: "auto",
+      toolChoice: toolChoiceMode as "auto" | "required",
       maxSteps: 5,
-      onStepFinish: ({ toolCalls, toolResults: stepToolResults, finishReason }) => {
-        console.log("[Agent] Step finished:", {
-          toolCallsCount: toolCalls?.length || 0,
-          finishReason,
-        });
+      onStepFinish: ({ toolCalls, toolResults: stepToolResults, finishReason, text }) => {
+        console.log("[Agent] ====== STEP FINISHED ======");
+        console.log("[Agent] Step finishReason:", finishReason);
+        console.log("[Agent] Step text preview:", text?.substring(0, 200));
+        console.log("[Agent] Step toolCalls:", JSON.stringify(toolCalls || []));
+        console.log("[Agent] Step toolResults:", JSON.stringify(stepToolResults || []));
         
         if (toolCalls && toolCalls.length > 0) {
           toolCalls.forEach((tc) => {
-            console.log("[Agent] Tool called:", tc.toolName);
+            console.log("[Agent] Tool called:", tc.toolName, "args:", JSON.stringify(tc.args));
             toolsCalled.push(tc.toolName);
           });
+        } else {
+          console.log("[Agent] WARNING: No tool calls in this step!");
         }
         
         if (stepToolResults && stepToolResults.length > 0) {
           stepToolResults.forEach((tr) => {
+            console.log("[Agent] Tool result:", JSON.stringify(tr));
             if (tr.result && typeof tr.result === 'object') {
               toolResults.push(tr.result as Record<string, unknown>);
             }
@@ -258,11 +303,13 @@ export async function executeAgent(
       },
     });
 
-    console.log("[Agent] Execution complete:", {
-      model: modelName,
-      textLength: result.text?.length || 0,
-      toolsCalled,
-    });
+    // Log the full result for debugging
+    console.log("[Agent] ====== FINAL RESULT ======");
+    console.log("[Agent] Result finishReason:", result.finishReason);
+    console.log("[Agent] Result text:", result.text?.substring(0, 500));
+    console.log("[Agent] Result toolCalls:", JSON.stringify(result.toolCalls || []));
+    console.log("[Agent] Result toolResults:", JSON.stringify(result.toolResults || []));
+    console.log("[Agent] Total tools called:", toolsCalled);
 
     await createAuditLog({
       orgId,

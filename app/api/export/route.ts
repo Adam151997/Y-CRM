@@ -9,6 +9,9 @@ import prisma from "@/lib/db";
 import { createAuditLog, AuditModule } from "@/lib/audit";
 import Papa from "papaparse";
 
+// Force dynamic to prevent static generation error
+export const dynamic = "force-dynamic";
+
 type ExportModule = "leads" | "contacts" | "accounts" | "opportunities" | "tasks" | "tickets";
 
 // Map export module names to audit module names
