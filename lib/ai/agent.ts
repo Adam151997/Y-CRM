@@ -233,6 +233,7 @@ export async function executeAgent(
       system: systemPrompt,
       messages,
       tools,
+      toolChoice: "auto",
       maxSteps: 5,
       onStepFinish: ({ toolCalls, toolResults: stepToolResults, finishReason }) => {
         console.log("[Agent] Step finished:", {
