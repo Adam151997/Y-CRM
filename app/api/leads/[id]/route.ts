@@ -3,6 +3,7 @@ import { getApiAuthContext } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { Prisma } from "@prisma/client";
 import { createAuditLog } from "@/lib/audit";
+import { createNotification } from "@/lib/notifications";
 import { updateLeadSchema } from "@/lib/validation/schemas";
 import { validateCustomFields } from "@/lib/validation/custom-fields";
 
@@ -97,6 +98,10 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Lead not found" }, { status: 404 });
     }
 
+    // Track status and pipeline changes for notifications
+    const isBeingConverted = data.status === "CONVERTED" && existingLead.status !== "CONVERTED";
+    const isPipelineChanging = data.pipelineStageId && data.pipelineStageId !== existingLead.pipelineStageId;
+
     // Validate custom fields if present
     if (data.customFields && Object.keys(data.customFields).length > 0) {
       const customFieldValidation = await validateCustomFields(
@@ -143,6 +148,11 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       assignedToId: data.assignedToId,
     };
 
+    // Handle conversion timestamp
+    if (isBeingConverted) {
+      updateData.convertedAt = new Date();
+    }
+
     // Handle pipelineStageId relation
     if (data.pipelineStageId !== undefined) {
       updateData.pipelineStage = data.pipelineStageId 
@@ -178,6 +188,32 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       previousState: existingLead as unknown as Record<string, unknown>,
       newState: updatedLead as unknown as Record<string, unknown>,
     });
+
+    // Create notification for lead conversion
+    if (isBeingConverted) {
+      await createNotification({
+        orgId: auth.orgId,
+        userId: auth.userId,
+        type: "LEAD_CONVERTED",
+        title: `🎉 Lead converted: ${updatedLead.firstName} ${updatedLead.lastName}`,
+        message: updatedLead.company ? `Company: ${updatedLead.company}` : undefined,
+        entityType: "LEAD",
+        entityId: updatedLead.id,
+      });
+    }
+
+    // Create notification for pipeline stage change
+    if (isPipelineChanging && !isBeingConverted && updatedLead.pipelineStage) {
+      await createNotification({
+        orgId: auth.orgId,
+        userId: auth.userId,
+        type: "PIPELINE_MOVED",
+        title: `Lead pipeline updated: ${updatedLead.firstName} ${updatedLead.lastName}`,
+        message: `Moved to: ${updatedLead.pipelineStage.name}`,
+        entityType: "LEAD",
+        entityId: updatedLead.id,
+      });
+    }
 
     return NextResponse.json(updatedLead);
   } catch (error) {

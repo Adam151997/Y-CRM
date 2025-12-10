@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getApiAuthContext } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { createAuditLog } from "@/lib/audit";
+import { createNotification } from "@/lib/notifications";
 import { updateTaskSchema } from "@/lib/validation/schemas";
 
 interface RouteParams {
@@ -83,7 +84,9 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     // Handle completion
     const updateData: Record<string, unknown> = { ...data };
-    if (data.status === "COMPLETED" && existingTask.status !== "COMPLETED") {
+    const isBeingCompleted = data.status === "COMPLETED" && existingTask.status !== "COMPLETED";
+    
+    if (isBeingCompleted) {
       updateData.completedAt = new Date();
     } else if (data.status && data.status !== "COMPLETED") {
       updateData.completedAt = null;
@@ -106,6 +109,31 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       previousState: existingTask as unknown as Record<string, unknown>,
       newState: updatedTask as unknown as Record<string, unknown>,
     });
+
+    // Create notification for task completion
+    if (isBeingCompleted) {
+      await createNotification({
+        orgId: auth.orgId,
+        userId: auth.userId,
+        type: "TASK_COMPLETED",
+        title: `Task completed: ${updatedTask.title}`,
+        entityType: "TASK",
+        entityId: updatedTask.id,
+      });
+    }
+
+    // Notify if task is reassigned to someone else
+    if (data.assignedToId && data.assignedToId !== existingTask.assignedToId && data.assignedToId !== auth.userId) {
+      await createNotification({
+        orgId: auth.orgId,
+        userId: data.assignedToId,
+        type: "TASK_ASSIGNED",
+        title: `Task assigned to you: ${updatedTask.title}`,
+        message: updatedTask.dueDate ? `Due: ${new Date(updatedTask.dueDate).toLocaleDateString()}` : undefined,
+        entityType: "TASK",
+        entityId: updatedTask.id,
+      });
+    }
 
     return NextResponse.json(updatedTask);
   } catch (error) {

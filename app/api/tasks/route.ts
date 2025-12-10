@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getApiAuthContext } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { createAuditLog } from "@/lib/audit";
+import { createNotification } from "@/lib/notifications";
 import { createTaskSchema } from "@/lib/validation/schemas";
 
 // POST /api/tasks - Create a new task
@@ -55,6 +56,30 @@ export async function POST(request: NextRequest) {
       actorId: auth.userId,
       newState: task as unknown as Record<string, unknown>,
     });
+
+    // Create notification
+    await createNotification({
+      orgId: auth.orgId,
+      userId: auth.userId,
+      type: "TASK_CREATED",
+      title: `Task created: ${task.title}`,
+      message: task.dueDate ? `Due: ${new Date(task.dueDate).toLocaleDateString()}` : undefined,
+      entityType: "TASK",
+      entityId: task.id,
+    });
+
+    // If assigned to someone else, notify them
+    if (data.assignedToId && data.assignedToId !== auth.userId) {
+      await createNotification({
+        orgId: auth.orgId,
+        userId: data.assignedToId,
+        type: "TASK_ASSIGNED",
+        title: `Task assigned to you: ${task.title}`,
+        message: task.dueDate ? `Due: ${new Date(task.dueDate).toLocaleDateString()}` : undefined,
+        entityType: "TASK",
+        entityId: task.id,
+      });
+    }
 
     return NextResponse.json(task, { status: 201 });
   } catch (error) {

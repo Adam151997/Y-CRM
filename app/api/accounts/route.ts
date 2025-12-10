@@ -3,6 +3,7 @@ import { getApiAuthContext } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { Prisma } from "@prisma/client";
 import { createAuditLog } from "@/lib/audit";
+import { createNotification } from "@/lib/notifications";
 import { createAccountSchema } from "@/lib/validation/schemas";
 import { validateCustomFields } from "@/lib/validation/custom-fields";
 import { z } from "zod";
@@ -163,6 +164,17 @@ export async function POST(request: NextRequest) {
       actorType: "USER",
       actorId: auth.userId,
       newState: account as unknown as Record<string, unknown>,
+    });
+
+    // Create notification
+    await createNotification({
+      orgId: auth.orgId,
+      userId: auth.userId,
+      type: "ACCOUNT_CREATED",
+      title: `Account created: ${account.name}`,
+      message: account.industry ? `Industry: ${account.industry}` : undefined,
+      entityType: "ACCOUNT",
+      entityId: account.id,
     });
 
     return NextResponse.json(account, { status: 201 });

@@ -3,6 +3,7 @@ import { getApiAuthContext } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { Prisma } from "@prisma/client";
 import { createAuditLog } from "@/lib/audit";
+import { createNotification } from "@/lib/notifications";
 import { createOpportunitySchema } from "@/lib/validation/schemas";
 import { validateCustomFields } from "@/lib/validation/custom-fields";
 import { z } from "zod";
@@ -210,6 +211,23 @@ export async function POST(request: NextRequest) {
       actorType: "USER",
       actorId: auth.userId,
       newState: opportunity as unknown as Record<string, unknown>,
+    });
+
+    // Create notification
+    const formattedValue = new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: opportunity.currency,
+      maximumFractionDigits: 0,
+    }).format(Number(opportunity.value));
+
+    await createNotification({
+      orgId: auth.orgId,
+      userId: auth.userId,
+      type: "OPPORTUNITY_CREATED",
+      title: `Opportunity created: ${opportunity.name}`,
+      message: `Value: ${formattedValue} | Account: ${opportunity.account.name}`,
+      entityType: "OPPORTUNITY",
+      entityId: opportunity.id,
     });
 
     return NextResponse.json(opportunity, { status: 201 });

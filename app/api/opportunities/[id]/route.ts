@@ -3,6 +3,7 @@ import { getApiAuthContext } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { Prisma } from "@prisma/client";
 import { createAuditLog } from "@/lib/audit";
+import { createNotification } from "@/lib/notifications";
 import { updateOpportunitySchema, closeOpportunitySchema } from "@/lib/validation/schemas";
 import { validateCustomFields } from "@/lib/validation/custom-fields";
 
@@ -86,7 +87,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         id,
         orgId: auth.orgId,
       },
-      include: { stage: true },
+      include: { stage: true, account: { select: { name: true } } },
     });
 
     if (!existingOpportunity) {
@@ -144,6 +145,25 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         },
       });
 
+      // Create notification for opportunity won/lost
+      const formattedValue = new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: updatedOpportunity.currency,
+        maximumFractionDigits: 0,
+      }).format(Number(updatedOpportunity.value));
+
+      await createNotification({
+        orgId: auth.orgId,
+        userId: auth.userId,
+        type: closeData.closedWon ? "OPPORTUNITY_WON" : "OPPORTUNITY_LOST",
+        title: closeData.closedWon 
+          ? `🎉 Opportunity won: ${updatedOpportunity.name}`
+          : `Opportunity lost: ${updatedOpportunity.name}`,
+        message: `Value: ${formattedValue} | Account: ${updatedOpportunity.account.name}`,
+        entityType: "OPPORTUNITY",
+        entityId: updatedOpportunity.id,
+      });
+
       return NextResponse.json(updatedOpportunity);
     }
 
@@ -168,8 +188,11 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       }
     }
 
+    // Track stage change for notification
+    const isStageChanging = data.stageId && data.stageId !== existingOpportunity.stageId;
+
     // Verify stage if being changed
-    if (data.stageId && data.stageId !== existingOpportunity.stageId) {
+    if (isStageChanging) {
       const stage = await prisma.pipelineStage.findFirst({
         where: { id: data.stageId, orgId: auth.orgId, module: "OPPORTUNITY" },
       });
@@ -247,6 +270,19 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       previousState: existingOpportunity as unknown as Record<string, unknown>,
       newState: updatedOpportunity as unknown as Record<string, unknown>,
     });
+
+    // Create notification for pipeline stage change
+    if (isStageChanging) {
+      await createNotification({
+        orgId: auth.orgId,
+        userId: auth.userId,
+        type: "PIPELINE_MOVED",
+        title: `Pipeline updated: ${updatedOpportunity.name}`,
+        message: `Moved to: ${updatedOpportunity.stage.name}`,
+        entityType: "OPPORTUNITY",
+        entityId: updatedOpportunity.id,
+      });
+    }
 
     return NextResponse.json(updatedOpportunity);
   } catch (error) {

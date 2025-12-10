@@ -3,6 +3,7 @@ import { getApiAuthContext } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { Prisma } from "@prisma/client";
 import { createAuditLog } from "@/lib/audit";
+import { createNotification } from "@/lib/notifications";
 import { createLeadSchema, leadFilterSchema } from "@/lib/validation/schemas";
 import { validateCustomFields } from "@/lib/validation/custom-fields";
 
@@ -197,6 +198,17 @@ export async function POST(request: NextRequest) {
       actorType: "USER",
       actorId: auth.userId,
       newState: lead as unknown as Record<string, unknown>,
+    });
+
+    // Create notification
+    await createNotification({
+      orgId: auth.orgId,
+      userId: auth.userId,
+      type: "LEAD_CREATED",
+      title: `Lead created: ${lead.firstName} ${lead.lastName}`,
+      message: lead.company ? `Company: ${lead.company}` : undefined,
+      entityType: "LEAD",
+      entityId: lead.id,
     });
 
     return NextResponse.json(lead, { status: 201 });
