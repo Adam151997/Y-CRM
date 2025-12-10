@@ -3,7 +3,6 @@ import { getApiAuthContext } from "@/lib/auth";
 import { executeAgent } from "@/lib/ai/agent";
 import { checkRateLimit, incrementUsage } from "@/lib/rate-limit";
 import { CoreMessage } from "ai";
-import { ModelType } from "@/lib/ai/providers";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -46,9 +45,8 @@ export async function POST(request: NextRequest) {
 
     // Parse request body
     const body = await request.json();
-    const { messages: rawMessages, modelType } = body as { 
+    const { messages: rawMessages } = body as { 
       messages: CoreMessage[]; 
-      modelType?: ModelType;
     };
 
     if (!rawMessages || !Array.isArray(rawMessages)) {
@@ -94,7 +92,6 @@ export async function POST(request: NextRequest) {
       orgId: auth.orgId,
       userId: auth.userId,
       requestId,
-      modelType,
     });
 
     console.log("[AI Chat] Agent result:", {
