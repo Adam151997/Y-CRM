@@ -84,6 +84,7 @@ export async function POST(request: NextRequest) {
     }
 
     console.log("[AI Chat] Processing", messages.length, "valid messages");
+    console.log("[AI Chat] Auth context:", { orgId: auth.orgId, userId: auth.userId });
 
     // Generate request ID for tracing
     const requestId = crypto.randomUUID();
@@ -100,6 +101,8 @@ export async function POST(request: NextRequest) {
       success: result.success,
       model: result.modelUsed,
       toolsCalled: result.toolsCalled,
+      toolResultsCount: result.toolResults?.length || 0,
+      responsePreview: result.response?.substring(0, 200),
     });
 
     // Increment usage counter

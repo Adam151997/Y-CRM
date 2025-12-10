@@ -56,7 +56,10 @@ export const createLeadTool = (orgId: string, userId: string) =>
         .describe("Lead source"),
     }),
     execute: async (params) => {
-      console.log("[Tool:createLead] Executing with params:", params);
+      console.log("[Tool:createLead] ===================");
+      console.log("[Tool:createLead] Executing with params:", JSON.stringify(params));
+      console.log("[Tool:createLead] OrgId:", orgId);
+      console.log("[Tool:createLead] UserId:", userId);
       try {
         const lead = await prisma.lead.create({
           data: {
@@ -65,6 +68,19 @@ export const createLeadTool = (orgId: string, userId: string) =>
             status: "NEW",
           },
         });
+
+        console.log("[Tool:createLead] Prisma create SUCCESS");
+        console.log("[Tool:createLead] Created lead ID:", lead.id);
+        console.log("[Tool:createLead] Created lead orgId:", lead.orgId);
+
+        // Verify the lead was actually created
+        const verification = await prisma.lead.findUnique({
+          where: { id: lead.id },
+        });
+        console.log("[Tool:createLead] Verification:", verification ? "FOUND" : "NOT FOUND");
+        if (!verification) {
+          console.error("[Tool:createLead] CRITICAL: Lead not found immediately after creation!");
+        }
 
         await createAuditLog({
           orgId,

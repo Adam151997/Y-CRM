@@ -223,6 +223,7 @@ export async function executeAgent(
     const tools = getCRMTools(orgId, userId);
 
     console.log(`[Agent] Starting execution with ${modelName}`);
+    console.log("[Agent] Context:", { orgId, userId, requestId });
     console.log("[Agent] Workspace:", detectedWorkspace || "auto-detect");
     console.log("[Agent] Message:", userContent.substring(0, 100));
     console.log("[Agent] Available tools:", Object.keys(tools).length);
