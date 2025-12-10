@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { User, Building, Layers, Plug, Bell, Shield, Box, Database } from "lucide-react";
+import { User, Building, Layers, Plug, Box, Database, History } from "lucide-react";
 
 const settingsNav = [
   {
@@ -47,6 +47,12 @@ const settingsNav = [
     href: "/settings/data",
     icon: Database,
     description: "Import and export data",
+  },
+  {
+    title: "Activity & Audit Log",
+    href: "/settings/activity",
+    icon: History,
+    description: "View all CRM activity and changes",
   },
 ];
 
