@@ -10,6 +10,28 @@ export interface AuthContext {
   orgSlug: string;
 }
 
+// All CRM modules for default permissions
+const ALL_MODULES = [
+  "leads",
+  "contacts",
+  "accounts",
+  "opportunities",
+  "tasks",
+  "documents",
+  "dashboard",
+  "pipeline",
+  "reports",
+  "tickets",
+  "health",
+  "playbooks",
+  "campaigns",
+  "segments",
+  "forms",
+  "settings",
+];
+
+const ALL_ACTIONS = ["view", "create", "edit", "delete"];
+
 /**
  * Get authenticated user context with organization
  * Redirects to sign-in if not authenticated
@@ -64,6 +86,7 @@ export const getApiAuthContext = cache(async (): Promise<AuthContext | null> => 
 
 /**
  * Ensure organization record exists in database
+ * Creates org, default roles, pipeline stages, and assigns admin role to creator
  * Cached to prevent duplicate checks
  */
 const ensureOrganization = cache(async (
@@ -96,12 +119,170 @@ const ensureOrganization = cache(async (
 
       // Create default pipeline stages for the new organization
       await createDefaultPipelineStages(orgId);
+
+      // Create default roles for the new organization
+      await createDefaultRoles(orgId);
+
+      // Assign Admin role to the org creator
+      await assignAdminRole(orgId, userId);
+    } else {
+      // Organization exists - ensure user has a role
+      await ensureUserHasRole(orgId, userId);
     }
   } catch (error) {
     // Handle race condition - another request might have created the org
     console.error("Error ensuring organization:", error);
   }
 });
+
+/**
+ * Create default roles for a new organization
+ */
+async function createDefaultRoles(orgId: string): Promise<void> {
+  const defaultRoles = [
+    {
+      name: "Admin",
+      description: "Full access to all features",
+      isSystem: true,
+      isDefault: false,
+      actions: ALL_ACTIONS,
+    },
+    {
+      name: "Manager",
+      description: "Full access to manage team and all records",
+      isSystem: false,
+      isDefault: false,
+      actions: ALL_ACTIONS,
+    },
+    {
+      name: "Rep",
+      description: "Standard access for team members",
+      isSystem: false,
+      isDefault: true,
+      actions: ["view", "create", "edit"],
+    },
+    {
+      name: "Read Only",
+      description: "View-only access to CRM data",
+      isSystem: false,
+      isDefault: false,
+      actions: ["view"],
+    },
+  ];
+
+  try {
+    for (const roleDef of defaultRoles) {
+      await prisma.role.create({
+        data: {
+          orgId,
+          name: roleDef.name,
+          description: roleDef.description,
+          isSystem: roleDef.isSystem,
+          isDefault: roleDef.isDefault,
+          permissions: {
+            create: ALL_MODULES.map((module) => ({
+              module,
+              actions: roleDef.actions,
+              fields: Prisma.JsonNull,
+            })),
+          },
+        },
+      });
+    }
+    console.log(`Created default roles for org: ${orgId}`);
+  } catch (error) {
+    console.error("Error creating default roles:", error);
+  }
+}
+
+/**
+ * Assign Admin role to the organization creator
+ */
+async function assignAdminRole(orgId: string, userId: string): Promise<void> {
+  try {
+    const adminRole = await prisma.role.findFirst({
+      where: {
+        orgId,
+        name: "Admin",
+      },
+    });
+
+    if (!adminRole) {
+      console.error("Admin role not found for org:", orgId);
+      return;
+    }
+
+    await prisma.userRole.create({
+      data: {
+        clerkUserId: userId,
+        orgId,
+        roleId: adminRole.id,
+      },
+    });
+
+    console.log(`Assigned Admin role to user: ${userId}`);
+  } catch (error) {
+    console.error("Error assigning admin role:", error);
+  }
+}
+
+/**
+ * Ensure user has a role in the organization
+ * Assigns default role if user doesn't have one
+ */
+async function ensureUserHasRole(orgId: string, userId: string): Promise<void> {
+  try {
+    const existingUserRole = await prisma.userRole.findUnique({
+      where: {
+        clerkUserId_orgId: {
+          clerkUserId: userId,
+          orgId,
+        },
+      },
+    });
+
+    if (existingUserRole) {
+      return; // User already has a role
+    }
+
+    // Check if roles exist for this org
+    const rolesExist = await prisma.role.count({
+      where: { orgId },
+    });
+
+    if (rolesExist === 0) {
+      // No roles exist - create them first
+      await createDefaultRoles(orgId);
+    }
+
+    // Find default role or fallback to Rep
+    const defaultRole = await prisma.role.findFirst({
+      where: {
+        orgId,
+        OR: [
+          { isDefault: true },
+          { name: "Rep" },
+        ],
+      },
+    });
+
+    if (defaultRole) {
+      await prisma.userRole.create({
+        data: {
+          clerkUserId: userId,
+          orgId,
+          roleId: defaultRole.id,
+        },
+      });
+      console.log(`Assigned default role to user: ${userId}`);
+    }
+  } catch (error) {
+    // Ignore duplicate key errors (race condition)
+    if (!(error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002')) {
+      console.error("Error ensuring user has role:", error);
+    }
+  }
+}
 
 /**
  * Create default pipeline stages for a new organization
