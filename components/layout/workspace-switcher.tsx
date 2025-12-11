@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Check, ChevronsUpDown } from "lucide-react";
+import { Check, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,10 +19,10 @@ import { useState } from "react";
 import { useWorkspace, WORKSPACES, WorkspaceType } from "@/lib/workspace";
 
 interface WorkspaceSwitcherProps {
-  collapsed?: boolean;
+  variant?: "sidebar" | "header";
 }
 
-export function WorkspaceSwitcher({ collapsed = false }: WorkspaceSwitcherProps) {
+export function WorkspaceSwitcher({ variant = "sidebar" }: WorkspaceSwitcherProps) {
   const router = useRouter();
   const { workspace, config } = useWorkspace();
   const [open, setOpen] = useState(false);
@@ -35,23 +35,25 @@ export function WorkspaceSwitcher({ collapsed = false }: WorkspaceSwitcherProps)
     }
   };
 
-  if (collapsed) {
+  // Header variant - compact horizontal style
+  if (variant === "header") {
     return (
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button
-            variant="outline"
-            size="icon"
-            className="h-10 w-10"
-            title={config.name}
+            variant="ghost"
+            role="combobox"
+            aria-expanded={open}
+            className="h-9 px-3 gap-1.5 text-sm font-medium"
           >
-            <div className={cn("h-3 w-3 rounded-full", config.bgColor)} />
+            <span>{config.name}</span>
+            <ChevronDown className="h-3.5 w-3.5 opacity-50" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-[200px] p-0" align="start" side="right">
+        <PopoverContent className="w-[220px] p-0" align="start">
           <Command>
             <CommandList>
-              <CommandGroup>
+              <CommandGroup heading="Workspaces">
                 {Object.values(WORKSPACES).map((ws) => (
                   <CommandItem
                     key={ws.key}
@@ -59,10 +61,12 @@ export function WorkspaceSwitcher({ collapsed = false }: WorkspaceSwitcherProps)
                     onSelect={() => handleSelect(ws.key)}
                     className="cursor-pointer"
                   >
-                    <div className={cn("h-2.5 w-2.5 rounded-full mr-2", ws.bgColor)} />
-                    <span>{ws.name}</span>
+                    <div className="flex-1">
+                      <p className="font-medium">{ws.name}</p>
+                      <p className="text-xs text-muted-foreground">{ws.description}</p>
+                    </div>
                     {workspace === ws.key && (
-                      <Check className="ml-auto h-4 w-4" />
+                      <Check className="ml-2 h-4 w-4" />
                     )}
                   </CommandItem>
                 ))}
@@ -74,6 +78,7 @@ export function WorkspaceSwitcher({ collapsed = false }: WorkspaceSwitcherProps)
     );
   }
 
+  // Sidebar variant (legacy - kept for mobile/collapsed)
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -83,11 +88,8 @@ export function WorkspaceSwitcher({ collapsed = false }: WorkspaceSwitcherProps)
           aria-expanded={open}
           className="w-full justify-between"
         >
-          <div className="flex items-center gap-2">
-            <div className={cn("h-2.5 w-2.5 rounded-full", config.bgColor)} />
-            <span className="truncate">{config.name}</span>
-          </div>
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          <span className="truncate">{config.name}</span>
+          <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[220px] p-0" align="start">
@@ -101,7 +103,6 @@ export function WorkspaceSwitcher({ collapsed = false }: WorkspaceSwitcherProps)
                   onSelect={() => handleSelect(ws.key)}
                   className="cursor-pointer"
                 >
-                  <div className={cn("h-2.5 w-2.5 rounded-full mr-2", ws.bgColor)} />
                   <div className="flex-1">
                     <p className="font-medium">{ws.name}</p>
                     <p className="text-xs text-muted-foreground">{ws.description}</p>

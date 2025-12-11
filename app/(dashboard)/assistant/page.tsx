@@ -20,10 +20,17 @@ import {
   CheckCircle2,
   Zap,
   Brain,
+  Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export default function AssistantPage() {
   const router = useRouter();
@@ -109,12 +116,13 @@ export default function AssistantPage() {
   return (
     <div className="flex h-[calc(100vh-8rem)] gap-4">
       {/* Sidebar - Chat History */}
-      <Card className="w-64 flex-shrink-0 flex flex-col">
-        <div className="p-4 border-b">
+      <Card className="w-72 flex-shrink-0 flex flex-col">
+        <div className="p-3 border-b">
           <Button
             onClick={() => createSession()}
             className="w-full"
             variant="outline"
+            size="sm"
           >
             <Plus className="h-4 w-4 mr-2" />
             New Chat
@@ -127,31 +135,39 @@ export default function AssistantPage() {
                 No conversations yet
               </p>
             ) : (
-              sessions.map((session) => (
-                <button
-                  key={session.id}
-                  onClick={() => setCurrentSession(session.id)}
-                  className={cn(
-                    "w-full text-left p-3 rounded-lg transition-colors",
-                    "hover:bg-muted/50",
-                    session.id === currentSessionId && "bg-muted"
-                  )}
-                >
-                  <div className="flex items-start gap-2">
-                    <MessageSquare className="h-4 w-4 mt-0.5 flex-shrink-0 text-muted-foreground" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">
-                        {session.title}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {formatDistanceToNow(new Date(session.updatedAt), {
-                          addSuffix: true,
-                        })}
-                      </p>
-                    </div>
-                  </div>
-                </button>
-              ))
+              <TooltipProvider delayDuration={300}>
+                {sessions.map((session) => (
+                  <Tooltip key={session.id}>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => setCurrentSession(session.id)}
+                        className={cn(
+                          "w-full text-left p-2.5 rounded-lg transition-colors group",
+                          "hover:bg-muted/50",
+                          session.id === currentSessionId && "bg-muted"
+                        )}
+                      >
+                        <div className="flex items-start gap-2">
+                          <MessageSquare className="h-4 w-4 mt-0.5 flex-shrink-0 text-muted-foreground" />
+                          <div className="flex-1 min-w-0 overflow-hidden">
+                            <p className="text-sm font-medium leading-snug line-clamp-2">
+                              {session.title}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {formatDistanceToNow(new Date(session.updatedAt), {
+                                addSuffix: true,
+                              })}
+                            </p>
+                          </div>
+                        </div>
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" className="max-w-xs">
+                      <p className="text-sm">{session.title}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                ))}
+              </TooltipProvider>
             )}
           </div>
         </ScrollArea>

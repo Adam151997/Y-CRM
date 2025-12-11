@@ -257,6 +257,50 @@ Each workspace has customizable widgets:
 
 ---
 
+## Team & Roles
+
+### Managing Your Team
+
+1. Go to Settings → Team
+2. View all team members and their roles
+3. Click "Invite User" to add new members
+4. Use the role dropdown to change a user's role
+
+### Understanding Roles
+
+Y CRM includes four default roles:
+
+| Role | Permissions | Description |
+|------|-------------|-------------|
+| **Admin** | Full access | Can do everything, including manage team and settings |
+| **Manager** | Full access | Can manage all records but not system settings |
+| **Rep** | View, Create, Edit | Standard user - can work with data but can't delete |
+| **Read Only** | View only | Can see data but can't make changes |
+
+### Creating Custom Roles
+
+1. Go to Settings → Roles & Permissions
+2. Click "Create Role"
+3. Name your role
+4. Configure permissions for each module
+5. Click "Save"
+
+### Permission Grid
+
+When editing a role, you'll see a grid with:
+- **Rows**: Each CRM module (Leads, Contacts, etc.)
+- **Columns**: Actions (View, Create, Edit, Delete, All)
+- **Checkboxes**: Enable/disable each permission
+
+### Tips for Role Management
+
+- Start with the default roles and customize as needed
+- New team members automatically get the "Rep" role
+- Only Admins can manage team and roles
+- The Admin role cannot be deleted or modified
+
+---
+
 ## Settings
 
 ### Pipeline Stages
@@ -295,6 +339,46 @@ Connect external tools:
    - Slack
    - GitHub
 3. Click "Connect" and authorize
+
+---
+
+## Omni-Search
+
+The Omni-Search feature lets you quickly find anything in Y CRM:
+
+1. Press `Ctrl/Cmd + K` to open search
+2. Start typing to search across all modules
+3. Use arrow keys to navigate results
+4. Press Enter to open the selected item
+5. Press Escape to close
+
+**What You Can Search:**
+- Leads (by name, email, company)
+- Contacts (by name, email)
+- Accounts (by name)
+- Opportunities (by name)
+- Tickets (by subject)
+- Tasks (by title)
+- Documents (by name)
+
+---
+
+## Notifications
+
+Y CRM keeps you informed with in-app notifications.
+
+### Notification Types
+- New lead assigned to you
+- Task due today
+- Ticket escalated
+- Deal stage changed
+- At-risk account alert
+
+### Managing Notifications
+1. Click the bell icon in the header
+2. View your recent notifications
+3. Click a notification to go to the related record
+4. Click "Mark all as read" to clear them
 
 ---
 

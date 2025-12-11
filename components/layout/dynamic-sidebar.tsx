@@ -27,7 +27,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { Logo } from "@/components/ui/logo";
-import { WorkspaceSwitcher } from "./workspace-switcher";
 import { 
   useWorkspace, 
   getWorkspaceNavigation,
@@ -51,12 +50,6 @@ const iconMap: Record<string, LucideIcon> = {
   award: Award,
 };
 
-// Secondary navigation (shared across workspaces)
-const secondaryNavigation = [
-  { name: "Documents", href: "/documents", icon: FileText },
-  { name: "Settings", href: "/settings", icon: Settings },
-];
-
 interface CustomModule {
   id: string;
   name: string;
@@ -77,7 +70,7 @@ interface DynamicSidebarProps {
 
 export function DynamicSidebar({ onNavigate }: DynamicSidebarProps) {
   const pathname = usePathname();
-  const { workspace, config } = useWorkspace();
+  const { workspace } = useWorkspace();
   const [collapsed, setCollapsed] = useState(false);
   const [customModules, setCustomModules] = useState<CustomModule[]>([]);
   const [branding, setBranding] = useState<Branding>({ brandName: "Y CRM", brandLogo: null });
@@ -215,13 +208,8 @@ export function DynamicSidebar({ onNavigate }: DynamicSidebarProps) {
         </div>
       )}
 
-      {/* Workspace Switcher */}
-      <div className="p-2 border-b border-border">
-        <WorkspaceSwitcher collapsed={collapsed} />
-      </div>
-
       {/* Voice Command Button */}
-      <div className="p-2">
+      <div className="p-2 border-b border-border">
         <Link href={`/${workspace}/assistant`} onClick={handleNavClick}>
           <Button
             className={cn(
@@ -331,44 +319,61 @@ export function DynamicSidebar({ onNavigate }: DynamicSidebarProps) {
           );
         })}
 
-        {/* Secondary Navigation (Settings, Documents) */}
-        {secondaryNavigation.map((item) => {
-          const active = isGlobalActive(item.href);
-          return (
-            <Link
-              key={item.name}
-              href={item.href}
-              prefetch={true}
-              onClick={handleNavClick}
-              className={cn(
-                "flex items-center px-2.5 py-1.5 text-sm font-medium rounded-md transition-colors",
-                active
-                  ? "bg-background text-foreground shadow-sm border border-border"
-                  : "text-muted-foreground hover:bg-background/80 hover:text-foreground",
-                collapsed && "justify-center px-2"
-              )}
-              title={collapsed ? item.name : undefined}
-            >
-              <item.icon className={cn("h-4 w-4 flex-shrink-0", !collapsed && "mr-2.5")} />
-              {!collapsed && <span className="truncate">{item.name}</span>}
-            </Link>
-          );
-        })}
+        {/* Documents */}
+        <Link
+          href="/documents"
+          prefetch={true}
+          onClick={handleNavClick}
+          className={cn(
+            "flex items-center px-2.5 py-1.5 text-sm font-medium rounded-md transition-colors",
+            isGlobalActive("/documents")
+              ? "bg-background text-foreground shadow-sm border border-border"
+              : "text-muted-foreground hover:bg-background/80 hover:text-foreground",
+            collapsed && "justify-center px-2"
+          )}
+          title={collapsed ? "Documents" : undefined}
+        >
+          <FileText className={cn("h-4 w-4 flex-shrink-0", !collapsed && "mr-2.5")} />
+          {!collapsed && <span className="truncate">Documents</span>}
+        </Link>
       </nav>
 
-      {/* User Section */}
-      <div className="border-t border-border p-3">
-        <div className={cn("flex items-center", collapsed ? "justify-center" : "gap-2.5")}>
-          <UserButton
-            afterSignOutUrl="/sign-in"
-            appearance={{ elements: { avatarBox: "h-8 w-8" } }}
-          />
-          {!collapsed && (
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-foreground truncate">My Account</p>
-              <p className="text-xs text-muted-foreground truncate">Free Plan</p>
-            </div>
-          )}
+      {/* Bottom Section - Settings & User */}
+      <div className="border-t border-border">
+        {/* Settings Link */}
+        <div className="px-2 py-2">
+          <Link
+            href="/settings"
+            prefetch={true}
+            onClick={handleNavClick}
+            className={cn(
+              "flex items-center px-2.5 py-1.5 text-sm font-medium rounded-md transition-colors",
+              isGlobalActive("/settings")
+                ? "bg-background text-foreground shadow-sm border border-border"
+                : "text-muted-foreground hover:bg-background/80 hover:text-foreground",
+              collapsed && "justify-center px-2"
+            )}
+            title={collapsed ? "Settings" : undefined}
+          >
+            <Settings className={cn("h-4 w-4 flex-shrink-0", !collapsed && "mr-2.5")} />
+            {!collapsed && <span className="truncate">Settings</span>}
+          </Link>
+        </div>
+
+        {/* User Section */}
+        <div className="p-3 border-t border-border">
+          <div className={cn("flex items-center", collapsed ? "justify-center" : "gap-2.5")}>
+            <UserButton
+              afterSignOutUrl="/sign-in"
+              appearance={{ elements: { avatarBox: "h-8 w-8" } }}
+            />
+            {!collapsed && (
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-foreground truncate">My Account</p>
+                <p className="text-xs text-muted-foreground truncate">Free Plan</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
