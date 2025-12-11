@@ -6,12 +6,22 @@ const isPublicRoute = createRouteMatcher([
   "/sign-up(.*)",
   "/api/webhooks(.*)",
   "/api/mcp(.*)", // MCP endpoints use API key auth
+  "/select-org(.*)", // Organization selection page
 ]);
 
 export default clerkMiddleware(async (auth, request) => {
+  const { userId, orgId } = await auth();
+
   // Protect non-public routes
   if (!isPublicRoute(request)) {
     await auth.protect();
+  }
+
+  // If user is logged in but has no active organization, redirect to org selection
+  if (userId && !orgId && !isPublicRoute(request)) {
+    const selectOrgUrl = new URL("/select-org", request.url);
+    selectOrgUrl.searchParams.set("redirect", request.nextUrl.pathname);
+    return NextResponse.redirect(selectOrgUrl);
   }
 
   // Get response
