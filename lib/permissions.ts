@@ -1,4 +1,5 @@
 import prisma from "@/lib/db";
+import { Prisma } from "@prisma/client";
 import { cache } from "react";
 
 // =============================================================================
@@ -265,8 +266,8 @@ export async function createDefaultRoles(orgId: string): Promise<void> {
       isDefault: false,
       permissions: BUILT_IN_MODULES.map((module) => ({
         module,
-        actions: ALL_ACTIONS,
-        fields: null,
+        actions: ALL_ACTIONS as string[],
+        fields: Prisma.JsonNull,
       })),
     },
     {
@@ -276,8 +277,8 @@ export async function createDefaultRoles(orgId: string): Promise<void> {
       isDefault: false,
       permissions: BUILT_IN_MODULES.map((module) => ({
         module,
-        actions: ALL_ACTIONS,
-        fields: null,
+        actions: ALL_ACTIONS as string[],
+        fields: Prisma.JsonNull,
       })),
     },
     {
@@ -287,8 +288,8 @@ export async function createDefaultRoles(orgId: string): Promise<void> {
       isDefault: true,
       permissions: BUILT_IN_MODULES.map((module) => ({
         module,
-        actions: ["view", "create", "edit"] as ActionType[],
-        fields: null,
+        actions: ["view", "create", "edit"] as string[],
+        fields: Prisma.JsonNull,
       })),
     },
     {
@@ -298,8 +299,8 @@ export async function createDefaultRoles(orgId: string): Promise<void> {
       isDefault: false,
       permissions: BUILT_IN_MODULES.map((module) => ({
         module,
-        actions: ["view"] as ActionType[],
-        fields: null,
+        actions: ["view"] as string[],
+        fields: Prisma.JsonNull,
       })),
     },
   ];
