@@ -1,12 +1,10 @@
 import { Suspense } from "react";
-import Link from "next/link";
 import { getAuthContext } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { getCachedLeadStages } from "@/lib/cache";
-import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
 import { LeadsTable } from "./_components/leads-table";
 import { LeadsFilters } from "./_components/leads-filters";
+import { AddLeadButton } from "./_components/add-lead-button";
 
 interface LeadsPageProps {
   searchParams: Promise<{
@@ -71,12 +69,7 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
             Manage and track your sales leads
           </p>
         </div>
-        <Button asChild>
-          <Link href="/leads/new">
-            <Plus className="h-4 w-4 mr-2" />
-            Add Lead
-          </Link>
-        </Button>
+        <AddLeadButton />
       </div>
 
       {/* Filters */}

@@ -1,0 +1,384 @@
+import prisma from "@/lib/db";
+import { cache } from "react";
+
+// =============================================================================
+// Types
+// =============================================================================
+
+export type ActionType = "view" | "create" | "edit" | "delete";
+
+export interface UserPermissions {
+  role: {
+    id: string;
+    name: string;
+    isSystem: boolean;
+  } | null;
+  permissions: Map<string, {
+    actions: ActionType[];
+    fields: Record<string, string[]> | null;
+  }>;
+  isAdmin: boolean;
+}
+
+// Built-in modules
+export const BUILT_IN_MODULES = [
+  "leads",
+  "contacts",
+  "accounts",
+  "opportunities",
+  "tasks",
+  "documents",
+  "tickets",
+  "campaigns",
+  "reports",
+] as const;
+
+// All possible actions
+export const ALL_ACTIONS: ActionType[] = ["view", "create", "edit", "delete"];
+
+// =============================================================================
+// Permission Fetching (cached per request)
+// =============================================================================
+
+/**
+ * Get user's permissions for an organization
+ * Cached per request to avoid multiple DB calls
+ */
+export const getUserPermissions = cache(async (
+  clerkUserId: string,
+  orgId: string
+): Promise<UserPermissions> => {
+  const userRole = await prisma.userRole.findUnique({
+    where: {
+      clerkUserId_orgId: {
+        clerkUserId,
+        orgId,
+      },
+    },
+    include: {
+      role: {
+        include: {
+          permissions: true,
+        },
+      },
+    },
+  });
+
+  if (!userRole?.role) {
+    return {
+      role: null,
+      permissions: new Map(),
+      isAdmin: false,
+    };
+  }
+
+  const { role } = userRole;
+  const isAdmin = role.name.toLowerCase() === "admin" || role.isSystem;
+
+  // Build permissions map
+  const permissions = new Map<string, {
+    actions: ActionType[];
+    fields: Record<string, string[]> | null;
+  }>();
+
+  for (const perm of role.permissions) {
+    permissions.set(perm.module, {
+      actions: perm.actions as ActionType[],
+      fields: perm.fields as Record<string, string[]> | null,
+    });
+  }
+
+  return {
+    role: {
+      id: role.id,
+      name: role.name,
+      isSystem: role.isSystem,
+    },
+    permissions,
+    isAdmin,
+  };
+});
+
+// =============================================================================
+// Permission Checking
+// =============================================================================
+
+/**
+ * Check if user can perform an action on a module
+ */
+export async function checkPermission(
+  clerkUserId: string,
+  orgId: string,
+  module: string,
+  action: ActionType
+): Promise<boolean> {
+  const userPermissions = await getUserPermissions(clerkUserId, orgId);
+
+  // Admins have full access
+  if (userPermissions.isAdmin) {
+    return true;
+  }
+
+  // No role assigned
+  if (!userPermissions.role) {
+    return false;
+  }
+
+  // Check module permission
+  const modulePerms = userPermissions.permissions.get(module);
+  if (!modulePerms) {
+    return false;
+  }
+
+  return modulePerms.actions.includes(action);
+}
+
+/**
+ * Get allowed fields for a module/action
+ * Returns null if all fields are allowed
+ */
+export async function getAllowedFields(
+  clerkUserId: string,
+  orgId: string,
+  module: string,
+  action: "view" | "edit"
+): Promise<string[] | null> {
+  const userPermissions = await getUserPermissions(clerkUserId, orgId);
+
+  // Admins can access all fields
+  if (userPermissions.isAdmin) {
+    return null;
+  }
+
+  const modulePerms = userPermissions.permissions.get(module);
+  if (!modulePerms?.fields) {
+    return null; // All fields allowed
+  }
+
+  return modulePerms.fields[action] || null;
+}
+
+/**
+ * Check if user can access a specific field
+ */
+export async function canAccessField(
+  clerkUserId: string,
+  orgId: string,
+  module: string,
+  field: string,
+  action: "view" | "edit"
+): Promise<boolean> {
+  const allowedFields = await getAllowedFields(clerkUserId, orgId, module, action);
+
+  // null means all fields allowed
+  if (allowedFields === null) {
+    return true;
+  }
+
+  return allowedFields.includes(field);
+}
+
+/**
+ * Filter object to only include allowed fields
+ */
+export function filterToAllowedFields<T extends Record<string, unknown>>(
+  data: T,
+  allowedFields: string[] | null
+): Partial<T> {
+  // null means all fields allowed
+  if (allowedFields === null) {
+    return data;
+  }
+
+  const filtered: Partial<T> = {};
+  for (const field of allowedFields) {
+    if (field in data) {
+      filtered[field as keyof T] = data[field as keyof T];
+    }
+  }
+
+  // Always include id if present
+  if ("id" in data) {
+    filtered.id = data.id as T["id"];
+  }
+
+  return filtered;
+}
+
+/**
+ * Filter array of objects to only include allowed fields
+ */
+export function filterArrayToAllowedFields<T extends Record<string, unknown>>(
+  dataArray: T[],
+  allowedFields: string[] | null
+): Partial<T>[] {
+  return dataArray.map((item) => filterToAllowedFields(item, allowedFields));
+}
+
+// =============================================================================
+// API Route Helpers
+// =============================================================================
+
+/**
+ * Throws 403 error if user doesn't have permission
+ * Use in API routes
+ */
+export async function requirePermission(
+  clerkUserId: string,
+  orgId: string,
+  module: string,
+  action: ActionType
+): Promise<void> {
+  const hasPermission = await checkPermission(clerkUserId, orgId, module, action);
+
+  if (!hasPermission) {
+    throw new PermissionError(
+      `You don't have permission to ${action} ${module}`,
+      403
+    );
+  }
+}
+
+export class PermissionError extends Error {
+  status: number;
+
+  constructor(message: string, status: number = 403) {
+    super(message);
+    this.name = "PermissionError";
+    this.status = status;
+  }
+}
+
+// =============================================================================
+// Role Management Helpers
+// =============================================================================
+
+/**
+ * Create default roles for a new organization
+ */
+export async function createDefaultRoles(orgId: string): Promise<void> {
+  const defaultRoles = [
+    {
+      name: "Admin",
+      description: "Full access to all features",
+      isSystem: true,
+      isDefault: false,
+      permissions: BUILT_IN_MODULES.map((module) => ({
+        module,
+        actions: ALL_ACTIONS,
+        fields: null,
+      })),
+    },
+    {
+      name: "Manager",
+      description: "Can manage team and all records",
+      isSystem: false,
+      isDefault: false,
+      permissions: BUILT_IN_MODULES.map((module) => ({
+        module,
+        actions: ALL_ACTIONS,
+        fields: null,
+      })),
+    },
+    {
+      name: "Sales Rep",
+      description: "Standard access for sales team members",
+      isSystem: false,
+      isDefault: true,
+      permissions: BUILT_IN_MODULES.map((module) => ({
+        module,
+        actions: ["view", "create", "edit"] as ActionType[],
+        fields: null,
+      })),
+    },
+    {
+      name: "Read Only",
+      description: "View-only access",
+      isSystem: false,
+      isDefault: false,
+      permissions: BUILT_IN_MODULES.map((module) => ({
+        module,
+        actions: ["view"] as ActionType[],
+        fields: null,
+      })),
+    },
+  ];
+
+  for (const roleData of defaultRoles) {
+    const { permissions, ...role } = roleData;
+
+    await prisma.role.create({
+      data: {
+        ...role,
+        orgId,
+        permissions: {
+          create: permissions,
+        },
+      },
+    });
+  }
+}
+
+/**
+ * Assign default role to a new user
+ */
+export async function assignDefaultRole(
+  clerkUserId: string,
+  orgId: string
+): Promise<void> {
+  // Find default role
+  const defaultRole = await prisma.role.findFirst({
+    where: {
+      orgId,
+      isDefault: true,
+    },
+  });
+
+  if (!defaultRole) {
+    // Fall back to first non-admin role
+    const fallbackRole = await prisma.role.findFirst({
+      where: {
+        orgId,
+        isSystem: false,
+      },
+    });
+
+    if (fallbackRole) {
+      await prisma.userRole.create({
+        data: {
+          clerkUserId,
+          orgId,
+          roleId: fallbackRole.id,
+        },
+      });
+    }
+    return;
+  }
+
+  await prisma.userRole.create({
+    data: {
+      clerkUserId,
+      orgId,
+      roleId: defaultRole.id,
+    },
+  });
+}
+
+/**
+ * Get all modules (built-in + custom) for an organization
+ */
+export async function getAllModules(orgId: string): Promise<{
+  builtIn: string[];
+  custom: { slug: string; name: string }[];
+}> {
+  const customModules = await prisma.customModule.findMany({
+    where: { orgId, isActive: true },
+    select: { slug: true, name: true },
+    orderBy: { displayOrder: "asc" },
+  });
+
+  return {
+    builtIn: [...BUILT_IN_MODULES],
+    custom: customModules,
+  };
+}

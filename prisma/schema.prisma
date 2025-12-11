@@ -87,8 +87,65 @@ model Organization {
   notes               Note[]
   activities          Activity[]
   documents           Document[]
+  
+  // Relations - RBAC
+  roles               Role[]
+  userRoles           UserRole[]
 
   @@index([slug])
+}
+
+// =============================================================================
+// RBAC - Role-Based Access Control
+// =============================================================================
+
+model Role {
+  id          String       @id @default(cuid())
+  orgId       String
+  org         Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  
+  name        String       // "Admin", "Manager", "Sales Rep", "Read Only"
+  description String?
+  isDefault   Boolean      @default(false)  // Auto-assigned to new users
+  isSystem    Boolean      @default(false)  // Can't be deleted (Admin role)
+  
+  permissions Permission[]
+  userRoles   UserRole[]
+  
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@unique([orgId, name])
+  @@index([orgId])
+}
+
+model Permission {
+  id       String   @id @default(cuid())
+  roleId   String
+  role     Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  
+  module   String   // "leads", "contacts", "accounts", "opportunities", "tasks", "documents", or custom module slug
+  actions  String[] // ["view", "create", "edit", "delete"]
+  fields   Json?    // { "view": ["name", "email"], "edit": ["status"] } - null = all fields
+
+  @@unique([roleId, module])
+  @@index([roleId])
+}
+
+model UserRole {
+  id          String       @id @default(cuid())
+  clerkUserId String       // Clerk user ID
+  orgId       String
+  org         Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  roleId      String
+  role        Role         @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@unique([clerkUserId, orgId])
+  @@index([orgId])
+  @@index([roleId])
 }
 
 // =============================================================================

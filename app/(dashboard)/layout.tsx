@@ -1,7 +1,7 @@
 import { DynamicSidebar } from "@/components/layout/dynamic-sidebar";
 import { Header } from "@/components/layout/header";
 import { MobileSidebar } from "@/components/layout/mobile-sidebar";
-import { WorkspaceProvider } from "@/lib/workspace";
+import { DashboardProviders } from "@/components/providers/dashboard-providers";
 
 export default function DashboardLayout({
   children,
@@ -9,7 +9,7 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <WorkspaceProvider>
+    <DashboardProviders>
       <div className="flex h-screen overflow-hidden bg-background">
         {/* Sidebar - Desktop */}
         <div className="hidden lg:flex">
@@ -27,6 +27,6 @@ export default function DashboardLayout({
           </main>
         </div>
       </div>
-    </WorkspaceProvider>
+    </DashboardProviders>
   );
 }

@@ -3,6 +3,8 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { CanAccess } from "@/components/can-access";
+import { usePermissions } from "@/hooks/use-permissions";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -49,6 +51,11 @@ export function LeadActions({ lead }: LeadActionsProps) {
   const [isPending, startTransition] = useTransition();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const { can } = usePermissions();
+
+  // Check permissions
+  const canEdit = can("leads", "edit");
+  const canDelete = can("leads", "delete");
 
   const handleStatusChange = async (newStatus: string) => {
     try {
@@ -116,27 +123,35 @@ export function LeadActions({ lead }: LeadActionsProps) {
               </a>
             </DropdownMenuItem>
           )}
-          <DropdownMenuSeparator />
-          {lead.status !== "CONVERTED" && (
-            <DropdownMenuItem onClick={() => handleStatusChange("CONVERTED")}>
-              <ArrowRightCircle className="h-4 w-4 mr-2" />
-              Mark as Converted
-            </DropdownMenuItem>
+          {canEdit && (
+            <>
+              <DropdownMenuSeparator />
+              {lead.status !== "CONVERTED" && (
+                <DropdownMenuItem onClick={() => handleStatusChange("CONVERTED")}>
+                  <ArrowRightCircle className="h-4 w-4 mr-2" />
+                  Mark as Converted
+                </DropdownMenuItem>
+              )}
+              {lead.status !== "LOST" && (
+                <DropdownMenuItem onClick={() => handleStatusChange("LOST")}>
+                  <UserX className="h-4 w-4 mr-2" />
+                  Mark as Lost
+                </DropdownMenuItem>
+              )}
+            </>
           )}
-          {lead.status !== "LOST" && (
-            <DropdownMenuItem onClick={() => handleStatusChange("LOST")}>
-              <UserX className="h-4 w-4 mr-2" />
-              Mark as Lost
-            </DropdownMenuItem>
+          {canDelete && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="text-red-600"
+                onClick={() => setDeleteDialogOpen(true)}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete Lead
+              </DropdownMenuItem>
+            </>
           )}
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            className="text-red-600"
-            onClick={() => setDeleteDialogOpen(true)}
-          >
-            <Trash2 className="h-4 w-4 mr-2" />
-            Delete Lead
-          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 

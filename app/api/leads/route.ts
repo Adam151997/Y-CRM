@@ -6,6 +6,7 @@ import { createAuditLog } from "@/lib/audit";
 import { createNotification } from "@/lib/notifications";
 import { createLeadSchema, leadFilterSchema } from "@/lib/validation/schemas";
 import { validateCustomFields } from "@/lib/validation/custom-fields";
+import { checkRoutePermission } from "@/lib/api-permissions";
 
 // GET /api/leads - List leads with filtering and pagination
 export async function GET(request: NextRequest) {
@@ -14,6 +15,10 @@ export async function GET(request: NextRequest) {
     if (!auth) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    // Check permission
+    const permissionError = await checkRoutePermission(auth.userId, auth.orgId, "leads", "view");
+    if (permissionError) return permissionError;
 
     const { searchParams } = new URL(request.url);
     const params = Object.fromEntries(searchParams.entries());
@@ -107,6 +112,10 @@ export async function POST(request: NextRequest) {
     if (!auth) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    // Check permission
+    const permissionError = await checkRoutePermission(auth.userId, auth.orgId, "leads", "create");
+    if (permissionError) return permissionError;
 
     const body = await request.json();
 

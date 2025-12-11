@@ -6,6 +6,7 @@ import { createAuditLog } from "@/lib/audit";
 import { createNotification } from "@/lib/notifications";
 import { updateLeadSchema } from "@/lib/validation/schemas";
 import { validateCustomFields } from "@/lib/validation/custom-fields";
+import { checkRoutePermission } from "@/lib/api-permissions";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -18,6 +19,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     if (!auth) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    // Check permission
+    const permissionError = await checkRoutePermission(auth.userId, auth.orgId, "leads", "view");
+    if (permissionError) return permissionError;
 
     const { id } = await params;
 
@@ -71,6 +76,10 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     if (!auth) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    // Check permission
+    const permissionError = await checkRoutePermission(auth.userId, auth.orgId, "leads", "edit");
+    if (permissionError) return permissionError;
 
     const { id } = await params;
     const body = await request.json();
@@ -232,6 +241,10 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     if (!auth) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    // Check permission
+    const permissionError = await checkRoutePermission(auth.userId, auth.orgId, "leads", "delete");
+    if (permissionError) return permissionError;
 
     const { id } = await params;
 
