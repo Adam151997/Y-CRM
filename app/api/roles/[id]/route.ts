@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getApiAuthContext } from "@/lib/auth";
 import prisma from "@/lib/db";
+import { Prisma } from "@prisma/client";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
@@ -162,7 +163,7 @@ export async function PUT(
             roleId: id,
             module: p.module,
             actions: p.actions,
-            fields: p.fields || null,
+            fields: p.fields ? (p.fields as Prisma.InputJsonValue) : Prisma.JsonNull,
           })),
         });
       }
