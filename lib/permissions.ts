@@ -199,7 +199,7 @@ export function filterToAllowedFields<T extends Record<string, unknown>>(
 
   // Always include id if present
   if ("id" in data) {
-    filtered.id = data.id as T["id"];
+    (filtered as Record<string, unknown>)["id"] = (data as Record<string, unknown>)["id"];
   }
 
   return filtered;
