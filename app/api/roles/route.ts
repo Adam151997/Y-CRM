@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getApiAuthContext } from "@/lib/auth";
 import prisma from "@/lib/db";
+import { Prisma } from "@prisma/client";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
@@ -31,10 +32,10 @@ export async function GET() {
     const roles = await prisma.role.findMany({
       where: { orgId: auth.orgId },
       include: {
-        permissions: true,
         _count: {
           select: { userRoles: true },
         },
+        permissions: true,
       },
       orderBy: [
         { isSystem: "desc" },
@@ -50,9 +51,8 @@ export async function GET() {
         isDefault: role.isDefault,
         isSystem: role.isSystem,
         userCount: role._count.userRoles,
-        permissions: role.permissions,
+        permissionCount: role.permissions.length,
         createdAt: role.createdAt,
-        updatedAt: role.updatedAt,
       })),
     });
   } catch (error) {
@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validated = createRoleSchema.parse(body);
 
-    // Check if role name already exists
+    // Check for duplicate name
     const existing = await prisma.role.findUnique({
       where: {
         orgId_name: {
@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // If this role is set as default, unset other defaults
+    // If setting as default, unset other defaults
     if (validated.isDefault) {
       await prisma.role.updateMany({
         where: { orgId: auth.orgId, isDefault: true },
@@ -115,17 +115,31 @@ export async function POST(request: NextRequest) {
               create: validated.permissions.map((p) => ({
                 module: p.module,
                 actions: p.actions,
-                fields: p.fields || null,
+                fields: p.fields ? (p.fields as Prisma.InputJsonValue) : Prisma.JsonNull,
               })),
             }
           : undefined,
       },
       include: {
         permissions: true,
+        _count: {
+          select: { userRoles: true },
+        },
       },
     });
 
-    return NextResponse.json({ role }, { status: 201 });
+    return NextResponse.json({
+      role: {
+        id: role.id,
+        name: role.name,
+        description: role.description,
+        isDefault: role.isDefault,
+        isSystem: role.isSystem,
+        userCount: role._count.userRoles,
+        permissions: role.permissions,
+        createdAt: role.createdAt,
+      },
+    }, { status: 201 });
   } catch (error) {
     console.error("Error creating role:", error);
 
