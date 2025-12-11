@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, use } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -78,8 +78,9 @@ interface CustomModule {
   name: string;
 }
 
-export default function RoleEditorPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+export default function RoleEditorPage() {
+  const params = useParams();
+  const id = params.id as string;
   const router = useRouter();
   
   const [loading, setLoading] = useState(true);
