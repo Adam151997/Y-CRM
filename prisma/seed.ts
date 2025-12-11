@@ -1,314 +1,194 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Prisma } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
+// All CRM modules that need permission configuration
+const ALL_MODULES = [
+  "leads",
+  "contacts", 
+  "accounts",
+  "opportunities",
+  "tasks",
+  "documents",
+  "dashboard",
+  "pipeline",
+  "reports",
+  "tickets",
+  "health",
+  "playbooks",
+  "campaigns",
+  "segments",
+  "forms",
+  "settings",
+];
+
+const ALL_ACTIONS = ["view", "create", "edit", "delete"];
+
+interface RoleDefinition {
+  name: string;
+  description: string;
+  isSystem: boolean;
+  isDefault: boolean;
+  actions: string[];
+}
+
+const DEFAULT_ROLES: RoleDefinition[] = [
+  {
+    name: "Admin",
+    description: "Full access to all features",
+    isSystem: true,
+    isDefault: false,
+    actions: ALL_ACTIONS,
+  },
+  {
+    name: "Manager",
+    description: "Full access to manage team and all records",
+    isSystem: false,
+    isDefault: false,
+    actions: ALL_ACTIONS,
+  },
+  {
+    name: "Rep",
+    description: "Standard access for team members",
+    isSystem: false,
+    isDefault: true,
+    actions: ["view", "create", "edit"],
+  },
+  {
+    name: "Read Only",
+    description: "View-only access to CRM data",
+    isSystem: false,
+    isDefault: false,
+    actions: ["view"],
+  },
+];
+
+async function seedRoles(orgId: string) {
+  console.log(`\n📋 Seeding roles for organization: ${orgId}`);
+
+  for (const roleDef of DEFAULT_ROLES) {
+    const existingRole = await prisma.role.findUnique({
+      where: { orgId_name: { orgId, name: roleDef.name } },
+    });
+
+    if (existingRole) {
+      console.log(`  ⏭️  Role "${roleDef.name}" already exists, skipping...`);
+      continue;
+    }
+
+    await prisma.role.create({
+      data: {
+        orgId,
+        name: roleDef.name,
+        description: roleDef.description,
+        isSystem: roleDef.isSystem,
+        isDefault: roleDef.isDefault,
+        permissions: {
+          create: ALL_MODULES.map((module) => ({
+            module,
+            actions: roleDef.actions,
+            fields: Prisma.JsonNull,
+          })),
+        },
+      },
+    });
+
+    console.log(`  ✅ Created role: ${roleDef.name}`);
+  }
+}
+
+async function assignAdminRole(orgId: string, clerkUserId: string) {
+  console.log(`\n👤 Assigning Admin role to user: ${clerkUserId}`);
+
+  const adminRole = await prisma.role.findUnique({
+    where: { orgId_name: { orgId, name: "Admin" } },
+  });
+
+  if (!adminRole) {
+    console.log("  ❌ Admin role not found. Run seedRoles first.");
+    return;
+  }
+
+  const existingAssignment = await prisma.userRole.findUnique({
+    where: { clerkUserId_orgId: { clerkUserId, orgId } },
+  });
+
+  if (existingAssignment) {
+    // Update to Admin if different
+    if (existingAssignment.roleId !== adminRole.id) {
+      await prisma.userRole.update({
+        where: { id: existingAssignment.id },
+        data: { roleId: adminRole.id },
+      });
+      console.log(`  ✅ Updated user to Admin role`);
+    } else {
+      console.log(`  ⏭️  User already has Admin role`);
+    }
+  } else {
+    await prisma.userRole.create({
+      data: {
+        clerkUserId,
+        orgId,
+        roleId: adminRole.id,
+      },
+    });
+    console.log(`  ✅ Assigned Admin role to user`);
+  }
+}
+
 async function main() {
-  console.log("🌱 Starting database seed...");
+  console.log("🌱 Starting Y CRM seed...\n");
 
-  // Create a demo organization
-  const orgId = "demo_org_123";
+  // ==========================================================================
+  // CONFIGURATION - Update these values before running
+  // ==========================================================================
   
-  const org = await prisma.organization.upsert({
-    where: { id: orgId },
-    update: {},
-    create: {
-      id: orgId,
-      name: "Demo Organization",
-      slug: "demo-org",
-      plan: "FREE",
-      settings: {},
-    },
+  // Your Clerk Organization ID (find in Clerk Dashboard → Organizations)
+  const ORG_ID = process.env.SEED_ORG_ID || "YOUR_ORG_ID_HERE";
+  
+  // Your Clerk User ID (find in Clerk Dashboard → Users)
+  const ADMIN_USER_ID = process.env.SEED_ADMIN_USER_ID || "YOUR_USER_ID_HERE";
+
+  // ==========================================================================
+
+  if (ORG_ID === "YOUR_ORG_ID_HERE" || ADMIN_USER_ID === "YOUR_USER_ID_HERE") {
+    console.log("⚠️  Please configure the seed script with your actual IDs:\n");
+    console.log("  Option 1 - Environment variables:");
+    console.log("    SEED_ORG_ID=org_xxx SEED_ADMIN_USER_ID=user_xxx npx prisma db seed\n");
+    console.log("  Option 2 - Edit prisma/seed.ts directly:");
+    console.log("    const ORG_ID = 'org_xxx';");
+    console.log("    const ADMIN_USER_ID = 'user_xxx';\n");
+    console.log("  Find your IDs in the Clerk Dashboard:");
+    console.log("    - Organization ID: Organizations → Your Org → Settings");
+    console.log("    - User ID: Users → Your User → User ID\n");
+    process.exit(1);
+  }
+
+  // Verify organization exists
+  const org = await prisma.organization.findUnique({
+    where: { id: ORG_ID },
   });
 
-  console.log("✅ Organization created:", org.name);
-
-  // Create Lead Pipeline Stages
-  const leadStages = [
-    { name: "New", order: 0, color: "#6B7280" },
-    { name: "Contacted", order: 1, color: "#3B82F6" },
-    { name: "Qualified", order: 2, color: "#8B5CF6" },
-    { name: "Converted", order: 3, color: "#10B981" },
-    { name: "Lost", order: 4, color: "#EF4444" },
-  ];
-
-  for (const stage of leadStages) {
-    await prisma.pipelineStage.upsert({
-      where: {
-        orgId_module_name: {
-          orgId,
-          module: "LEAD",
-          name: stage.name,
-        },
-      },
-      update: {},
-      create: {
-        orgId,
-        module: "LEAD",
-        ...stage,
-      },
-    });
+  if (!org) {
+    console.log(`❌ Organization with ID "${ORG_ID}" not found in database.`);
+    console.log("   Make sure you've logged into the app at least once to create the organization.\n");
+    process.exit(1);
   }
 
-  console.log("✅ Lead pipeline stages created");
+  console.log(`✅ Found organization: ${org.name} (${org.slug})`);
 
-  // Create Opportunity Pipeline Stages
-  const opportunityStages = [
-    { name: "Prospecting", order: 0, color: "#6B7280", probability: 10 },
-    { name: "Qualification", order: 1, color: "#3B82F6", probability: 20 },
-    { name: "Proposal", order: 2, color: "#8B5CF6", probability: 50 },
-    { name: "Negotiation", order: 3, color: "#F59E0B", probability: 75 },
-    { name: "Closed Won", order: 4, color: "#10B981", probability: 100, isWon: true },
-    { name: "Closed Lost", order: 5, color: "#EF4444", probability: 0, isLost: true },
-  ];
+  // Seed roles
+  await seedRoles(ORG_ID);
 
-  for (const stage of opportunityStages) {
-    await prisma.pipelineStage.upsert({
-      where: {
-        orgId_module_name: {
-          orgId,
-          module: "OPPORTUNITY",
-          name: stage.name,
-        },
-      },
-      update: {},
-      create: {
-        orgId,
-        module: "OPPORTUNITY",
-        ...stage,
-      },
-    });
-  }
+  // Assign admin role to the specified user
+  await assignAdminRole(ORG_ID, ADMIN_USER_ID);
 
-  console.log("✅ Opportunity pipeline stages created");
-
-  // Get the first lead stage for sample leads
-  const firstLeadStage = await prisma.pipelineStage.findFirst({
-    where: { orgId, module: "LEAD", order: 0 },
-  });
-
-  // Create sample leads
-  const sampleLeads = [
-    {
-      firstName: "John",
-      lastName: "Doe",
-      email: "john.doe@example.com",
-      phone: "+1 (555) 123-4567",
-      company: "Acme Corp",
-      title: "Marketing Director",
-      source: "WEBSITE",
-      status: "NEW",
-    },
-    {
-      firstName: "Jane",
-      lastName: "Smith",
-      email: "jane.smith@techstartup.io",
-      phone: "+1 (555) 234-5678",
-      company: "TechStartup Inc",
-      title: "CEO",
-      source: "LINKEDIN",
-      status: "CONTACTED",
-    },
-    {
-      firstName: "Bob",
-      lastName: "Johnson",
-      email: "bob.j@enterprise.com",
-      phone: "+1 (555) 345-6789",
-      company: "Enterprise Solutions",
-      title: "VP of Sales",
-      source: "REFERRAL",
-      status: "QUALIFIED",
-    },
-    {
-      firstName: "Alice",
-      lastName: "Williams",
-      email: "alice@innovate.co",
-      phone: "+1 (555) 456-7890",
-      company: "Innovate Co",
-      title: "Product Manager",
-      source: "TRADE_SHOW",
-      status: "NEW",
-    },
-    {
-      firstName: "Charlie",
-      lastName: "Brown",
-      email: "charlie@startup.io",
-      phone: "+1 (555) 567-8901",
-      company: "Startup.io",
-      title: "CTO",
-      source: "COLD_CALL",
-      status: "CONTACTED",
-    },
-  ];
-
-  for (const leadData of sampleLeads) {
-    const existingLead = await prisma.lead.findFirst({
-      where: { orgId, email: leadData.email },
-    });
-
-    if (!existingLead) {
-      const lead = await prisma.lead.create({
-        data: {
-          orgId,
-          ...leadData,
-          pipelineStageId: firstLeadStage?.id,
-          customFields: {},
-        },
-      });
-
-      // Add a sample note to each lead
-      await prisma.note.create({
-        data: {
-          orgId,
-          content: `Initial contact made with ${leadData.firstName}. Showed interest in our product offerings.`,
-          leadId: lead.id,
-          createdById: "SEED_USER",
-          createdByType: "SYSTEM",
-        },
-      });
-
-      // Add a sample task to each lead
-      const dueDate = new Date();
-      dueDate.setDate(dueDate.getDate() + Math.floor(Math.random() * 7) + 1);
-
-      await prisma.task.create({
-        data: {
-          orgId,
-          title: `Follow up with ${leadData.firstName} ${leadData.lastName}`,
-          description: `Reach out to discuss their needs and schedule a demo.`,
-          dueDate,
-          priority: ["LOW", "MEDIUM", "HIGH"][Math.floor(Math.random() * 3)],
-          status: "PENDING",
-          taskType: "CALL",
-          leadId: lead.id,
-          createdById: "SEED_USER",
-          createdByType: "SYSTEM",
-        },
-      });
-    }
-  }
-
-  console.log("✅ Sample leads with notes and tasks created");
-
-  // Create sample accounts
-  const sampleAccounts = [
-    {
-      name: "Acme Corporation",
-      industry: "Technology",
-      website: "https://acme.example.com",
-      phone: "+1 (555) 100-0001",
-      type: "CUSTOMER",
-      rating: "HOT",
-      annualRevenue: 5000000,
-      employeeCount: 250,
-    },
-    {
-      name: "Global Enterprises",
-      industry: "Finance",
-      website: "https://global.example.com",
-      phone: "+1 (555) 100-0002",
-      type: "PROSPECT",
-      rating: "WARM",
-      annualRevenue: 50000000,
-      employeeCount: 1000,
-    },
-    {
-      name: "StartupHub",
-      industry: "Technology",
-      website: "https://startuphub.example.com",
-      phone: "+1 (555) 100-0003",
-      type: "PROSPECT",
-      rating: "WARM",
-      annualRevenue: 1000000,
-      employeeCount: 50,
-    },
-  ];
-
-  for (const accountData of sampleAccounts) {
-    const existingAccount = await prisma.account.findFirst({
-      where: { orgId, name: accountData.name },
-    });
-
-    if (!existingAccount) {
-      await prisma.account.create({
-        data: {
-          orgId,
-          ...accountData,
-          address: {
-            street: "123 Business Ave",
-            city: "San Francisco",
-            state: "CA",
-            zip: "94105",
-            country: "USA",
-          },
-          customFields: {},
-        },
-      });
-    }
-  }
-
-  console.log("✅ Sample accounts created");
-
-  // Create sample custom field definitions
-  const customFields = [
-    {
-      module: "LEAD",
-      fieldName: "Budget",
-      fieldKey: "budget",
-      fieldType: "SELECT",
-      options: ["< $10K", "$10K - $50K", "$50K - $100K", "> $100K"],
-      displayOrder: 1,
-    },
-    {
-      module: "LEAD",
-      fieldName: "Timeline",
-      fieldKey: "timeline",
-      fieldType: "SELECT",
-      options: ["Immediate", "1-3 months", "3-6 months", "6+ months"],
-      displayOrder: 2,
-    },
-    {
-      module: "ACCOUNT",
-      fieldName: "Contract Value",
-      fieldKey: "contract_value",
-      fieldType: "NUMBER",
-      displayOrder: 1,
-    },
-  ];
-
-  for (const fieldData of customFields) {
-    await prisma.customFieldDefinition.upsert({
-      where: {
-        orgId_module_fieldKey: {
-          orgId,
-          module: fieldData.module,
-          fieldKey: fieldData.fieldKey,
-        },
-      },
-      update: {},
-      create: {
-        orgId,
-        ...fieldData,
-        required: false,
-        isActive: true,
-      },
-    });
-  }
-
-  console.log("✅ Custom field definitions created");
-
-  console.log("\n🎉 Database seed completed successfully!");
-  console.log("\nDemo data created:");
-  console.log("  - 1 Organization (Demo Organization)");
-  console.log("  - 5 Lead pipeline stages");
-  console.log("  - 6 Opportunity pipeline stages");
-  console.log("  - 5 Sample leads with notes and tasks");
-  console.log("  - 3 Sample accounts");
-  console.log("  - 3 Custom field definitions");
+  console.log("\n🎉 Seed completed successfully!\n");
 }
 
 main()
-  .catch((e) => {
-    console.error("❌ Seed failed:", e);
+  .catch((error) => {
+    console.error("❌ Seed failed:", error);
     process.exit(1);
   })
   .finally(async () => {

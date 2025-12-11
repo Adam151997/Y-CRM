@@ -69,6 +69,9 @@
     "@vercel/blob": "^0.24.0",
     "@vercel/speed-insights": "^1.1.0"
   },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
   "devDependencies": {
     "@types/node": "^22.0.0",
     "@types/papaparse": "^5.3.15",
