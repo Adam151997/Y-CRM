@@ -11,9 +11,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ChevronLeft, Pencil, Trash2 } from "lucide-react";
+import { ChevronLeft, Pencil } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
 import { RecordActions } from "./_components/record-actions";
+import { RecordDetailFields } from "./_components/record-detail-fields";
 
 interface RecordDetailPageProps {
   params: Promise<{ slug: string; id: string }>;
@@ -59,74 +60,6 @@ export default async function RecordDetailPage({
   const data = record.data as Record<string, unknown>;
   const labelValue = String(data[module.labelField] || "Untitled");
 
-  // Format field value for display
-  const formatValue = (value: unknown, fieldType: string): React.ReactNode => {
-    if (value === null || value === undefined || value === "") {
-      return <span className="text-muted-foreground">-</span>;
-    }
-
-    switch (fieldType) {
-      case "BOOLEAN":
-        return value ? (
-          <Badge variant="default">Yes</Badge>
-        ) : (
-          <Badge variant="secondary">No</Badge>
-        );
-      case "DATE":
-        return format(new Date(String(value)), "PPP");
-      case "CURRENCY":
-        return new Intl.NumberFormat("en-US", {
-          style: "currency",
-          currency: "USD",
-        }).format(Number(value));
-      case "PERCENT":
-        return `${value}%`;
-      case "URL":
-        return (
-          <a
-            href={String(value)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-primary hover:underline"
-          >
-            {String(value)}
-          </a>
-        );
-      case "EMAIL":
-        return (
-          <a href={`mailto:${value}`} className="text-primary hover:underline">
-            {String(value)}
-          </a>
-        );
-      case "PHONE":
-        return (
-          <a href={`tel:${value}`} className="text-primary hover:underline">
-            {String(value)}
-          </a>
-        );
-      case "MULTISELECT":
-        return Array.isArray(value) ? (
-          <div className="flex flex-wrap gap-1">
-            {value.map((v: string) => (
-              <Badge key={v} variant="secondary">
-                {v}
-              </Badge>
-            ))}
-          </div>
-        ) : (
-          String(value)
-        );
-      case "SELECT":
-        return <Badge variant="outline">{String(value)}</Badge>;
-      case "TEXTAREA":
-        return (
-          <p className="whitespace-pre-wrap text-sm">{String(value)}</p>
-        );
-      default:
-        return String(value);
-    }
-  };
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -168,23 +101,7 @@ export default async function RecordDetailPage({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <dl className="grid gap-6 md:grid-cols-2">
-            {module.fields.map((field) => (
-              <div
-                key={field.id}
-                className={
-                  field.fieldType === "TEXTAREA" ? "md:col-span-2" : ""
-                }
-              >
-                <dt className="text-sm font-medium text-muted-foreground mb-1">
-                  {field.fieldName}
-                </dt>
-                <dd className="text-sm">
-                  {formatValue(data[field.fieldKey], field.fieldType)}
-                </dd>
-              </div>
-            ))}
-          </dl>
+          <RecordDetailFields fields={module.fields} data={data} />
         </CardContent>
       </Card>
 

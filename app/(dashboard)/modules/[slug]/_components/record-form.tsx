@@ -21,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { RelationshipFieldInput } from "@/components/forms/relationship-field-input";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
@@ -34,6 +35,7 @@ interface Field {
   placeholder?: string | null;
   helpText?: string | null;
   defaultValue?: unknown;
+  relatedModule?: string | null;
 }
 
 interface Module {
@@ -237,6 +239,16 @@ export function RecordForm({ module, record }: RecordFormProps) {
           </div>
         );
 
+      case "RELATIONSHIP":
+        return (
+          <RelationshipFieldInput
+            relatedModule={field.relatedModule || ""}
+            value={value ? String(value) : null}
+            onChange={(newValue) => handleChange(field.fieldKey, newValue)}
+            placeholder={field.placeholder || `Select ${field.relatedModule}...`}
+          />
+        );
+
       default:
         return (
           <Input
@@ -266,7 +278,9 @@ export function RecordForm({ module, record }: RecordFormProps) {
               <div
                 key={field.id}
                 className={
-                  field.fieldType === "TEXTAREA" ? "md:col-span-2" : ""
+                  field.fieldType === "TEXTAREA" || field.fieldType === "RELATIONSHIP"
+                    ? "md:col-span-2"
+                    : ""
                 }
               >
                 <Label htmlFor={field.fieldKey}>

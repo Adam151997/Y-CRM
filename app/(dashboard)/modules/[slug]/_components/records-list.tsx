@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -36,7 +36,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Badge } from "@/components/ui/badge";
+import { RelationshipDisplay } from "@/components/forms/relationship-field-input";
 import { toast } from "sonner";
 import {
   Search,
@@ -56,6 +56,7 @@ interface Field {
   fieldKey: string;
   fieldType: string;
   isSystem: boolean;
+  relatedModule?: string | null;
 }
 
 interface Module {
@@ -141,10 +142,10 @@ export function RecordsList({
   };
 
   // Format field value for display
-  const formatValue = (value: unknown, fieldType: string): string => {
+  const formatValue = (value: unknown, field: Field): React.ReactNode => {
     if (value === null || value === undefined) return "-";
 
-    switch (fieldType) {
+    switch (field.fieldType) {
       case "BOOLEAN":
         return value ? "Yes" : "No";
       case "DATE":
@@ -158,6 +159,15 @@ export function RecordsList({
         return `${value}%`;
       case "MULTISELECT":
         return Array.isArray(value) ? value.join(", ") : String(value);
+      case "RELATIONSHIP":
+        if (!field.relatedModule) return String(value);
+        return (
+          <RelationshipDisplay
+            relatedModule={field.relatedModule}
+            value={String(value)}
+            showLink={true}
+          />
+        );
       default:
         return String(value);
     }
@@ -218,7 +228,6 @@ export function RecordsList({
               <TableBody>
                 {records.map((record) => {
                   const data = record.data as Record<string, unknown>;
-                  const labelValue = String(data[module.labelField] || "Untitled");
 
                   return (
                     <TableRow key={record.id}>
@@ -229,10 +238,14 @@ export function RecordsList({
                               href={`/modules/${module.slug}/${record.id}`}
                               className="font-medium hover:underline"
                             >
-                              {formatValue(data[field.fieldKey], field.fieldType)}
+                              {field.fieldType === "RELATIONSHIP" ? (
+                                formatValue(data[field.fieldKey], field)
+                              ) : (
+                                String(data[field.fieldKey] || "Untitled")
+                              )}
                             </Link>
                           ) : (
-                            formatValue(data[field.fieldKey], field.fieldType)
+                            formatValue(data[field.fieldKey], field)
                           )}
                         </TableCell>
                       ))}

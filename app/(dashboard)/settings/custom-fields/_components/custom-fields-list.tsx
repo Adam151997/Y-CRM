@@ -17,7 +17,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Pencil, Trash2, GripVertical, Inbox } from "lucide-react";
+import { MoreHorizontal, Pencil, Trash2, GripVertical, Inbox, Link2 } from "lucide-react";
 import { toast } from "sonner";
 
 interface CustomField {
@@ -30,6 +30,7 @@ interface CustomField {
   displayOrder: number;
   isActive: boolean;
   isSystem: boolean;
+  relatedModule?: string | null;
 }
 
 interface CustomFieldsListProps {
@@ -69,6 +70,14 @@ const fieldTypeColors: Record<string, string> = {
   EMAIL: "bg-indigo-500/10 text-indigo-500",
   PHONE: "bg-teal-500/10 text-teal-500",
   RELATIONSHIP: "bg-violet-500/10 text-violet-500",
+};
+
+// Mapping for display names
+const moduleDisplayNames: Record<string, string> = {
+  accounts: "Accounts",
+  contacts: "Contacts",
+  leads: "Leads",
+  opportunities: "Opportunities",
 };
 
 export function CustomFieldsList({ 
@@ -137,11 +146,19 @@ export function CustomFieldsList({
               <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
             </TableCell>
             <TableCell className="font-medium">
-              {field.fieldName}
-              {field.isSystem && (
-                <Badge variant="outline" className="ml-2 text-xs">
-                  System
-                </Badge>
+              <div className="flex items-center gap-2">
+                {field.fieldName}
+                {field.isSystem && (
+                  <Badge variant="outline" className="text-xs">
+                    System
+                  </Badge>
+                )}
+              </div>
+              {field.fieldType === "RELATIONSHIP" && field.relatedModule && (
+                <div className="flex items-center gap-1 mt-0.5 text-xs text-muted-foreground">
+                  <Link2 className="h-3 w-3" />
+                  Links to {moduleDisplayNames[field.relatedModule] || field.relatedModule}
+                </div>
               )}
             </TableCell>
             <TableCell>

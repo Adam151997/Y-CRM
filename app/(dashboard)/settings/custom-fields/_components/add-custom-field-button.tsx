@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -34,7 +34,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
-import { Plus, Loader2, Box } from "lucide-react";
+import { Plus, Loader2, Box, Link2 } from "lucide-react";
 
 const customFieldSchema = z.object({
   moduleType: z.enum(["builtin", "custom"]),
@@ -62,11 +62,13 @@ const customFieldSchema = z.object({
     "URL",
     "EMAIL",
     "PHONE",
+    "RELATIONSHIP",
   ]),
   required: z.boolean().default(false),
   placeholder: z.string().max(200).optional(),
   helpText: z.string().max(500).optional(),
   options: z.string().optional(), // Comma-separated for SELECT/MULTISELECT
+  relatedModule: z.string().optional(), // For RELATIONSHIP type
 }).refine((data) => {
   if (data.moduleType === "builtin") {
     return !!data.module;
@@ -75,6 +77,14 @@ const customFieldSchema = z.object({
 }, {
   message: "Please select a module",
   path: ["module"],
+}).refine((data) => {
+  if (data.fieldType === "RELATIONSHIP") {
+    return !!data.relatedModule;
+  }
+  return true;
+}, {
+  message: "Please select a related module",
+  path: ["relatedModule"],
 });
 
 type CustomFieldFormValues = z.infer<typeof customFieldSchema>;
@@ -98,6 +108,14 @@ const builtInModules = [
   { value: "OPPORTUNITY", label: "Opportunities" },
 ];
 
+// Modules that can be linked to (for relationship fields)
+const linkableModules = [
+  { value: "accounts", label: "Accounts", icon: "🏢" },
+  { value: "contacts", label: "Contacts", icon: "👤" },
+  { value: "leads", label: "Leads", icon: "🎯" },
+  { value: "opportunities", label: "Opportunities", icon: "💰" },
+];
+
 const fieldTypes = [
   { value: "TEXT", label: "Text", description: "Single line text" },
   { value: "TEXTAREA", label: "Text Area", description: "Multi-line text" },
@@ -111,6 +129,7 @@ const fieldTypes = [
   { value: "URL", label: "URL", description: "Web link" },
   { value: "EMAIL", label: "Email", description: "Email address" },
   { value: "PHONE", label: "Phone", description: "Phone number" },
+  { value: "RELATIONSHIP", label: "Relationship", description: "Link to another module" },
 ];
 
 export function AddCustomFieldButton({ customModules = [] }: AddCustomFieldButtonProps) {
@@ -130,12 +149,14 @@ export function AddCustomFieldButton({ customModules = [] }: AddCustomFieldButto
       placeholder: "",
       helpText: "",
       options: "",
+      relatedModule: "",
     },
   });
 
   const moduleType = form.watch("moduleType");
   const fieldType = form.watch("fieldType");
   const showOptionsField = fieldType === "SELECT" || fieldType === "MULTISELECT";
+  const showRelatedModuleField = fieldType === "RELATIONSHIP";
 
   // Auto-generate fieldKey from fieldName
   const handleFieldNameChange = (value: string) => {
@@ -170,6 +191,11 @@ export function AddCustomFieldButton({ customModules = [] }: AddCustomFieldButto
       // Add options for SELECT/MULTISELECT
       if (showOptionsField && data.options) {
         payload.options = data.options.split(",").map((o) => o.trim()).filter(Boolean);
+      }
+
+      // Add relatedModule for RELATIONSHIP
+      if (showRelatedModuleField && data.relatedModule) {
+        payload.relatedModule = data.relatedModule;
       }
 
       const response = await fetch("/api/settings/custom-fields", {
@@ -345,7 +371,10 @@ export function AddCustomFieldButton({ customModules = [] }: AddCustomFieldButto
                     <SelectContent>
                       {fieldTypes.map((type) => (
                         <SelectItem key={type.value} value={type.value}>
-                          <div>
+                          <div className="flex items-center">
+                            {type.value === "RELATIONSHIP" && (
+                              <Link2 className="h-3.5 w-3.5 mr-2 text-primary" />
+                            )}
                             <span>{type.label}</span>
                             <span className="ml-2 text-xs text-muted-foreground">
                               ({type.description})
@@ -376,6 +405,58 @@ export function AddCustomFieldButton({ customModules = [] }: AddCustomFieldButto
                     </FormControl>
                     <FormDescription>
                       Comma-separated list of options
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
+            {/* Related Module for RELATIONSHIP */}
+            {showRelatedModuleField && (
+              <FormField
+                control={form.control}
+                name="relatedModule"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Related Module</FormLabel>
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select module to link to" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
+                          Built-in Modules
+                        </div>
+                        {linkableModules.map((module) => (
+                          <SelectItem key={module.value} value={module.value}>
+                            <div className="flex items-center">
+                              <span className="mr-2">{module.icon}</span>
+                              {module.label}
+                            </div>
+                          </SelectItem>
+                        ))}
+                        {customModules.length > 0 && (
+                          <>
+                            <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground border-t mt-1 pt-2">
+                              Custom Modules
+                            </div>
+                            {customModules.map((module) => (
+                              <SelectItem key={module.slug} value={module.slug}>
+                                <div className="flex items-center">
+                                  <Box className="h-4 w-4 mr-2 text-muted-foreground" />
+                                  {module.pluralName}
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </>
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
+                      Select which module this field will link to
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
