@@ -2277,6 +2277,390 @@ export const executeExternalToolTool = (orgId: string) =>
   });
 
 // =============================================================================
+// WHATSAPP TOOLS
+// =============================================================================
+
+export const sendWhatsAppMessageTool = (orgId: string) =>
+  tool({
+    description: "Send a WhatsApp message to a phone number. Requires WhatsApp to be connected.",
+    parameters: z.object({
+      phoneNumber: z.string().describe("Recipient phone number with country code (e.g., +1234567890)"),
+      message: z.string().describe("Message text to send"),
+    }),
+    execute: async ({ phoneNumber, message }) => {
+      console.log("[Tool:sendWhatsAppMessage] Executing:", { phoneNumber });
+      try {
+        const result = await executeComposioToolDirect(
+          "composio_whatsapp_send_message",
+          { to: phoneNumber, body: message },
+          orgId
+        );
+
+        return result.success
+          ? { success: true, message: `WhatsApp message sent to ${phoneNumber}` }
+          : { success: false, message: result.content || "Failed to send WhatsApp message. Make sure WhatsApp is connected in Settings > Integrations." };
+      } catch (error) {
+        console.error("[Tool:sendWhatsAppMessage] Error:", error);
+        return { success: false, message: error instanceof Error ? error.message : "Failed to send WhatsApp message" };
+      }
+    },
+  });
+
+// =============================================================================
+// NOTION TOOLS
+// =============================================================================
+
+export const createNotionPageTool = (orgId: string) =>
+  tool({
+    description: "Create a new page in Notion. Requires Notion to be connected.",
+    parameters: z.object({
+      title: z.string().describe("Page title"),
+      content: z.string().optional().describe("Page content (markdown supported)"),
+      parentPageId: z.string().optional().describe("Parent page ID (optional)"),
+      databaseId: z.string().optional().describe("Database ID to add entry to (optional)"),
+    }),
+    execute: async ({ title, content, parentPageId, databaseId }) => {
+      console.log("[Tool:createNotionPage] Executing:", { title });
+      try {
+        const params: Record<string, unknown> = { title };
+        if (content) params.content = content;
+        if (parentPageId) params.parent_page_id = parentPageId;
+        if (databaseId) params.database_id = databaseId;
+
+        const result = await executeComposioToolDirect(
+          "composio_notion_create_page",
+          params,
+          orgId
+        );
+
+        return result.success
+          ? { success: true, message: `Notion page "${title}" created successfully`, data: result.data }
+          : { success: false, message: result.content || "Failed to create Notion page. Make sure Notion is connected." };
+      } catch (error) {
+        console.error("[Tool:createNotionPage] Error:", error);
+        return { success: false, message: error instanceof Error ? error.message : "Failed to create Notion page" };
+      }
+    },
+  });
+
+// =============================================================================
+// TRELLO TOOLS
+// =============================================================================
+
+export const createTrelloCardTool = (orgId: string) =>
+  tool({
+    description: "Create a new card in Trello. Requires Trello to be connected.",
+    parameters: z.object({
+      name: z.string().describe("Card name/title"),
+      description: z.string().optional().describe("Card description"),
+      listId: z.string().describe("Trello list ID to add the card to"),
+      dueDate: z.string().optional().describe("Due date (ISO format)"),
+    }),
+    execute: async ({ name, description, listId, dueDate }) => {
+      console.log("[Tool:createTrelloCard] Executing:", { name, listId });
+      try {
+        const params: Record<string, unknown> = { name, idList: listId };
+        if (description) params.desc = description;
+        if (dueDate) params.due = dueDate;
+
+        const result = await executeComposioToolDirect(
+          "composio_trello_create_card",
+          params,
+          orgId
+        );
+
+        return result.success
+          ? { success: true, message: `Trello card "${name}" created successfully`, data: result.data }
+          : { success: false, message: result.content || "Failed to create Trello card. Make sure Trello is connected." };
+      } catch (error) {
+        console.error("[Tool:createTrelloCard] Error:", error);
+        return { success: false, message: error instanceof Error ? error.message : "Failed to create Trello card" };
+      }
+    },
+  });
+
+// =============================================================================
+// ASANA TOOLS
+// =============================================================================
+
+export const createAsanaTaskTool = (orgId: string) =>
+  tool({
+    description: "Create a new task in Asana. Requires Asana to be connected.",
+    parameters: z.object({
+      name: z.string().describe("Task name"),
+      notes: z.string().optional().describe("Task description/notes"),
+      projectId: z.string().describe("Asana project ID"),
+      dueDate: z.string().optional().describe("Due date (YYYY-MM-DD format)"),
+      assignee: z.string().optional().describe("Assignee email or user ID"),
+    }),
+    execute: async ({ name, notes, projectId, dueDate, assignee }) => {
+      console.log("[Tool:createAsanaTask] Executing:", { name, projectId });
+      try {
+        const params: Record<string, unknown> = { name, projects: [projectId] };
+        if (notes) params.notes = notes;
+        if (dueDate) params.due_on = dueDate;
+        if (assignee) params.assignee = assignee;
+
+        const result = await executeComposioToolDirect(
+          "composio_asana_create_task",
+          params,
+          orgId
+        );
+
+        return result.success
+          ? { success: true, message: `Asana task "${name}" created successfully`, data: result.data }
+          : { success: false, message: result.content || "Failed to create Asana task. Make sure Asana is connected." };
+      } catch (error) {
+        console.error("[Tool:createAsanaTask] Error:", error);
+        return { success: false, message: error instanceof Error ? error.message : "Failed to create Asana task" };
+      }
+    },
+  });
+
+// =============================================================================
+// GOOGLE ADS TOOLS
+// =============================================================================
+
+export const getGoogleAdsCampaignsTool = (orgId: string) =>
+  tool({
+    description: "Get Google Ads campaigns and their performance. Requires Google Ads to be connected.",
+    parameters: z.object({
+      status: z.enum(["ENABLED", "PAUSED", "REMOVED"]).optional().describe("Filter by campaign status"),
+    }),
+    execute: async ({ status }) => {
+      console.log("[Tool:getGoogleAdsCampaigns] Executing");
+      try {
+        const params: Record<string, unknown> = {};
+        if (status) params.status = status;
+
+        const result = await executeComposioToolDirect(
+          "composio_googleads_get_campaigns",
+          params,
+          orgId
+        );
+
+        return result.success
+          ? { success: true, message: "Retrieved Google Ads campaigns", data: result.data }
+          : { success: false, message: result.content || "Failed to get Google Ads campaigns. Make sure Google Ads is connected." };
+      } catch (error) {
+        console.error("[Tool:getGoogleAdsCampaigns] Error:", error);
+        return { success: false, message: error instanceof Error ? error.message : "Failed to get campaigns" };
+      }
+    },
+  });
+
+// =============================================================================
+// META ADS TOOLS
+// =============================================================================
+
+export const getMetaAdsCampaignsTool = (orgId: string) =>
+  tool({
+    description: "Get Meta (Facebook/Instagram) Ads campaigns and their performance. Requires Meta Ads to be connected.",
+    parameters: z.object({
+      status: z.enum(["ACTIVE", "PAUSED", "ARCHIVED"]).optional().describe("Filter by campaign status"),
+    }),
+    execute: async ({ status }) => {
+      console.log("[Tool:getMetaAdsCampaigns] Executing");
+      try {
+        const params: Record<string, unknown> = {};
+        if (status) params.status = status;
+
+        const result = await executeComposioToolDirect(
+          "composio_facebookads_get_campaigns",
+          params,
+          orgId
+        );
+
+        return result.success
+          ? { success: true, message: "Retrieved Meta Ads campaigns", data: result.data }
+          : { success: false, message: result.content || "Failed to get Meta Ads campaigns. Make sure Meta Ads is connected." };
+      } catch (error) {
+        console.error("[Tool:getMetaAdsCampaigns] Error:", error);
+        return { success: false, message: error instanceof Error ? error.message : "Failed to get campaigns" };
+      }
+    },
+  });
+
+// =============================================================================
+// MAILCHIMP TOOLS
+// =============================================================================
+
+export const addToMailchimpAudienceTool = (orgId: string) =>
+  tool({
+    description: "Add a contact to a Mailchimp audience/list. Requires Mailchimp to be connected.",
+    parameters: z.object({
+      email: z.string().email().describe("Contact email address"),
+      listId: z.string().describe("Mailchimp audience/list ID"),
+      firstName: z.string().optional().describe("Contact first name"),
+      lastName: z.string().optional().describe("Contact last name"),
+      tags: z.array(z.string()).optional().describe("Tags to apply"),
+    }),
+    execute: async ({ email, listId, firstName, lastName, tags }) => {
+      console.log("[Tool:addToMailchimpAudience] Executing:", { email, listId });
+      try {
+        const params: Record<string, unknown> = {
+          email_address: email,
+          list_id: listId,
+          status: "subscribed",
+        };
+        if (firstName || lastName) {
+          params.merge_fields = {};
+          if (firstName) (params.merge_fields as Record<string, string>).FNAME = firstName;
+          if (lastName) (params.merge_fields as Record<string, string>).LNAME = lastName;
+        }
+        if (tags) params.tags = tags;
+
+        const result = await executeComposioToolDirect(
+          "composio_mailchimp_add_member",
+          params,
+          orgId
+        );
+
+        return result.success
+          ? { success: true, message: `Added ${email} to Mailchimp audience`, data: result.data }
+          : { success: false, message: result.content || "Failed to add to Mailchimp audience. Make sure Mailchimp is connected." };
+      } catch (error) {
+        console.error("[Tool:addToMailchimpAudience] Error:", error);
+        return { success: false, message: error instanceof Error ? error.message : "Failed to add to audience" };
+      }
+    },
+  });
+
+export const getMailchimpAudiencesTool = (orgId: string) =>
+  tool({
+    description: "Get list of Mailchimp audiences/lists. Requires Mailchimp to be connected.",
+    parameters: z.object({}),
+    execute: async () => {
+      console.log("[Tool:getMailchimpAudiences] Executing");
+      try {
+        const result = await executeComposioToolDirect(
+          "composio_mailchimp_get_lists",
+          {},
+          orgId
+        );
+
+        return result.success
+          ? { success: true, message: "Retrieved Mailchimp audiences", data: result.data }
+          : { success: false, message: result.content || "Failed to get Mailchimp audiences" };
+      } catch (error) {
+        console.error("[Tool:getMailchimpAudiences] Error:", error);
+        return { success: false, message: error instanceof Error ? error.message : "Failed to get audiences" };
+      }
+    },
+  });
+
+// =============================================================================
+// LINKEDIN TOOLS
+// =============================================================================
+
+export const searchLinkedInProfileTool = (orgId: string) =>
+  tool({
+    description: "Search for a LinkedIn profile to enrich contact data. Requires LinkedIn to be connected.",
+    parameters: z.object({
+      email: z.string().email().optional().describe("Contact email to search"),
+      name: z.string().optional().describe("Person's full name"),
+      company: z.string().optional().describe("Company name"),
+    }),
+    execute: async ({ email, name, company }) => {
+      console.log("[Tool:searchLinkedInProfile] Executing:", { email, name, company });
+      try {
+        if (!email && !name) {
+          return { success: false, message: "Either email or name is required" };
+        }
+        const params: Record<string, unknown> = {};
+        if (email) params.email = email;
+        if (name) params.name = name;
+        if (company) params.company = company;
+
+        const result = await executeComposioToolDirect(
+          "composio_linkedin_search_people",
+          params,
+          orgId
+        );
+
+        return result.success
+          ? { success: true, message: "LinkedIn profile data retrieved", data: result.data }
+          : { success: false, message: result.content || "Failed to search LinkedIn. Make sure LinkedIn is connected." };
+      } catch (error) {
+        console.error("[Tool:searchLinkedInProfile] Error:", error);
+        return { success: false, message: error instanceof Error ? error.message : "Failed to search LinkedIn" };
+      }
+    },
+  });
+
+// =============================================================================
+// ZOOMINFO TOOLS
+// =============================================================================
+
+export const enrichCompanyDataTool = (orgId: string) =>
+  tool({
+    description: "Enrich company data using ZoomInfo. Requires ZoomInfo to be connected.",
+    parameters: z.object({
+      companyName: z.string().optional().describe("Company name to search"),
+      domain: z.string().optional().describe("Company website domain"),
+    }),
+    execute: async ({ companyName, domain }) => {
+      console.log("[Tool:enrichCompanyData] Executing:", { companyName, domain });
+      try {
+        if (!companyName && !domain) {
+          return { success: false, message: "Either company name or domain is required" };
+        }
+        const params: Record<string, unknown> = {};
+        if (companyName) params.companyName = companyName;
+        if (domain) params.domain = domain;
+
+        const result = await executeComposioToolDirect(
+          "composio_zoominfo_search_company",
+          params,
+          orgId
+        );
+
+        return result.success
+          ? { success: true, message: "Company data enriched from ZoomInfo", data: result.data }
+          : { success: false, message: result.content || "Failed to enrich company data. Make sure ZoomInfo is connected." };
+      } catch (error) {
+        console.error("[Tool:enrichCompanyData] Error:", error);
+        return { success: false, message: error instanceof Error ? error.message : "Failed to enrich data" };
+      }
+    },
+  });
+
+export const enrichContactDataTool = (orgId: string) =>
+  tool({
+    description: "Enrich contact/person data using ZoomInfo. Requires ZoomInfo to be connected.",
+    parameters: z.object({
+      email: z.string().email().optional().describe("Contact email"),
+      name: z.string().optional().describe("Person's full name"),
+      company: z.string().optional().describe("Company name"),
+    }),
+    execute: async ({ email, name, company }) => {
+      console.log("[Tool:enrichContactData] Executing:", { email, name, company });
+      try {
+        if (!email && !name) {
+          return { success: false, message: "Either email or name is required" };
+        }
+        const params: Record<string, unknown> = {};
+        if (email) params.email = email;
+        if (name) params.fullName = name;
+        if (company) params.companyName = company;
+
+        const result = await executeComposioToolDirect(
+          "composio_zoominfo_search_contact",
+          params,
+          orgId
+        );
+
+        return result.success
+          ? { success: true, message: "Contact data enriched from ZoomInfo", data: result.data }
+          : { success: false, message: result.content || "Failed to enrich contact data. Make sure ZoomInfo is connected." };
+      } catch (error) {
+        console.error("[Tool:enrichContactData] Error:", error);
+        return { success: false, message: error instanceof Error ? error.message : "Failed to enrich data" };
+      }
+    },
+  });
+
+// =============================================================================
 // HELPER FUNCTIONS
 // =============================================================================
 
