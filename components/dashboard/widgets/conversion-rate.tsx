@@ -19,10 +19,10 @@ export function ConversionRateWidget() {
     const fetchData = async () => {
       try {
         // Fetch leads to calculate conversion rate
-        const response = await fetch("/api/leads?limit=1000");
+        const response = await fetch("/api/leads?limit=100");
         if (response.ok) {
           const result = await response.json();
-          const leads = result.leads || [];
+          const leads = result.data || result.leads || [];
           const total = leads.length;
           const converted = leads.filter((l: { status: string }) => l.status === "CONVERTED").length;
           const rate = total > 0 ? Math.round((converted / total) * 100) : 0;
