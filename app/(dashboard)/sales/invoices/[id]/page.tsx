@@ -118,7 +118,7 @@ export default function InvoiceDetailPage({ params }: PageProps) {
       }
       const data = await response.json();
       
-      // Convert Decimal fields to numbers
+      // Convert Decimal fields to numbers and safely handle objects
       setInvoice({
         ...data,
         subtotal: Number(data.subtotal),
@@ -129,6 +129,20 @@ export default function InvoiceDetailPage({ params }: PageProps) {
         amountDue: Number(data.amountDue),
         taxRate: data.taxRate ? Number(data.taxRate) : undefined,
         discountValue: data.discountValue ? Number(data.discountValue) : undefined,
+        billingAddress: data.billingAddress && typeof data.billingAddress === 'object' 
+          ? {
+              name: String(data.billingAddress.name || ''),
+              street: String(data.billingAddress.street || ''),
+              city: String(data.billingAddress.city || ''),
+              state: String(data.billingAddress.state || ''),
+              zip: String(data.billingAddress.zip || ''),
+              country: String(data.billingAddress.country || ''),
+            }
+          : undefined,
+        opportunity: data.opportunity ? {
+          ...data.opportunity,
+          value: Number(data.opportunity.value),
+        } : undefined,
         items: data.items.map((item: Record<string, unknown>) => ({
           ...item,
           quantity: Number(item.quantity),
