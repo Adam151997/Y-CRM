@@ -47,41 +47,56 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
     const { id } = await context.params;
 
-    const invoice = await prisma.invoice.findFirst({
-      where: {
-        id,
-        orgId: authContext.orgId,
-      },
-      include: {
-        account: {
-          select: {
-            id: true,
-            name: true,
-            phone: true,
-            address: true,
+    // Fetch invoice and organization branding in parallel
+    const [invoice, organization] = await Promise.all([
+      prisma.invoice.findFirst({
+        where: {
+          id,
+          orgId: authContext.orgId,
+        },
+        include: {
+          account: {
+            select: {
+              id: true,
+              name: true,
+              phone: true,
+              address: true,
+            },
+          },
+          contact: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+              phone: true,
+            },
+          },
+          items: {
+            orderBy: { sortOrder: "asc" },
+          },
+          payments: {
+            orderBy: { paymentDate: "desc" },
           },
         },
-        contact: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-            phone: true,
-          },
+      }),
+      prisma.organization.findUnique({
+        where: { id: authContext.orgId },
+        select: {
+          name: true,
+          settings: true,
         },
-        items: {
-          orderBy: { sortOrder: "asc" },
-        },
-        payments: {
-          orderBy: { paymentDate: "desc" },
-        },
-      },
-    });
+      }),
+    ]);
 
     if (!invoice) {
       return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
     }
+
+    // Extract branding settings
+    const orgSettings = (organization?.settings as Record<string, unknown>) || {};
+    const brandName = (orgSettings.brandName as string) || organization?.name || "Y CRM";
+    const brandLogo = (orgSettings.brandLogo as string) || null;
 
     // Parse billing address
     const billingAddress = invoice.billingAddress as {
@@ -127,11 +142,22 @@ export async function GET(request: NextRequest, context: RouteContext) {
       padding-bottom: 20px;
       border-bottom: 2px solid #e5e7eb;
     }
+    .company-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .company-logo {
+      width: 48px;
+      height: 48px;
+      object-fit: contain;
+      border-radius: 8px;
+    }
     .company-info h1 {
       font-size: 28px;
       font-weight: 700;
       color: #111827;
-      margin-bottom: 8px;
+      margin-bottom: 0;
     }
     .invoice-title {
       text-align: right;
@@ -308,7 +334,8 @@ export async function GET(request: NextRequest, context: RouteContext) {
   <div class="invoice-container">
     <div class="header">
       <div class="company-info">
-        <h1>Y CRM</h1>
+        ${brandLogo ? `<img src="${brandLogo}" alt="${brandName}" class="company-logo" />` : ''}
+        <h1>${brandName}</h1>
       </div>
       <div class="invoice-title">
         <h2>Invoice</h2>
