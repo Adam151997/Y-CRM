@@ -22,6 +22,7 @@ import { AccountOpportunities } from "./_components/account-opportunities";
 import { AccountNotes } from "./_components/account-notes";
 import { AccountTasks } from "./_components/account-tasks";
 import { AccountActions } from "./_components/account-actions";
+import { AccountRenewals } from "./_components/account-renewals";
 
 interface AccountDetailPageProps {
   params: Promise<{ id: string }>;
@@ -77,8 +78,12 @@ export default async function AccountDetailPage({ params }: AccountDetailPagePro
         where: { status: { in: ["PENDING", "IN_PROGRESS"] } },
         take: 5,
       },
+      renewals: {
+        orderBy: { endDate: "asc" },
+        take: 10,
+      },
       _count: {
-        select: { contacts: true, opportunities: true, notes: true, tasks: true },
+        select: { contacts: true, opportunities: true, notes: true, tasks: true, renewals: true },
       },
     },
   });
@@ -231,6 +236,9 @@ export default async function AccountDetailPage({ params }: AccountDetailPagePro
           <TabsTrigger value="opportunities">
             Opportunities ({account._count.opportunities})
           </TabsTrigger>
+          <TabsTrigger value="renewals">
+            Renewals ({account._count.renewals})
+          </TabsTrigger>
           <TabsTrigger value="notes">
             Notes ({account._count.notes})
           </TabsTrigger>
@@ -246,6 +254,18 @@ export default async function AccountDetailPage({ params }: AccountDetailPagePro
         <TabsContent value="opportunities">
           <AccountOpportunities
             opportunities={account.opportunities}
+            accountId={account.id}
+          />
+        </TabsContent>
+
+        <TabsContent value="renewals">
+          <AccountRenewals
+            renewals={account.renewals.map(r => ({
+              ...r,
+              contractValue: Number(r.contractValue),
+              startDate: r.startDate.toISOString(),
+              endDate: r.endDate.toISOString(),
+            }))}
             accountId={account.id}
           />
         </TabsContent>
