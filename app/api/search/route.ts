@@ -23,10 +23,20 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ results: [] });
     }
 
-    const searchTerm = `%${query}%`;
-
     // Search all modules in parallel
-    const [leads, contacts, accounts, opportunities, tasks, tickets, documents] = await Promise.all([
+    const [
+      leads,
+      contacts,
+      accounts,
+      opportunities,
+      tasks,
+      tickets,
+      documents,
+      invoices,
+      renewals,
+      campaigns,
+      customModules,
+    ] = await Promise.all([
       // Leads
       prisma.lead.findMany({
         where: {
@@ -167,6 +177,78 @@ export async function GET(request: NextRequest) {
         take: limit,
         orderBy: { createdAt: "desc" },
       }),
+
+      // Invoices
+      prisma.invoice.findMany({
+        where: {
+          orgId: auth.orgId,
+          OR: [
+            { invoiceNumber: { contains: query, mode: "insensitive" } },
+          ],
+        },
+        select: {
+          id: true,
+          invoiceNumber: true,
+          status: true,
+          total: true,
+          account: { select: { name: true } },
+        },
+        take: limit,
+        orderBy: { createdAt: "desc" },
+      }),
+
+      // Renewals
+      prisma.renewal.findMany({
+        where: {
+          orgId: auth.orgId,
+          OR: [
+            { contractName: { contains: query, mode: "insensitive" } },
+          ],
+        },
+        select: {
+          id: true,
+          contractName: true,
+          contractValue: true,
+          status: true,
+          endDate: true,
+          account: { select: { name: true } },
+        },
+        take: limit,
+        orderBy: { endDate: "asc" },
+      }),
+
+      // Campaigns
+      prisma.campaign.findMany({
+        where: {
+          orgId: auth.orgId,
+          OR: [
+            { name: { contains: query, mode: "insensitive" } },
+            { subject: { contains: query, mode: "insensitive" } },
+          ],
+        },
+        select: {
+          id: true,
+          name: true,
+          type: true,
+          status: true,
+        },
+        take: limit,
+        orderBy: { createdAt: "desc" },
+      }),
+
+      // Custom Module Records - search across all custom modules
+      prisma.customModuleRecord.findMany({
+        where: {
+          orgId: auth.orgId,
+        },
+        select: {
+          id: true,
+          data: true,
+          module: { select: { id: true, name: true, slug: true } },
+        },
+        take: limit * 2, // Get more to filter
+        orderBy: { createdAt: "desc" },
+      }),
     ]);
 
     // Format results
@@ -224,6 +306,50 @@ export async function GET(request: NextRequest) {
         subtitle: doc.type,
         href: `/documents/${doc.id}`,
       })),
+      ...invoices.map((invoice) => ({
+        id: invoice.id,
+        type: "invoice" as const,
+        title: `Invoice ${invoice.invoiceNumber}`,
+        subtitle: invoice.account?.name || `${Number(invoice.total).toLocaleString()}`,
+        status: invoice.status,
+        href: `/sales/invoices/${invoice.id}`,
+      })),
+      ...renewals.map((renewal) => ({
+        id: renewal.id,
+        type: "renewal" as const,
+        title: renewal.contractName || `Renewal - ${renewal.account?.name}`,
+        subtitle: `${renewal.account?.name || ""} • ${renewal.status}`,
+        status: renewal.status,
+        href: `/cs/renewals/${renewal.id}`,
+      })),
+      ...campaigns.map((campaign) => ({
+        id: campaign.id,
+        type: "campaign" as const,
+        title: campaign.name,
+        subtitle: `${campaign.type} • ${campaign.status}`,
+        status: campaign.status,
+        href: `/marketing/campaigns/${campaign.id}`,
+      })),
+      // Filter custom module records that match the query
+      ...customModules
+        .filter((record) => {
+          // Search within the data JSON for matching values
+          const dataStr = JSON.stringify(record.data).toLowerCase();
+          return dataStr.includes(query.toLowerCase());
+        })
+        .slice(0, limit)
+        .map((record) => {
+          // Try to extract a title from common fields
+          const data = record.data as Record<string, unknown>;
+          const title = (data.name || data.title || data.label || `${record.module.name} Record`) as string;
+          return {
+            id: record.id,
+            type: "custom" as const,
+            title: String(title),
+            subtitle: record.module.name,
+            href: `/custom/${record.module.slug}/${record.id}`,
+          };
+        }),
     ];
 
     return NextResponse.json({ results, query });

@@ -43,6 +43,11 @@ import {
   // CS Workspace - Playbooks
   searchPlaybooksTool,
   runPlaybookTool,
+  // CS Workspace - Renewals
+  createRenewalTool,
+  searchRenewalsTool,
+  updateRenewalTool,
+  getUpcomingRenewalsTool,
   // Marketing Workspace - Campaigns
   createCampaignTool,
   searchCampaignsTool,
@@ -90,7 +95,7 @@ export interface AgentResult {
 // Primary action types
 type PrimaryAction = 
   | "task" | "lead" | "contact" | "account" | "opportunity" 
-  | "ticket" | "note" | "campaign" | "segment" | "form"
+  | "ticket" | "note" | "campaign" | "segment" | "form" | "renewal"
   | "search" | "stats" | "email" | "calendar" | "slack" | null;
 
 /**
@@ -118,6 +123,11 @@ export function getCRMTools(orgId: string, userId: string) {
     searchAtRiskAccounts: searchAtRiskAccountsTool(orgId),
     searchPlaybooks: searchPlaybooksTool(orgId),
     runPlaybook: runPlaybookTool(orgId, userId),
+    // CS Workspace - Renewals
+    createRenewal: createRenewalTool(orgId, userId),
+    searchRenewals: searchRenewalsTool(orgId),
+    updateRenewal: updateRenewalTool(orgId, userId),
+    getUpcomingRenewals: getUpcomingRenewalsTool(orgId),
 
     // MARKETING WORKSPACE TOOLS
     createCampaign: createCampaignTool(orgId, userId),
@@ -197,6 +207,12 @@ function detectPrimaryAction(message: string): PrimaryAction {
   
   // Form patterns
   if (lower.match(/\b(create|add|make|new)\s+(a\s+)?(form)/)) return "form";
+  
+  // Renewal patterns
+  if (lower.match(/\b(create|add|make|new|track)\s+(a\s+)?(renewal|contract)/)) return "renewal";
+  if (lower.match(/\b(update|edit|modify)\s+(the\s+)?(renewal)/)) return "renewal";
+  if (lower.match(/\b(upcoming|expiring)\s+(renewal|contract)/)) return "renewal";
+  if (lower.includes("renewal") && !lower.includes("playbook")) return "renewal";
   
   // Search patterns
   if (lower.match(/\b(search|find|show|list|get)\s/)) return "search";
@@ -302,6 +318,14 @@ export function getFilteredTools(
       filtered.searchForms = allTools.searchForms;
       break;
       
+    case "renewal":
+      filtered.createRenewal = allTools.createRenewal;
+      filtered.searchRenewals = allTools.searchRenewals;
+      filtered.updateRenewal = allTools.updateRenewal;
+      filtered.getUpcomingRenewals = allTools.getUpcomingRenewals;
+      filtered.searchAccounts = allTools.searchAccounts; // Required for accountId
+      break;
+      
     case "search":
       filtered.searchLeads = allTools.searchLeads;
       filtered.searchContacts = allTools.searchContacts;
@@ -309,6 +333,7 @@ export function getFilteredTools(
       filtered.searchTasks = allTools.searchTasks;
       filtered.searchOpportunities = allTools.searchOpportunities;
       filtered.searchTickets = allTools.searchTickets;
+      filtered.searchRenewals = allTools.searchRenewals;
       filtered.semanticSearch = allTools.semanticSearch;
       break;
       
@@ -366,7 +391,7 @@ function detectToolRequiredIntent(message: string): boolean {
   const entityNouns = [
     "lead", "contact", "account", "task", "opportunity",
     "ticket", "note", "campaign", "segment", "form",
-    "playbook", "email", "event", "message",
+    "playbook", "email", "event", "message", "renewal", "contract",
     "dashboard", "stats", "statistics", "report",
     // Native integrations
     "gmail", "slack", "calendar", "google",
@@ -444,6 +469,34 @@ async function createNotificationsFromResults(
           title: result.message as string || `Ticket #${result.ticketNumber || ''} created`,
           entityType: "TICKET",
           entityId: result.ticketId as string,
+        });
+      } else if (result.renewalId) {
+        await createNotification({
+          orgId,
+          userId,
+          type: "RENEWAL_CREATED" as NotificationType,
+          title: result.message as string || "Renewal tracked",
+          entityType: "RENEWAL",
+          entityId: result.renewalId as string,
+        });
+      } else if (result.campaignId && !result.count) {
+        await createNotification({
+          orgId,
+          userId,
+          type: "CAMPAIGN_CREATED" as NotificationType,
+          title: result.message as string || "Campaign created",
+          entityType: "CAMPAIGN",
+          entityId: result.campaignId as string,
+        });
+      } else if (result.recordId && result.moduleName) {
+        await createNotification({
+          orgId,
+          userId,
+          type: "CUSTOM_RECORD_CREATED" as NotificationType,
+          title: result.message as string || `${result.moduleName} record created`,
+          entityType: "CUSTOM_MODULE",
+          entityId: result.recordId as string,
+          metadata: { moduleName: result.moduleName },
         });
       }
     } catch (error) {

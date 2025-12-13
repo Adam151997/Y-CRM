@@ -27,7 +27,7 @@ import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 
 interface SearchResult {
   id: string;
-  type: "lead" | "contact" | "account" | "opportunity" | "task" | "ticket" | "document";
+  type: "lead" | "contact" | "account" | "opportunity" | "task" | "ticket" | "document" | "invoice" | "renewal" | "campaign" | "custom";
   title: string;
   subtitle: string;
   href: string;
@@ -44,6 +44,10 @@ const typeConfig = {
   task: { icon: CheckSquare, label: "Task", color: "bg-yellow-500/10 text-yellow-600" },
   ticket: { icon: Ticket, label: "Ticket", color: "bg-red-500/10 text-red-600" },
   document: { icon: FileText, label: "Document", color: "bg-gray-500/10 text-gray-600" },
+  invoice: { icon: FileText, label: "Invoice", color: "bg-emerald-500/10 text-emerald-600" },
+  renewal: { icon: Target, label: "Renewal", color: "bg-cyan-500/10 text-cyan-600" },
+  campaign: { icon: Target, label: "Campaign", color: "bg-pink-500/10 text-pink-600" },
+  custom: { icon: FileText, label: "Custom", color: "bg-indigo-500/10 text-indigo-600" },
 };
 
 export function OmniSearch() {

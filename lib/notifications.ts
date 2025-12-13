@@ -15,7 +15,26 @@ export type NotificationType =
   | "TICKET_CREATED"
   | "TICKET_RESOLVED"
   | "PIPELINE_MOVED"
-  | "AI_ACTION";
+  | "AI_ACTION"
+  // Renewals
+  | "RENEWAL_CREATED"
+  | "RENEWAL_UPDATED"
+  | "RENEWAL_EXPIRING"
+  // Invoices
+  | "INVOICE_CREATED"
+  | "INVOICE_SENT"
+  | "INVOICE_PAID"
+  | "INVOICE_OVERDUE"
+  // Custom Modules
+  | "CUSTOM_RECORD_CREATED"
+  | "CUSTOM_RECORD_UPDATED"
+  // Marketing
+  | "CAMPAIGN_CREATED"
+  | "CAMPAIGN_LAUNCHED"
+  | "FORM_SUBMISSION"
+  // General
+  | "RECORD_UPDATED"
+  | "RECORD_DELETED";
 
 export interface CreateNotificationParams {
   orgId: string;
@@ -167,35 +186,76 @@ export function getNotificationTitle(
   type: NotificationType,
   entityName?: string
 ): string {
+  const name = entityName ? `: ${entityName}` : "";
+  
   switch (type) {
+    // Leads
     case "LEAD_CREATED":
-      return `New lead created${entityName ? `: ${entityName}` : ""}`;
+      return `New lead created${name}`;
     case "LEAD_CONVERTED":
-      return `Lead converted${entityName ? `: ${entityName}` : ""}`;
+      return `Lead converted${name}`;
+    // Contacts
     case "CONTACT_CREATED":
-      return `New contact created${entityName ? `: ${entityName}` : ""}`;
+      return `New contact created${name}`;
+    // Accounts
     case "ACCOUNT_CREATED":
-      return `New account created${entityName ? `: ${entityName}` : ""}`;
+      return `New account created${name}`;
+    // Tasks
     case "TASK_CREATED":
-      return `New task created${entityName ? `: ${entityName}` : ""}`;
+      return `New task created${name}`;
     case "TASK_ASSIGNED":
-      return `Task assigned to you${entityName ? `: ${entityName}` : ""}`;
+      return `Task assigned to you${name}`;
     case "TASK_COMPLETED":
-      return `Task completed${entityName ? `: ${entityName}` : ""}`;
+      return `Task completed${name}`;
+    // Opportunities
     case "OPPORTUNITY_CREATED":
-      return `New opportunity created${entityName ? `: ${entityName}` : ""}`;
+      return `New opportunity created${name}`;
     case "OPPORTUNITY_WON":
-      return `Opportunity won${entityName ? `: ${entityName}` : ""}`;
+      return `Opportunity won${name}`;
     case "OPPORTUNITY_LOST":
-      return `Opportunity lost${entityName ? `: ${entityName}` : ""}`;
+      return `Opportunity lost${name}`;
+    // Tickets
     case "TICKET_CREATED":
-      return `New ticket created${entityName ? `: ${entityName}` : ""}`;
+      return `New ticket created${name}`;
     case "TICKET_RESOLVED":
-      return `Ticket resolved${entityName ? `: ${entityName}` : ""}`;
+      return `Ticket resolved${name}`;
+    // Renewals
+    case "RENEWAL_CREATED":
+      return `New renewal tracked${name}`;
+    case "RENEWAL_UPDATED":
+      return `Renewal updated${name}`;
+    case "RENEWAL_EXPIRING":
+      return `Renewal expiring soon${name}`;
+    // Invoices
+    case "INVOICE_CREATED":
+      return `Invoice created${name}`;
+    case "INVOICE_SENT":
+      return `Invoice sent${name}`;
+    case "INVOICE_PAID":
+      return `Invoice paid${name}`;
+    case "INVOICE_OVERDUE":
+      return `Invoice overdue${name}`;
+    // Custom Modules
+    case "CUSTOM_RECORD_CREATED":
+      return `New record created${name}`;
+    case "CUSTOM_RECORD_UPDATED":
+      return `Record updated${name}`;
+    // Marketing
+    case "CAMPAIGN_CREATED":
+      return `Campaign created${name}`;
+    case "CAMPAIGN_LAUNCHED":
+      return `Campaign launched${name}`;
+    case "FORM_SUBMISSION":
+      return `New form submission${name}`;
+    // General
     case "PIPELINE_MOVED":
-      return `Pipeline stage changed${entityName ? `: ${entityName}` : ""}`;
+      return `Pipeline stage changed${name}`;
     case "AI_ACTION":
-      return `AI completed action${entityName ? `: ${entityName}` : ""}`;
+      return `AI completed action${name}`;
+    case "RECORD_UPDATED":
+      return `Record updated${name}`;
+    case "RECORD_DELETED":
+      return `Record deleted${name}`;
     default:
       return "New notification";
   }
