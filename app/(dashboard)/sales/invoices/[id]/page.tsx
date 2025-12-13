@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/table";
 import { ArrowLeft, Building2, User, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { formatCurrency, getStatusInfo } from "@/lib/invoices";
+import { formatCurrency, getStatusInfo } from "@/lib/invoices/client-utils";
 import { InvoiceActions } from "./_components/invoice-actions";
 import { RecordPaymentDialog } from "./_components/record-payment-dialog";
 

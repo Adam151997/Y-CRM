@@ -19,8 +19,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, Eye, Edit, Send, Trash2, FileText } from "lucide-react";
-import { formatCurrency, getStatusInfo } from "@/lib/invoices";
-import { Decimal } from "@prisma/client/runtime/library";
+import { formatCurrency, getStatusInfo } from "@/lib/invoices/client-utils";
 
 interface Invoice {
   id: string;
@@ -28,8 +27,8 @@ interface Invoice {
   status: string;
   issueDate: string;
   dueDate: string;
-  total: Decimal | number;
-  amountDue: Decimal | number;
+  total: number;
+  amountDue: number;
   currency: string;
   account: {
     id: string;
@@ -89,12 +88,6 @@ export function InvoicesTable({ invoices, onDelete, onSend }: InvoicesTableProps
       <TableBody>
         {invoices.map((invoice) => {
           const statusInfo = getStatusInfo(invoice.status);
-          const total = typeof invoice.total === 'number' 
-            ? invoice.total 
-            : invoice.total.toNumber();
-          const amountDue = typeof invoice.amountDue === 'number'
-            ? invoice.amountDue
-            : invoice.amountDue.toNumber();
 
           return (
             <TableRow
@@ -127,12 +120,12 @@ export function InvoicesTable({ invoices, onDelete, onSend }: InvoicesTableProps
                 {new Date(invoice.dueDate).toLocaleDateString()}
               </TableCell>
               <TableCell className="text-right font-medium">
-                {formatCurrency(total, invoice.currency)}
+                {formatCurrency(invoice.total, invoice.currency)}
               </TableCell>
               <TableCell className="text-right">
-                {amountDue > 0 ? (
+                {invoice.amountDue > 0 ? (
                   <span className={invoice.status === "OVERDUE" ? "text-red-600 font-medium" : ""}>
-                    {formatCurrency(amountDue, invoice.currency)}
+                    {formatCurrency(invoice.amountDue, invoice.currency)}
                   </span>
                 ) : (
                   <span className="text-green-600">Paid</span>

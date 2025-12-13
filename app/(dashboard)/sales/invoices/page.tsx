@@ -9,7 +9,7 @@ import { Plus, FileText, Clock, CheckCircle, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { InvoicesFilters } from "./_components/invoices-filters";
 import { InvoicesTable } from "./_components/invoices-table";
-import { formatCurrency } from "@/lib/invoices";
+import { formatCurrency } from "@/lib/invoices/client-utils";
 import InvoicesLoading from "./loading";
 
 interface Invoice {

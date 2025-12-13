@@ -34,7 +34,7 @@ import {
 import { toast } from "sonner";
 import { Plus, Loader2 } from "lucide-react";
 import { PAYMENT_METHODS } from "@/lib/validation/invoices";
-import { formatCurrency } from "@/lib/invoices";
+import { formatCurrency } from "@/lib/invoices/client-utils";
 
 const formSchema = z.object({
   amount: z.coerce.number().min(0.01, "Amount must be greater than 0"),
