@@ -174,7 +174,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     await createAuditLog({
       orgId: authContext.orgId,
       action: "CREATE",
-      module: "PAYMENT",
+      module: "INVOICE",
       recordId: payment.id,
       actorType: "USER",
       actorId: authContext.userId,
