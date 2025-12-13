@@ -384,7 +384,7 @@ const getInvoiceStats = cache(async (orgId: string) => {
     prisma.invoice.groupBy({
       by: ["status"],
       where: { orgId },
-      _count: true,
+      _count: { _all: true },
       _sum: { total: true },
     }),
     // All invoices total
@@ -433,13 +433,20 @@ const getInvoiceStats = cache(async (orgId: string) => {
     });
   }
 
+  // Transform byStatus for component consumption
+  const transformedByStatus = byStatus.map(item => ({
+    status: item.status,
+    _count: item._count._all,
+    _sum: { total: item._sum.total },
+  }));
+
   return {
     totalInvoiced,
     totalPaid,
     totalOverdue,
     totalPending,
     collectionRate,
-    byStatus,
+    byStatus: transformedByStatus,
     monthlyData,
   };
 });
