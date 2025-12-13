@@ -1,10 +1,12 @@
 /**
  * Composio Client
- * Main client for interacting with Composio API v3
+ * Main client for interacting with Composio API
+ * Uses V2 for connection initiation (stable), V1 for other endpoints
  */
 
-// Composio API configuration - UPGRADED TO V3
-const COMPOSIO_API_BASE = "https://backend.composio.dev/api/v3";
+// Composio API configuration
+const COMPOSIO_API_V1 = "https://backend.composio.dev/api/v1";
+const COMPOSIO_API_V2 = "https://backend.composio.dev/api/v2";
 
 /**
  * Composio Client Configuration
@@ -77,7 +79,7 @@ export interface ToolExecutionResult {
 
 /**
  * Composio Client Class
- * Handles all interactions with Composio API v3
+ * Handles all interactions with Composio API
  */
 export class ComposioClient {
   private apiKey: string;
@@ -91,15 +93,9 @@ export class ComposioClient {
    */
   private async request<T>(
     method: string,
-    endpoint: string,
-    body?: unknown,
-    apiVersion: string = "v3"
+    url: string,
+    body?: unknown
   ): Promise<T> {
-    const baseUrl = apiVersion === "v3" 
-      ? "https://backend.composio.dev/api/v3"
-      : "https://backend.composio.dev/api/v2";
-    const url = `${baseUrl}${endpoint}`;
-    
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
       "x-api-key": this.apiKey,
@@ -130,7 +126,7 @@ export class ComposioClient {
   }
 
   // ============================================================================
-  // Apps / Toolkits
+  // Apps / Toolkits (V1)
   // ============================================================================
 
   /**
@@ -139,7 +135,7 @@ export class ComposioClient {
   async listApps(): Promise<ComposioApp[]> {
     const response = await this.request<{ items: ComposioApp[] }>(
       "GET",
-      "/apps"
+      `${COMPOSIO_API_V1}/apps`
     );
     return response.items || [];
   }
@@ -148,18 +144,18 @@ export class ComposioClient {
    * Get app details
    */
   async getApp(appKey: string): Promise<ComposioApp> {
-    return this.request<ComposioApp>("GET", `/apps/${appKey}`);
+    return this.request<ComposioApp>("GET", `${COMPOSIO_API_V1}/apps/${appKey}`);
   }
 
   // ============================================================================
-  // Tools / Actions
+  // Tools / Actions (V1)
   // ============================================================================
 
   /**
    * List tools for an app
    */
   async listTools(appName?: string): Promise<ComposioTool[]> {
-    let endpoint = "/actions";
+    let endpoint = `${COMPOSIO_API_V1}/actions`;
     if (appName) {
       endpoint += `?appNames=${appName}`;
     }
@@ -175,11 +171,11 @@ export class ComposioClient {
    * Get tool details
    */
   async getTool(actionName: string): Promise<ComposioTool> {
-    return this.request<ComposioTool>("GET", `/actions/${actionName}`);
+    return this.request<ComposioTool>("GET", `${COMPOSIO_API_V1}/actions/${actionName}`);
   }
 
   /**
-   * Execute a tool
+   * Execute a tool (V2)
    */
   async executeTool(
     actionName: string,
@@ -189,7 +185,7 @@ export class ComposioClient {
     try {
       const response = await this.request<{ data: unknown }>(
         "POST",
-        `/actions/${actionName}/execute`,
+        `${COMPOSIO_API_V2}/actions/${actionName}/execute`,
         {
           entityId,
           input: params,
@@ -209,7 +205,7 @@ export class ComposioClient {
   }
 
   // ============================================================================
-  // Connected Accounts
+  // Connected Accounts (V1 for listing, V2 for initiation)
   // ============================================================================
 
   /**
@@ -218,7 +214,7 @@ export class ComposioClient {
   async listConnectedAccounts(entityId: string): Promise<ConnectedAccount[]> {
     const response = await this.request<{ items: ConnectedAccount[] }>(
       "GET",
-      `/connectedAccounts?entityIds=${entityId}`
+      `${COMPOSIO_API_V1}/connectedAccounts?entityIds=${entityId}`
     );
     return response.items || [];
   }
@@ -229,25 +225,25 @@ export class ComposioClient {
   async getConnectedAccount(accountId: string): Promise<ConnectedAccount> {
     return this.request<ConnectedAccount>(
       "GET",
-      `/connectedAccounts/${accountId}`
+      `${COMPOSIO_API_V1}/connectedAccounts/${accountId}`
     );
   }
 
   /**
    * Initiate connection to an app (OAuth flow)
-   * Uses Composio defaults - v3 API
+   * Uses V2 API - the stable recommended endpoint
    */
   async initiateConnection(
     appKey: string,
     entityId: string,
     redirectUrl: string
   ): Promise<ConnectionRequest> {
-    console.log("[Composio] Initiating connection (v3):", { appKey, entityId, redirectUrl });
+    console.log("[Composio] Initiating connection (V2):", { appKey, entityId, redirectUrl });
     
-    // V3 API endpoint for initiating connections
+    // V2 endpoint for initiating connections
     const response = await this.request<ConnectionRequest>(
       "POST",
-      "/connectedAccounts",
+      `${COMPOSIO_API_V2}/connectedAccounts/initiateConnection`,
       {
         appName: appKey,
         entityId,
@@ -270,7 +266,7 @@ export class ComposioClient {
   ): Promise<{ connectionId: string }> {
     return this.request<{ connectionId: string }>(
       "POST",
-      "/connectedAccounts",
+      `${COMPOSIO_API_V2}/connectedAccounts`,
       {
         appName: appKey,
         entityId,
@@ -284,7 +280,7 @@ export class ComposioClient {
    * Delete a connected account
    */
   async deleteConnection(accountId: string): Promise<void> {
-    await this.request("DELETE", `/connectedAccounts/${accountId}`);
+    await this.request("DELETE", `${COMPOSIO_API_V1}/connectedAccounts/${accountId}`);
   }
 
   /**
@@ -298,17 +294,15 @@ export class ComposioClient {
   }
 
   // ============================================================================
-  // Entity Management
+  // Entity Management (V1)
   // ============================================================================
 
   /**
    * Create or get an entity (used for multi-tenant setups)
-   * V3 uses different endpoint
    */
   async getOrCreateEntity(entityId: string): Promise<{ id: string }> {
     try {
-      // V3: Try to get entity first, create if not exists
-      return await this.request<{ id: string }>("POST", "/entities", { id: entityId });
+      return await this.request<{ id: string }>("POST", `${COMPOSIO_API_V1}/entity`, { id: entityId });
     } catch (error) {
       // Entity might already exist, that's fine
       console.log("[Composio] Entity might already exist:", entityId);
