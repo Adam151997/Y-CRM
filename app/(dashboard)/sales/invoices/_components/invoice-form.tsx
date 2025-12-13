@@ -30,18 +30,10 @@ import { toast } from "sonner";
 import { Plus, Trash2, Loader2 } from "lucide-react";
 import { createInvoiceSchema } from "@/lib/validation/invoices";
 
-// Status options for invoice
-const STATUS_OPTIONS = [
-  { value: "DRAFT", label: "Draft" },
-  { value: "SENT", label: "Sent" },
-  { value: "PAID", label: "Paid" },
-];
-
 // Form schema
 const formSchema = z.object({
   accountId: z.string().min(1, "Account is required"),
   contactId: z.string().optional(),
-  status: z.string().default("DRAFT"),
   dueDate: z.string().min(1, "Due date is required"),
   currency: z.string().default("USD"),
   taxRate: z.coerce.number().min(0).max(100).optional(),
@@ -89,7 +81,6 @@ export function InvoiceForm({ accounts, defaultAccountId }: InvoiceFormProps) {
     defaultValues: {
       accountId: defaultAccountId || "",
       contactId: "",
-      status: "DRAFT",
       dueDate: defaultDueDate.toISOString().split("T")[0],
       currency: "USD",
       taxRate: undefined,
@@ -156,7 +147,6 @@ export function InvoiceForm({ accounts, defaultAccountId }: InvoiceFormProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...data,
-          status: data.status || "DRAFT",
           dueDate: new Date(data.dueDate),
           taxRate: data.taxRate || null,
           discountType: data.discountType || null,
@@ -290,31 +280,6 @@ export function InvoiceForm({ accounts, defaultAccountId }: InvoiceFormProps) {
                         <SelectItem value="EUR">EUR - Euro</SelectItem>
                         <SelectItem value="GBP">GBP - British Pound</SelectItem>
                         <SelectItem value="EGP">EGP - Egyptian Pound</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="status"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Status</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {STATUS_OPTIONS.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
                       </SelectContent>
                     </Select>
                     <FormMessage />
