@@ -4,8 +4,8 @@
  */
 
 import { getComposioClient, ConnectedAccount, ConnectionRequest } from "./client";
+import { COMPOSIO_APPS, getAppByKey, ComposioAppConfig } from "./apps";
 import prisma from "@/lib/db";
-import { FEATURED_APPS } from "./tools";
 
 /**
  * Connection status for UI display
@@ -13,12 +13,16 @@ import { FEATURED_APPS } from "./tools";
 export interface AppConnectionStatus {
   appKey: string;
   appName: string;
-  icon: string;
+  logo: string;
   category: string;
+  description: string;
+  authMethod: string;
+  integrationId: string;
   isConnected: boolean;
   connectionId?: string;
   connectedAt?: Date;
   status?: string;
+  error?: string;
 }
 
 /**
@@ -30,7 +34,7 @@ export function getEntityId(orgId: string): string {
 }
 
 /**
- * Get connection status for all featured apps
+ * Get connection status for all apps
  */
 export async function getConnectionStatuses(
   orgId: string
@@ -42,23 +46,48 @@ export async function getConnectionStatuses(
   try {
     connections = await client.listConnectedAccounts(entityId);
   } catch (error) {
-    console.error("Failed to fetch connections:", error);
+    console.error("Failed to fetch Composio connections:", error);
   }
+
+  // Also get local integration records
+  const localIntegrations = await prisma.integration.findMany({
+    where: { orgId },
+  });
+
+  const localMap = new Map(
+    localIntegrations.map((i) => [i.provider.toLowerCase(), i])
+  );
   
-  return FEATURED_APPS.map((app) => {
-    const connection = connections.find(
+  return COMPOSIO_APPS.map((app) => {
+    // Check Composio connections
+    const composioConnection = connections.find(
       (conn) => conn.appName.toLowerCase() === app.key.toLowerCase()
     );
+
+    // Check local database
+    const localConnection = localMap.get(app.key.toLowerCase());
     
+    const isConnected = 
+      composioConnection?.status === "active" || 
+      localConnection?.status === "ACTIVE";
+
     return {
       appKey: app.key,
       appName: app.name,
-      icon: app.icon,
+      logo: app.logo,
       category: app.category,
-      isConnected: connection?.status === "active",
-      connectionId: connection?.id,
-      connectedAt: connection?.createdAt ? new Date(connection.createdAt) : undefined,
-      status: connection?.status,
+      description: app.description,
+      authMethod: app.authMethod,
+      integrationId: app.integrationId,
+      isConnected,
+      connectionId: composioConnection?.id || localConnection?.connectionId || undefined,
+      connectedAt: composioConnection?.createdAt 
+        ? new Date(composioConnection.createdAt) 
+        : localConnection?.updatedAt || undefined,
+      status: composioConnection?.status || localConnection?.status?.toLowerCase(),
+      error: localConnection?.status === "ERROR" 
+        ? (localConnection.metadata as Record<string, unknown>)?.error as string
+        : undefined,
     };
   });
 }
@@ -73,12 +102,22 @@ export async function initiateConnection(
 ): Promise<ConnectionRequest> {
   const client = getComposioClient();
   const entityId = getEntityId(orgId);
+  const app = getAppByKey(appKey);
+
+  if (!app) {
+    throw new Error(`Unknown app: ${appKey}`);
+  }
   
   // Ensure entity exists
   await client.getOrCreateEntity(entityId);
   
-  // Start OAuth flow
-  const request = await client.initiateConnection(appKey, entityId, callbackUrl);
+  // Start OAuth flow with integration ID
+  const request = await client.initiateConnection(
+    app.key, 
+    entityId, 
+    callbackUrl,
+    app.integrationId
+  );
   
   // Store pending connection in database for tracking
   await prisma.integration.upsert({
@@ -93,11 +132,16 @@ export async function initiateConnection(
       provider: appKey,
       status: "PENDING",
       connectionId: request.connectionId,
-      metadata: {},
+      metadata: {
+        integrationId: app.integrationId,
+      },
     },
     update: {
       status: "PENDING",
       connectionId: request.connectionId,
+      metadata: {
+        integrationId: app.integrationId,
+      },
       updatedAt: new Date(),
     },
   });
@@ -168,6 +212,95 @@ export async function handleOAuthCallback(
 }
 
 /**
+ * Save API Key / Basic Auth credentials for an app
+ */
+export async function saveCredentials(
+  orgId: string,
+  appKey: string,
+  credentials: Record<string, string>
+): Promise<boolean> {
+  const client = getComposioClient();
+  const entityId = getEntityId(orgId);
+  const app = getAppByKey(appKey);
+
+  if (!app) {
+    throw new Error(`Unknown app: ${appKey}`);
+  }
+
+  try {
+    // Ensure entity exists
+    await client.getOrCreateEntity(entityId);
+
+    // Create connection with credentials
+    const response = await client.createConnectionWithCredentials(
+      app.key,
+      entityId,
+      app.integrationId,
+      credentials
+    );
+
+    // Update database
+    await prisma.integration.upsert({
+      where: {
+        orgId_provider: {
+          orgId,
+          provider: appKey,
+        },
+      },
+      create: {
+        orgId,
+        provider: appKey,
+        status: "ACTIVE",
+        connectionId: response.connectionId,
+        metadata: {
+          integrationId: app.integrationId,
+          connectedAt: new Date().toISOString(),
+        },
+      },
+      update: {
+        status: "ACTIVE",
+        connectionId: response.connectionId,
+        metadata: {
+          integrationId: app.integrationId,
+          connectedAt: new Date().toISOString(),
+        },
+        updatedAt: new Date(),
+      },
+    });
+
+    return true;
+  } catch (error) {
+    console.error("Failed to save credentials:", error);
+    
+    await prisma.integration.upsert({
+      where: {
+        orgId_provider: {
+          orgId,
+          provider: appKey,
+        },
+      },
+      create: {
+        orgId,
+        provider: appKey,
+        status: "ERROR",
+        metadata: {
+          error: error instanceof Error ? error.message : String(error),
+        },
+      },
+      update: {
+        status: "ERROR",
+        metadata: {
+          error: error instanceof Error ? error.message : String(error),
+        },
+        updatedAt: new Date(),
+      },
+    });
+
+    throw error;
+  }
+}
+
+/**
  * Disconnect an app
  */
 export async function disconnectApp(
@@ -220,28 +353,35 @@ export async function syncConnectionStatuses(orgId: string): Promise<void> {
   const connections = await client.listConnectedAccounts(entityId);
   
   for (const conn of connections) {
-    await prisma.integration.upsert({
-      where: {
-        orgId_provider: {
+    const app = COMPOSIO_APPS.find(
+      (a) => a.key.toLowerCase() === conn.appName.toLowerCase()
+    );
+    
+    if (app) {
+      await prisma.integration.upsert({
+        where: {
+          orgId_provider: {
+            orgId,
+            provider: app.key,
+          },
+        },
+        create: {
           orgId,
-          provider: conn.appName.toLowerCase(),
+          provider: app.key,
+          status: conn.status === "active" ? "ACTIVE" : "ERROR",
+          connectionId: conn.id,
+          metadata: {
+            connectedAt: conn.createdAt,
+            integrationId: app.integrationId,
+          },
         },
-      },
-      create: {
-        orgId,
-        provider: conn.appName.toLowerCase(),
-        status: conn.status === "active" ? "ACTIVE" : "ERROR",
-        connectionId: conn.id,
-        metadata: {
-          connectedAt: conn.createdAt,
+        update: {
+          status: conn.status === "active" ? "ACTIVE" : "ERROR",
+          connectionId: conn.id,
+          updatedAt: new Date(),
         },
-      },
-      update: {
-        status: conn.status === "active" ? "ACTIVE" : "ERROR",
-        connectionId: conn.id,
-        updatedAt: new Date(),
-      },
-    });
+      });
+    }
   }
 }
 

@@ -4,29 +4,10 @@
  */
 
 import { getComposioClient, ComposioTool, ToolExecutionResult } from "./client";
+import { COMPOSIO_APPS, ComposioAppConfig } from "./apps";
 import { MCPTool } from "@/lib/mcp/protocol";
 import { ToolContext, ToolResult } from "@/lib/mcp/server/handler";
 import { InternalToolDefinition } from "@/lib/mcp/registry";
-
-/**
- * Popular apps we want to feature prominently
- */
-export const FEATURED_APPS = [
-  { key: "gmail", name: "Gmail", icon: "mail", category: "communication" },
-  { key: "googlecalendar", name: "Google Calendar", icon: "calendar", category: "productivity" },
-  { key: "googledrive", name: "Google Drive", icon: "hard-drive", category: "storage" },
-  { key: "slack", name: "Slack", icon: "message-square", category: "communication" },
-  { key: "github", name: "GitHub", icon: "github", category: "development" },
-  { key: "notion", name: "Notion", icon: "book", category: "productivity" },
-  { key: "linear", name: "Linear", icon: "layout", category: "development" },
-  { key: "hubspot", name: "HubSpot", icon: "users", category: "crm" },
-  { key: "salesforce", name: "Salesforce", icon: "cloud", category: "crm" },
-  { key: "asana", name: "Asana", icon: "check-square", category: "productivity" },
-  { key: "trello", name: "Trello", icon: "trello", category: "productivity" },
-  { key: "jira", name: "Jira", icon: "clipboard", category: "development" },
-] as const;
-
-export type FeaturedAppKey = typeof FEATURED_APPS[number]["key"];
 
 /**
  * Convert Composio tool to MCP format
@@ -53,7 +34,7 @@ export function createComposioToolDefinition(
   const mcpTool = composioToolToMCP(tool);
   
   return {
-    name: mcpTool.name.replace("composio_", ""), // Without prefix for internal registration
+    name: mcpTool.name.replace("composio_", ""),
     tool: mcpTool,
     execute: async (args: Record<string, unknown>, context: ToolContext): Promise<ToolResult> => {
       const client = getComposioClient();
@@ -65,7 +46,7 @@ export function createComposioToolDefinition(
         if (!hasConnection) {
           return {
             success: false,
-            error: `Not connected to ${tool.appName}. Please connect your account in Settings.`,
+            error: `Not connected to ${tool.appName}. Please connect your account in Settings → Integrations.`,
           };
         }
 
@@ -103,11 +84,11 @@ export async function getAllComposioTools(): Promise<MCPTool[]> {
   const client = getComposioClient();
   const allTools: MCPTool[] = [];
   
-  // Fetch tools for featured apps only (to avoid overwhelming the AI)
-  for (const app of FEATURED_APPS) {
+  // Fetch tools for all configured apps
+  for (const app of COMPOSIO_APPS) {
     try {
       const tools = await client.listTools(app.key);
-      // Limit to most common actions per app
+      // Limit to most common actions per app (avoid overwhelming the AI)
       const limitedTools = tools.slice(0, 10);
       allTools.push(...limitedTools.map(composioToolToMCP));
     } catch (error) {
@@ -127,7 +108,7 @@ export async function getConnectedAppTools(entityId: string): Promise<MCPTool[]>
   
   const activeApps = connections
     .filter((conn) => conn.status === "active")
-    .map((conn) => conn.appName);
+    .map((conn) => conn.appName.toLowerCase());
   
   const allTools: MCPTool[] = [];
   
@@ -172,7 +153,7 @@ export async function executeComposioTool(
   if (!hasConnection) {
     return {
       success: false,
-      error: `Not connected to ${appName}. Please connect your account in Settings.`,
+      error: `Not connected to ${appName}. Please connect your account in Settings → Integrations.`,
     };
   }
   
@@ -180,7 +161,7 @@ export async function executeComposioTool(
 }
 
 /**
- * Get suggested tools based on user intent
+ * Get suggested apps based on user intent
  */
 export function getSuggestedTools(intent: string): string[] {
   const intentLower = intent.toLowerCase();
@@ -192,17 +173,35 @@ export function getSuggestedTools(intent: string): string[] {
   if (intentLower.includes("meeting") || intentLower.includes("calendar") || intentLower.includes("schedule")) {
     suggestions.push("googlecalendar");
   }
-  if (intentLower.includes("file") || intentLower.includes("document") || intentLower.includes("drive")) {
-    suggestions.push("googledrive");
-  }
   if (intentLower.includes("message") || intentLower.includes("slack") || intentLower.includes("team")) {
     suggestions.push("slack");
   }
-  if (intentLower.includes("code") || intentLower.includes("github") || intentLower.includes("issue") || intentLower.includes("pr")) {
-    suggestions.push("github");
+  if (intentLower.includes("whatsapp") || intentLower.includes("text")) {
+    suggestions.push("whatsapp");
   }
   if (intentLower.includes("note") || intentLower.includes("notion") || intentLower.includes("wiki")) {
     suggestions.push("notion");
+  }
+  if (intentLower.includes("task") || intentLower.includes("trello") || intentLower.includes("board")) {
+    suggestions.push("trello");
+  }
+  if (intentLower.includes("project") || intentLower.includes("asana")) {
+    suggestions.push("asana");
+  }
+  if (intentLower.includes("ad") || intentLower.includes("google ads") || intentLower.includes("campaign")) {
+    suggestions.push("googleads");
+  }
+  if (intentLower.includes("facebook") || intentLower.includes("meta") || intentLower.includes("instagram")) {
+    suggestions.push("facebookads");
+  }
+  if (intentLower.includes("newsletter") || intentLower.includes("mailchimp") || intentLower.includes("audience")) {
+    suggestions.push("mailchimp");
+  }
+  if (intentLower.includes("linkedin") || intentLower.includes("profile")) {
+    suggestions.push("linkedin");
+  }
+  if (intentLower.includes("enrich") || intentLower.includes("zoominfo") || intentLower.includes("company data")) {
+    suggestions.push("zoominfo");
   }
   
   return suggestions;

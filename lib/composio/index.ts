@@ -18,9 +18,25 @@ export type {
   ToolExecutionResult,
 } from "./client";
 
+// Apps Configuration
+export {
+  COMPOSIO_APPS,
+  APP_CATEGORIES,
+  getAppByKey,
+  getAppsByCategory,
+  getAppsGroupedByCategory,
+  getFormBasedApps,
+  getOAuthApps,
+  requiresFormInput,
+} from "./apps";
+export type {
+  ComposioAppConfig,
+  AppCategory,
+  AuthMethod,
+} from "./apps";
+
 // Tools
 export {
-  FEATURED_APPS,
   composioToolToMCP,
   createComposioToolDefinition,
   getToolsForApp,
@@ -29,7 +45,6 @@ export {
   executeComposioTool,
   getSuggestedTools,
 } from "./tools";
-export type { FeaturedAppKey } from "./tools";
 
 // Connections
 export {

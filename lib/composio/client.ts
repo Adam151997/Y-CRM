@@ -230,15 +230,44 @@ export class ComposioClient {
   async initiateConnection(
     appKey: string,
     entityId: string,
-    redirectUrl: string
+    redirectUrl: string,
+    integrationId?: string
   ): Promise<ConnectionRequest> {
+    const payload: Record<string, unknown> = {
+      appName: appKey,
+      entityId,
+      redirectUrl,
+    };
+
+    // Use integration ID if provided (for custom OAuth configs)
+    if (integrationId) {
+      payload.integrationId = integrationId;
+    }
+
     return this.request<ConnectionRequest>(
+      "POST",
+      "/connectedAccounts",
+      payload
+    );
+  }
+
+  /**
+   * Create connection with credentials (API Key, Basic Auth)
+   */
+  async createConnectionWithCredentials(
+    appKey: string,
+    entityId: string,
+    integrationId: string,
+    credentials: Record<string, string>
+  ): Promise<{ connectionId: string }> {
+    return this.request<{ connectionId: string }>(
       "POST",
       "/connectedAccounts",
       {
         appName: appKey,
         entityId,
-        redirectUrl,
+        integrationId,
+        data: credentials,
       }
     );
   }
@@ -256,7 +285,7 @@ export class ComposioClient {
   async hasActiveConnection(entityId: string, appName: string): Promise<boolean> {
     const accounts = await this.listConnectedAccounts(entityId);
     return accounts.some(
-      (acc) => acc.appName === appName && acc.status === "active"
+      (acc) => acc.appName.toLowerCase() === appName.toLowerCase() && acc.status === "active"
     );
   }
 
