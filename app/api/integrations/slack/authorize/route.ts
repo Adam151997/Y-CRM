@@ -3,6 +3,8 @@
  * Initiates the OAuth flow for Slack
  */
 
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from "next/server";
 import { getApiAuthContext } from "@/lib/auth";
 import { getSlackAuthUrl } from "@/lib/integrations/slack";

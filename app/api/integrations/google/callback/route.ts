@@ -3,6 +3,8 @@
  * Handles the OAuth callback from Google
  */
 
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from "next/server";
 import {
   exchangeCodeForTokens,

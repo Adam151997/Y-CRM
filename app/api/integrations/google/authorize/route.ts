@@ -3,6 +3,8 @@
  * Initiates the OAuth flow for Google services
  */
 
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from "next/server";
 import { getApiAuthContext } from "@/lib/auth";
 import { getGoogleAuthUrl } from "@/lib/integrations/google";
