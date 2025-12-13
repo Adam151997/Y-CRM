@@ -20,7 +20,7 @@ import {
 import { Download, FileSpreadsheet, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
-type ExportModule = "leads" | "contacts" | "accounts" | "opportunities" | "tasks" | "tickets";
+type ExportModule = "leads" | "contacts" | "accounts" | "opportunities" | "tasks" | "tickets" | "invoices";
 type ExportFormat = "csv" | "json";
 
 interface ExportDialogProps {
@@ -35,6 +35,7 @@ const MODULE_OPTIONS = [
   { value: "opportunities", label: "Opportunities" },
   { value: "tasks", label: "Tasks" },
   { value: "tickets", label: "Support Tickets" },
+  { value: "invoices", label: "Invoices" },
 ];
 
 export function ExportDialog({ module: defaultModule, trigger }: ExportDialogProps) {

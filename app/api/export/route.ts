@@ -12,7 +12,7 @@ import Papa from "papaparse";
 // Force dynamic to prevent static generation error
 export const dynamic = "force-dynamic";
 
-type ExportModule = "leads" | "contacts" | "accounts" | "opportunities" | "tasks" | "tickets";
+type ExportModule = "leads" | "contacts" | "accounts" | "opportunities" | "tasks" | "tickets" | "invoices";
 
 // Map export module names to audit module names
 const AUDIT_MODULE_MAP: Record<ExportModule, AuditModule> = {
@@ -22,6 +22,7 @@ const AUDIT_MODULE_MAP: Record<ExportModule, AuditModule> = {
   opportunities: "OPPORTUNITY",
   tasks: "TASK",
   tickets: "TICKET",
+  invoices: "INVOICE",
 };
 
 const MODULE_CONFIGS: Record<ExportModule, {
@@ -51,6 +52,10 @@ const MODULE_CONFIGS: Record<ExportModule, {
   tickets: {
     fields: ["subject", "description", "status", "priority", "category", "resolvedAt", "createdAt"],
     headers: ["Subject", "Description", "Status", "Priority", "Category", "Resolved At", "Created At"],
+  },
+  invoices: {
+    fields: ["invoiceNumber", "status", "issueDate", "dueDate", "currency", "subtotal", "taxAmount", "discountAmount", "total", "amountPaid", "amountDue", "createdAt"],
+    headers: ["Invoice Number", "Status", "Issue Date", "Due Date", "Currency", "Subtotal", "Tax Amount", "Discount Amount", "Total", "Amount Paid", "Amount Due", "Created At"],
   },
 };
 
@@ -90,6 +95,11 @@ async function fetchRecords(module: ExportModule, orgId: string, filters?: Recor
       });
     case "tickets":
       return prisma.ticket.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+      });
+    case "invoices":
+      return prisma.invoice.findMany({
         where,
         orderBy: { createdAt: "desc" },
       });
@@ -133,7 +143,7 @@ export async function GET(request: NextRequest) {
 
     if (!module || !MODULE_CONFIGS[module]) {
       return NextResponse.json(
-        { error: "Invalid module. Valid options: leads, contacts, accounts, opportunities, tasks, tickets" },
+        { error: "Invalid module. Valid options: leads, contacts, accounts, opportunities, tasks, tickets, invoices" },
         { status: 400 }
       );
     }

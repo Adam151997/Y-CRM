@@ -60,6 +60,11 @@ export function InvoiceActions({ invoice, onUpdate }: InvoiceActionsProps) {
   const canVoid = ["SENT", "VIEWED", "OVERDUE", "PARTIALLY_PAID"].includes(invoice.status);
   const canRecordPayment = ["SENT", "VIEWED", "OVERDUE", "PARTIALLY_PAID"].includes(invoice.status);
 
+  const handleDownloadPDF = () => {
+    // Open PDF in new tab for printing/saving
+    window.open(`/api/invoices/${invoice.id}/pdf`, "_blank");
+  };
+
   const handleSend = async () => {
     if (!sendEmail) {
       toast.error("Email address is required");
@@ -169,7 +174,7 @@ export function InvoiceActions({ invoice, onUpdate }: InvoiceActionsProps) {
                 Edit
               </DropdownMenuItem>
             )}
-            <DropdownMenuItem disabled>
+            <DropdownMenuItem onClick={handleDownloadPDF}>
               <Download className="h-4 w-4 mr-2" />
               Download PDF
             </DropdownMenuItem>
