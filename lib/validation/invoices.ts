@@ -75,6 +75,8 @@ export const createInvoiceSchema = z.object({
   contactId: z.string().optional(),
   opportunityId: z.string().optional(),
   
+  status: z.enum(INVOICE_STATUSES).default("DRAFT"),
+  
   issueDate: z.coerce.date().optional(),
   dueDate: z.coerce.date(),
   

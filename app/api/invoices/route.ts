@@ -216,6 +216,7 @@ export async function POST(request: NextRequest) {
       data: {
         orgId: authContext.orgId,
         invoiceNumber,
+        status: data.status || "DRAFT",
         accountId: data.accountId,
         contactId: data.contactId || account.contacts[0]?.id,
         opportunityId: data.opportunityId,

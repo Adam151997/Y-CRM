@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,9 +24,26 @@ import {
 } from "@/components/ui/table";
 import { ArrowLeft, Building2, User, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { formatCurrency, getStatusInfo } from "@/lib/invoices/client-utils";
 import { InvoiceActions } from "./_components/invoice-actions";
 import { RecordPaymentDialog } from "./_components/record-payment-dialog";
+
+interface InvoiceItem {
+  id: string;
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  amount: number;
+  itemCode?: string;
+}
+
+interface Payment {
+  id: string;
+  amount: number;
+  paymentDate: string;
+  method: string;
+  reference?: string;
+  notes?: string;
+}
 
 interface Invoice {
   id: string;
@@ -59,13 +77,6 @@ interface Invoice {
     id: string;
     name: string;
     phone?: string;
-    address?: {
-      street?: string;
-      city?: string;
-      state?: string;
-      zip?: string;
-      country?: string;
-    };
   };
   contact?: {
     id: string;
@@ -79,26 +90,8 @@ interface Invoice {
     name: string;
     value: number;
   };
-  items: {
-    id: string;
-    description: string;
-    quantity: number;
-    unitPrice: number;
-    amount: number;
-    itemCode?: string;
-  }[];
-  payments: {
-    id: string;
-    amount: number;
-    paymentDate: string;
-    method: string;
-    reference?: string;
-    notes?: string;
-  }[];
-}
-
-interface PageProps {
-  params: Promise<{ id: string }>;
+  items: InvoiceItem[];
+  payments: Payment[];
 }
 
 const PAYMENT_METHOD_LABELS: Record<string, string> = {
@@ -123,108 +116,137 @@ const STATUS_OPTIONS = [
   { value: "VOID", label: "Void", color: "bg-gray-100 text-gray-700" },
 ];
 
-export default function InvoiceDetailPage({ params }: PageProps) {
-  const { id } = use(params);
+function getStatusInfo(status: string) {
+  const found = STATUS_OPTIONS.find(s => s.value === status);
+  return {
+    label: found?.label || status,
+    color: found?.color?.split(" ")[1] || "text-gray-700",
+    bgColor: found?.color?.split(" ")[0] || "bg-gray-100",
+  };
+}
+
+function formatCurrency(amount: number, currency: string = "USD"): string {
+  try {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency,
+    }).format(amount);
+  } catch {
+    return `${currency} ${amount.toFixed(2)}`;
+  }
+}
+
+function safeString(val: unknown): string {
+  if (val === null || val === undefined) return "";
+  if (typeof val === "object") return "";
+  return String(val);
+}
+
+function safeNumber(val: unknown): number {
+  const num = Number(val);
+  return isNaN(num) ? 0 : num;
+}
+
+function parseInvoiceData(data: Record<string, unknown>): Invoice {
+  const account = data.account as Record<string, unknown> || {};
+  const contact = data.contact as Record<string, unknown> | null;
+  const opportunity = data.opportunity as Record<string, unknown> | null;
+  const billingAddr = data.billingAddress as Record<string, unknown> | null;
+  const items = (data.items as Record<string, unknown>[]) || [];
+  const payments = (data.payments as Record<string, unknown>[]) || [];
+
+  return {
+    id: safeString(data.id),
+    invoiceNumber: safeString(data.invoiceNumber),
+    status: safeString(data.status) || "DRAFT",
+    issueDate: safeString(data.issueDate),
+    dueDate: safeString(data.dueDate),
+    sentAt: data.sentAt ? safeString(data.sentAt) : undefined,
+    paidAt: data.paidAt ? safeString(data.paidAt) : undefined,
+    currency: safeString(data.currency) || "USD",
+    subtotal: safeNumber(data.subtotal),
+    taxRate: data.taxRate ? safeNumber(data.taxRate) : undefined,
+    taxAmount: safeNumber(data.taxAmount),
+    discountType: data.discountType ? safeString(data.discountType) : undefined,
+    discountValue: data.discountValue ? safeNumber(data.discountValue) : undefined,
+    discountAmount: safeNumber(data.discountAmount),
+    total: safeNumber(data.total),
+    amountPaid: safeNumber(data.amountPaid),
+    amountDue: safeNumber(data.amountDue),
+    notes: data.notes ? safeString(data.notes) : undefined,
+    terms: data.terms ? safeString(data.terms) : undefined,
+    billingAddress: billingAddr ? {
+      name: safeString(billingAddr.name),
+      street: safeString(billingAddr.street),
+      city: safeString(billingAddr.city),
+      state: safeString(billingAddr.state),
+      zip: safeString(billingAddr.zip),
+      country: safeString(billingAddr.country),
+    } : undefined,
+    account: {
+      id: safeString(account.id),
+      name: safeString(account.name),
+      phone: account.phone ? safeString(account.phone) : undefined,
+    },
+    contact: contact ? {
+      id: safeString(contact.id),
+      firstName: safeString(contact.firstName),
+      lastName: safeString(contact.lastName),
+      email: contact.email ? safeString(contact.email) : undefined,
+      phone: contact.phone ? safeString(contact.phone) : undefined,
+    } : undefined,
+    opportunity: opportunity ? {
+      id: safeString(opportunity.id),
+      name: safeString(opportunity.name),
+      value: safeNumber(opportunity.value),
+    } : undefined,
+    items: items.map((item) => ({
+      id: safeString(item.id),
+      description: safeString(item.description),
+      quantity: safeNumber(item.quantity),
+      unitPrice: safeNumber(item.unitPrice),
+      amount: safeNumber(item.amount),
+      itemCode: item.itemCode ? safeString(item.itemCode) : undefined,
+    })),
+    payments: payments.map((payment) => ({
+      id: safeString(payment.id),
+      amount: safeNumber(payment.amount),
+      paymentDate: safeString(payment.paymentDate),
+      method: safeString(payment.method),
+      reference: payment.reference ? safeString(payment.reference) : undefined,
+      notes: payment.notes ? safeString(payment.notes) : undefined,
+    })),
+  };
+}
+
+export default function InvoiceDetailPage() {
+  const params = useParams();
+  const id = typeof params?.id === "string" ? params.id : "";
+  
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [updatingStatus, setUpdatingStatus] = useState(false);
 
   const fetchInvoice = async () => {
+    if (!id) {
+      setError("Invalid invoice ID");
+      setLoading(false);
+      return;
+    }
+
     try {
+      setError(null);
       const response = await fetch(`/api/invoices/${id}`);
       if (!response.ok) {
         throw new Error("Invoice not found");
       }
       const data = await response.json();
-      
-      // Helper to safely convert to string
-      const safeString = (val: unknown): string => {
-        if (val === null || val === undefined) return '';
-        if (typeof val === 'object') return '';
-        return String(val);
-      };
-      
-      // Helper to safely parse address
-      const parseAddress = (addr: unknown) => {
-        if (!addr || typeof addr !== 'object') return undefined;
-        const a = addr as Record<string, unknown>;
-        return {
-          street: safeString(a.street),
-          city: safeString(a.city),
-          state: safeString(a.state),
-          zip: safeString(a.zip),
-          country: safeString(a.country),
-        };
-      };
-      
-      // Fully sanitize invoice data
-      setInvoice({
-        id: String(data.id),
-        invoiceNumber: String(data.invoiceNumber),
-        status: String(data.status),
-        issueDate: String(data.issueDate),
-        dueDate: String(data.dueDate),
-        sentAt: data.sentAt ? String(data.sentAt) : undefined,
-        paidAt: data.paidAt ? String(data.paidAt) : undefined,
-        currency: String(data.currency || 'USD'),
-        subtotal: Number(data.subtotal) || 0,
-        taxRate: data.taxRate ? Number(data.taxRate) : undefined,
-        taxAmount: Number(data.taxAmount) || 0,
-        discountType: data.discountType ? String(data.discountType) : undefined,
-        discountValue: data.discountValue ? Number(data.discountValue) : undefined,
-        discountAmount: Number(data.discountAmount) || 0,
-        total: Number(data.total) || 0,
-        amountPaid: Number(data.amountPaid) || 0,
-        amountDue: Number(data.amountDue) || 0,
-        notes: data.notes ? String(data.notes) : undefined,
-        terms: data.terms ? String(data.terms) : undefined,
-        billingAddress: data.billingAddress && typeof data.billingAddress === 'object' 
-          ? {
-              name: safeString((data.billingAddress as Record<string, unknown>).name),
-              street: safeString((data.billingAddress as Record<string, unknown>).street),
-              city: safeString((data.billingAddress as Record<string, unknown>).city),
-              state: safeString((data.billingAddress as Record<string, unknown>).state),
-              zip: safeString((data.billingAddress as Record<string, unknown>).zip),
-              country: safeString((data.billingAddress as Record<string, unknown>).country),
-            }
-          : undefined,
-        account: {
-          id: String(data.account.id),
-          name: String(data.account.name),
-          phone: data.account.phone ? String(data.account.phone) : undefined,
-          address: parseAddress(data.account.address),
-        },
-        contact: data.contact ? {
-          id: String(data.contact.id),
-          firstName: String(data.contact.firstName),
-          lastName: String(data.contact.lastName),
-          email: data.contact.email ? String(data.contact.email) : undefined,
-          phone: data.contact.phone ? String(data.contact.phone) : undefined,
-        } : undefined,
-        opportunity: data.opportunity ? {
-          id: String(data.opportunity.id),
-          name: String(data.opportunity.name),
-          value: Number(data.opportunity.value) || 0,
-        } : undefined,
-        items: (data.items || []).map((item: Record<string, unknown>) => ({
-          id: String(item.id),
-          description: String(item.description),
-          quantity: Number(item.quantity) || 0,
-          unitPrice: Number(item.unitPrice) || 0,
-          amount: Number(item.amount) || 0,
-          itemCode: item.itemCode ? String(item.itemCode) : undefined,
-        })),
-        payments: (data.payments || []).map((payment: Record<string, unknown>) => ({
-          id: String(payment.id),
-          amount: Number(payment.amount) || 0,
-          paymentDate: String(payment.paymentDate),
-          method: String(payment.method),
-          reference: payment.reference ? String(payment.reference) : undefined,
-          notes: payment.notes ? String(payment.notes) : undefined,
-        })),
-      });
-    } catch (error) {
-      console.error("Error fetching invoice:", error);
+      const parsed = parseInvoiceData(data);
+      setInvoice(parsed);
+    } catch (err) {
+      console.error("Error fetching invoice:", err);
+      setError(err instanceof Error ? err.message : "Failed to load invoice");
       toast.error("Failed to load invoice");
     } finally {
       setLoading(false);
@@ -243,14 +265,15 @@ export default function InvoiceDetailPage({ params }: PageProps) {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to update status");
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to update status");
       }
 
-      toast.success(`Status updated to ${STATUS_OPTIONS.find(s => s.value === newStatus)?.label}`);
+      const statusLabel = STATUS_OPTIONS.find(s => s.value === newStatus)?.label || newStatus;
+      toast.success(`Status updated to ${statusLabel}`);
       fetchInvoice();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to update status");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update status");
     } finally {
       setUpdatingStatus(false);
     }
@@ -268,10 +291,10 @@ export default function InvoiceDetailPage({ params }: PageProps) {
     );
   }
 
-  if (!invoice) {
+  if (error || !invoice) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
-        <h2 className="text-xl font-semibold">Invoice not found</h2>
+        <h2 className="text-xl font-semibold">{error || "Invoice not found"}</h2>
         <Button asChild className="mt-4">
           <Link href="/sales/invoices">Back to Invoices</Link>
         </Button>
@@ -298,9 +321,7 @@ export default function InvoiceDetailPage({ params }: PageProps) {
                 {statusInfo.label}
               </Badge>
             </div>
-            <p className="text-muted-foreground">
-              {invoice.account.name}
-            </p>
+            <p className="text-muted-foreground">{invoice.account.name}</p>
           </div>
         </div>
         <InvoiceActions invoice={invoice} onUpdate={fetchInvoice} />
@@ -416,7 +437,7 @@ export default function InvoiceDetailPage({ params }: PageProps) {
                     <div className="flex justify-between text-red-600">
                       <span>
                         Discount
-                        {invoice.discountType === "PERCENTAGE" && ` (${invoice.discountValue}%)`}
+                        {invoice.discountType === "PERCENTAGE" && invoice.discountValue && ` (${invoice.discountValue}%)`}
                       </span>
                       <span>-{formatCurrency(invoice.discountAmount, invoice.currency)}</span>
                     </div>
@@ -466,7 +487,7 @@ export default function InvoiceDetailPage({ params }: PageProps) {
                     )}
                     {invoice.terms && (
                       <div>
-                        <h3 className="text-sm font-medium mb-2">Terms & Conditions</h3>
+                        <h3 className="text-sm font-medium mb-2">Terms &amp; Conditions</h3>
                         <p className="text-sm text-muted-foreground whitespace-pre-wrap">
                           {invoice.terms}
                         </p>
@@ -548,9 +569,7 @@ export default function InvoiceDetailPage({ params }: PageProps) {
                 <SelectContent>
                   {STATUS_OPTIONS.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${option.color}`}>
-                        {option.label}
-                      </span>
+                      {option.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
