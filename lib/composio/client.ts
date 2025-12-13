@@ -231,21 +231,27 @@ export class ComposioClient {
 
   /**
    * Initiate connection to an app (OAuth flow)
-   * Uses V2 API - the stable recommended endpoint
+   * Uses V2 API with integrationId (auth config ID)
    */
   async initiateConnection(
     appKey: string,
     entityId: string,
-    redirectUrl: string
+    redirectUrl: string,
+    integrationId: string
   ): Promise<ConnectionRequest> {
-    console.log("[Composio] Initiating connection (V2):", { appKey, entityId, redirectUrl });
+    console.log("[Composio] Initiating connection (V2):", { 
+      appKey, 
+      entityId, 
+      redirectUrl,
+      integrationId 
+    });
     
-    // V2 endpoint for initiating connections
+    // V2 endpoint requires integrationId to specify which auth config to use
     const response = await this.request<ConnectionRequest>(
       "POST",
       `${COMPOSIO_API_V2}/connectedAccounts/initiateConnection`,
       {
-        appName: appKey,
+        integrationId,
         entityId,
         redirectUri: redirectUrl,
       }
@@ -268,9 +274,8 @@ export class ComposioClient {
       "POST",
       `${COMPOSIO_API_V2}/connectedAccounts`,
       {
-        appName: appKey,
-        entityId,
         integrationId,
+        entityId,
         data: credentials,
       }
     );

@@ -1,6 +1,6 @@
 /**
  * Composio Apps Configuration
- * Defines available apps for integration
+ * Defines available apps for integration with their auth config IDs
  */
 
 /**
@@ -28,10 +28,11 @@ export interface ComposioAppConfig {
   category: AppCategory;
   description: string;
   logo: string;
+  integrationId: string;  // Auth config ID from Composio dashboard
 }
 
 /**
- * Available Composio Apps (using Composio defaults - no custom integrationId)
+ * Available Composio Apps with their integration IDs
  */
 export const COMPOSIO_APPS: ComposioAppConfig[] = [
   // Communication
@@ -42,6 +43,7 @@ export const COMPOSIO_APPS: ComposioAppConfig[] = [
     category: "communication",
     description: "Send and manage emails",
     logo: "https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/gmail.svg",
+    integrationId: "ac_eLrYj7WapQxh",
   },
   {
     key: "slack",
@@ -50,6 +52,7 @@ export const COMPOSIO_APPS: ComposioAppConfig[] = [
     category: "communication",
     description: "Send messages to channels and users",
     logo: "https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/slack.svg",
+    integrationId: "ac_C6tFbqm9IPhO",
   },
 
   // Calendar
@@ -60,6 +63,7 @@ export const COMPOSIO_APPS: ComposioAppConfig[] = [
     category: "calendar",
     description: "Create and manage calendar events",
     logo: "https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/googlecalendar.svg",
+    integrationId: "ac_vkiOeY11TwA3",
   },
 
   // Productivity
@@ -70,6 +74,7 @@ export const COMPOSIO_APPS: ComposioAppConfig[] = [
     category: "productivity",
     description: "Create pages and manage databases",
     logo: "https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/notion.svg",
+    integrationId: "ac_Rsm8aeItU7Ys",
   },
   {
     key: "trello",
@@ -78,6 +83,7 @@ export const COMPOSIO_APPS: ComposioAppConfig[] = [
     category: "productivity",
     description: "Create cards and manage boards",
     logo: "https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/trello.svg",
+    integrationId: "ac_Jd20JzALnNkq",
   },
   {
     key: "asana",
@@ -86,6 +92,7 @@ export const COMPOSIO_APPS: ComposioAppConfig[] = [
     category: "productivity",
     description: "Create tasks and manage projects",
     logo: "https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/asana.svg",
+    integrationId: "ac_j8R1N7bcx3GV",
   },
 
   // Marketing
@@ -96,6 +103,7 @@ export const COMPOSIO_APPS: ComposioAppConfig[] = [
     category: "marketing",
     description: "Manage email marketing campaigns",
     logo: "https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/mailchimp.svg",
+    integrationId: "ac_Yh8Yly9hZmcE",
   },
 
   // Data Enrichment
@@ -106,6 +114,7 @@ export const COMPOSIO_APPS: ComposioAppConfig[] = [
     category: "data_enrichment",
     description: "Search profiles and enrich contact data",
     logo: "https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/linkedin.svg",
+    integrationId: "ac_x0CID2zI9Dfn",
   },
 ];
 
@@ -155,7 +164,7 @@ export function getAppsGroupedByCategory(): Record<AppCategory, ComposioAppConfi
 
 /**
  * Check if app requires form-based input (API Key, Basic Auth)
- * With Composio defaults, all remaining apps use OAuth
+ * Currently all apps use OAuth
  */
 export function requiresFormInput(appKey: string): boolean {
   const app = getAppByKey(appKey);
@@ -164,7 +173,7 @@ export function requiresFormInput(appKey: string): boolean {
 }
 
 /**
- * Get OAuth apps (all remaining apps use OAuth)
+ * Get OAuth apps
  */
 export function getOAuthApps(): ComposioAppConfig[] {
   return COMPOSIO_APPS.filter(

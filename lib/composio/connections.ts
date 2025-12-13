@@ -91,7 +91,8 @@ export async function getConnectionStatuses(
 }
 
 /**
- * Initiate OAuth connection to an app (using Composio defaults)
+ * Initiate OAuth connection to an app
+ * Uses the integrationId (auth config ID) from the app config
  */
 export async function initiateConnection(
   orgId: string,
@@ -105,15 +106,20 @@ export async function initiateConnection(
   if (!app) {
     throw new Error(`Unknown app: ${appKey}`);
   }
+
+  if (!app.integrationId) {
+    throw new Error(`No integrationId configured for app: ${appKey}`);
+  }
   
   // Ensure entity exists
   await client.getOrCreateEntity(entityId);
   
-  // Start OAuth flow with Composio defaults
+  // Start OAuth flow with integrationId
   const request = await client.initiateConnection(
     app.key, 
     entityId, 
-    callbackUrl
+    callbackUrl,
+    app.integrationId
   );
   
   // Store pending connection in database for tracking
@@ -204,7 +210,6 @@ export async function handleOAuthCallback(
 
 /**
  * Save API Key / Basic Auth credentials for an app
- * (Not needed with current OAuth-only apps, kept for future use)
  */
 export async function saveCredentials(
   orgId: string,
@@ -219,6 +224,10 @@ export async function saveCredentials(
     throw new Error(`Unknown app: ${appKey}`);
   }
 
+  if (!app.integrationId) {
+    throw new Error(`No integrationId configured for app: ${appKey}`);
+  }
+
   try {
     // Ensure entity exists
     await client.getOrCreateEntity(entityId);
@@ -227,7 +236,7 @@ export async function saveCredentials(
     const response = await client.createConnectionWithCredentials(
       app.key,
       entityId,
-      "", // No integrationId with defaults
+      app.integrationId,
       credentials
     );
 
