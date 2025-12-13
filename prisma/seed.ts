@@ -19,6 +19,7 @@ const ALL_MODULES = [
   "campaigns",
   "segments",
   "forms",
+  "invoices",
   "settings",
 ];
 

@@ -87,6 +87,7 @@ model Organization {
   notes               Note[]
   activities          Activity[]
   documents           Document[]
+  invoices            Invoice[]
   
   // Relations - RBAC
   roles               Role[]
@@ -224,6 +225,7 @@ model Contact {
   tasks           Task[]
   activities      Activity[]
   tickets         Ticket[]  // CS: Tickets from this contact
+  invoices        Invoice[] // Invoices addressed to this contact
 
   @@unique([orgId, email])
   @@index([orgId])
@@ -269,6 +271,9 @@ model Account {
   tickets         Ticket[]        // Support tickets
   health          AccountHealth?  // Health score record
   renewals        Renewal[]       // Contract renewals
+  
+  // Relations - Invoicing
+  invoices        Invoice[]
 
   @@index([orgId])
   @@index([orgId, name])
@@ -306,10 +311,137 @@ model Opportunity {
 
   notes               Note[]
   tasks               Task[]
+  invoices            Invoice[]
 
   @@index([orgId, stageId])
   @@index([orgId, expectedCloseDate])
   @@index([accountId])
+}
+
+// =============================================================================
+// INVOICING MODULE
+// =============================================================================
+
+model Invoice {
+  id                  String    @id @default(uuid())
+  orgId               String
+  org                 Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  
+  // Invoice identifier (auto-increment per org)
+  invoiceNumber       String    // INV-0001, INV-0002, etc.
+  
+  // Status workflow
+  status              String    @default("DRAFT") // DRAFT, SENT, VIEWED, PAID, PARTIALLY_PAID, OVERDUE, CANCELLED, VOID
+  
+  // Relations
+  accountId           String
+  account             Account   @relation(fields: [accountId], references: [id])
+  contactId           String?
+  contact             Contact?  @relation(fields: [contactId], references: [id])
+  opportunityId       String?
+  opportunity         Opportunity? @relation(fields: [opportunityId], references: [id])
+  
+  // Dates
+  issueDate           DateTime  @default(now())
+  dueDate             DateTime
+  sentAt              DateTime?
+  viewedAt            DateTime?
+  paidAt              DateTime?
+  
+  // Financials
+  currency            String    @default("USD")
+  subtotal            Decimal   @db.Decimal(15, 2) @default(0)
+  taxRate             Decimal?  @db.Decimal(5, 2)  // Percentage (e.g., 10.00 for 10%)
+  taxAmount           Decimal   @db.Decimal(15, 2) @default(0)
+  discountType        String?   // PERCENTAGE, FIXED
+  discountValue       Decimal?  @db.Decimal(15, 2) // Either percentage or fixed amount
+  discountAmount      Decimal   @db.Decimal(15, 2) @default(0)
+  total               Decimal   @db.Decimal(15, 2) @default(0)
+  amountPaid          Decimal   @db.Decimal(15, 2) @default(0)
+  amountDue           Decimal   @db.Decimal(15, 2) @default(0)
+  
+  // Content
+  notes               String?   @db.Text  // Notes to customer (appears on invoice)
+  terms               String?   @db.Text  // Payment terms
+  footer              String?   @db.Text  // Footer text
+  
+  // Billing address (snapshot at invoice creation)
+  billingAddress      Json?     // { name, street, city, state, zip, country }
+  
+  // Metadata
+  customFields        Json      @default("{}")
+  
+  // Attribution
+  createdById         String
+  createdByType       String    @default("USER") // USER, AI_AGENT
+  
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  
+  // Relations
+  items               InvoiceItem[]
+  payments            Payment[]
+
+  @@unique([orgId, invoiceNumber])
+  @@index([orgId, status])
+  @@index([orgId, dueDate])
+  @@index([orgId, issueDate])
+  @@index([orgId, accountId])
+  @@index([accountId])
+  @@index([contactId])
+  @@index([opportunityId])
+}
+
+model InvoiceItem {
+  id                  String    @id @default(uuid())
+  invoiceId           String
+  invoice             Invoice   @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  
+  // Item details
+  description         String
+  quantity            Decimal   @db.Decimal(10, 2) @default(1)
+  unitPrice           Decimal   @db.Decimal(15, 2)
+  amount              Decimal   @db.Decimal(15, 2) // quantity * unitPrice
+  
+  // Optional: item code or SKU
+  itemCode            String?
+  
+  // Ordering
+  sortOrder           Int       @default(0)
+  
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@index([invoiceId])
+  @@index([invoiceId, sortOrder])
+}
+
+model Payment {
+  id                  String    @id @default(uuid())
+  orgId               String
+  
+  invoiceId           String
+  invoice             Invoice   @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  
+  // Payment details
+  amount              Decimal   @db.Decimal(15, 2)
+  paymentDate         DateTime  @default(now())
+  method              String    @default("BANK_TRANSFER") // CASH, CHECK, CREDIT_CARD, DEBIT_CARD, BANK_TRANSFER, PAYPAL, STRIPE, OTHER
+  
+  // Reference/tracking
+  reference           String?   // Check number, transaction ID, etc.
+  notes               String?   @db.Text
+  
+  // Attribution
+  recordedById        String
+  recordedByType      String    @default("USER") // USER, AI_AGENT
+  
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@index([orgId])
+  @@index([invoiceId])
+  @@index([invoiceId, paymentDate])
 }
 
 // =============================================================================

@@ -23,6 +23,8 @@ export const CACHE_TAGS = {
   forms: "forms",
   // Custom modules
   customModules: "custom-modules",
+  // Invoicing
+  invoices: "invoices",
 } as const;
 
 /**
@@ -99,6 +101,23 @@ export function revalidateOpportunityCaches() {
 export function revalidateDocumentCaches() {
   revalidateTag(CACHE_TAGS.documents);
   revalidatePath("/settings/documents");
+}
+
+// =============================================================================
+// INVOICING CACHE UTILS
+// =============================================================================
+
+/**
+ * Revalidate caches after invoice changes
+ */
+export function revalidateInvoiceCaches() {
+  revalidateTag(CACHE_TAGS.invoices);
+  revalidateTag(CACHE_TAGS.dashboard);
+  revalidateTag(CACHE_TAGS.accounts);
+  // Sales workspace paths
+  revalidatePath("/sales");
+  revalidatePath("/sales/invoices");
+  revalidatePath("/dashboard");
 }
 
 // =============================================================================
@@ -210,6 +229,7 @@ export function revalidateAllCaches() {
   revalidatePath("/sales/tasks");
   revalidatePath("/sales/opportunities");
   revalidatePath("/sales/pipeline");
+  revalidatePath("/sales/invoices");
   // CS
   revalidatePath("/cs/tickets");
   revalidatePath("/cs/health");

@@ -31,6 +31,7 @@ export const BUILT_IN_MODULES = [
   "documents",
   "tickets",
   "campaigns",
+  "invoices",
   "reports",
 ] as const;
 

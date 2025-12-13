@@ -14,6 +14,7 @@ import {
   Megaphone,
   UsersRound,
   FileInput,
+  FileText,
   LucideIcon,
 } from "lucide-react";
 import { WorkspaceType } from "./workspace-context";
@@ -42,6 +43,7 @@ const salesNavigation: NavSection[] = [
       { name: "Pipeline Board", href: "/sales/pipeline", icon: FolderKanban },
       { name: "Contacts", href: "/sales/contacts", icon: UserCircle },
       { name: "Accounts", href: "/sales/accounts", icon: Building2 },
+      { name: "Invoices", href: "/sales/invoices", icon: FileText },
       { name: "Tasks", href: "/sales/tasks", icon: CheckSquare },
     ],
   },
