@@ -1,15 +1,16 @@
 /**
- * Disconnect API
- * Disconnect an integration
+ * Disconnect Integration API
+ * POST - Disconnect an integration
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { getApiAuthContext } from "@/lib/auth";
-import { disconnectApp, getAppByKey } from "@/lib/composio";
+import { disconnectGoogle } from "@/lib/integrations/google";
+import { disconnectSlack } from "@/lib/integrations/slack";
 
 /**
  * POST /api/integrations/disconnect
- * Disconnect an app integration
+ * Disconnect an integration
  */
 export async function POST(request: NextRequest) {
   try {
@@ -28,25 +29,30 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate app exists
-    const app = getAppByKey(appKey);
-    if (!app) {
-      return NextResponse.json(
-        { error: "Unknown app" },
-        { status: 400 }
-      );
+    if (appKey === "google") {
+      await disconnectGoogle(authContext.orgId);
+      return NextResponse.json({
+        success: true,
+        message: "Google disconnected successfully",
+      });
     }
 
-    await disconnectApp(authContext.orgId, appKey);
+    if (appKey === "slack") {
+      await disconnectSlack(authContext.orgId);
+      return NextResponse.json({
+        success: true,
+        message: "Slack disconnected successfully",
+      });
+    }
 
-    return NextResponse.json({
-      success: true,
-      message: `Disconnected from ${app.name}`,
-    });
-  } catch (error) {
-    console.error("Failed to disconnect:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to disconnect" },
+      { error: `Unknown integration: ${appKey}` },
+      { status: 400 }
+    );
+  } catch (error) {
+    console.error("[Disconnect] Error:", error);
+    return NextResponse.json(
+      { error: "Failed to disconnect" },
       { status: 500 }
     );
   }

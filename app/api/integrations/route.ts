@@ -1,12 +1,37 @@
 /**
  * Integrations API
  * GET - List all integrations and their connection status
- * POST - Initiate connection to an app
+ * POST - Initiate connection to an app (redirects to provider)
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { getApiAuthContext } from "@/lib/auth";
-import { getConnectionStatuses, initiateConnection } from "@/lib/composio";
+import { getGoogleConnectionInfo } from "@/lib/integrations/google";
+import { getSlackConnectionInfo } from "@/lib/integrations/slack";
+
+/**
+ * Available integrations with native OAuth
+ */
+const NATIVE_INTEGRATIONS = [
+  {
+    key: "google",
+    name: "Google Workspace",
+    description: "Gmail, Calendar, Drive, Docs, Sheets - One connection for all Google services",
+    logo: "https://www.google.com/favicon.ico",
+    category: "workspace",
+    authMethod: "OAUTH2",
+    services: ["Gmail", "Calendar", "Drive", "Docs", "Sheets", "Meet"],
+  },
+  {
+    key: "slack",
+    name: "Slack",
+    description: "Send messages to channels and users",
+    logo: "https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/slack.svg",
+    category: "communication",
+    authMethod: "OAUTH2",
+    services: ["Messaging"],
+  },
+];
 
 /**
  * GET /api/integrations
@@ -19,11 +44,33 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const statuses = await getConnectionStatuses(authContext.orgId);
+    // Get connection status for each integration
+    const [googleInfo, slackInfo] = await Promise.all([
+      getGoogleConnectionInfo(authContext.orgId),
+      getSlackConnectionInfo(authContext.orgId),
+    ]);
 
-    return NextResponse.json({
-      integrations: statuses,
+    const integrations = NATIVE_INTEGRATIONS.map((integration) => {
+      if (integration.key === "google") {
+        return {
+          ...integration,
+          isConnected: googleInfo?.connected || false,
+          connectedAs: googleInfo?.email,
+          connectedAt: googleInfo?.connectedAt,
+        };
+      }
+      if (integration.key === "slack") {
+        return {
+          ...integration,
+          isConnected: slackInfo?.connected || false,
+          connectedAs: slackInfo?.teamName,
+          connectedAt: slackInfo?.connectedAt,
+        };
+      }
+      return { ...integration, isConnected: false };
     });
+
+    return NextResponse.json({ integrations });
   } catch (error) {
     console.error("Failed to fetch integrations:", error);
     return NextResponse.json(
@@ -35,7 +82,7 @@ export async function GET() {
 
 /**
  * POST /api/integrations
- * Initiate OAuth connection to an app
+ * Initiate OAuth connection - returns redirect URL for the provider
  */
 export async function POST(request: NextRequest) {
   try {
@@ -54,43 +101,31 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Determine callback URL
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
-    const callbackUrl = `${baseUrl}/api/integrations/callback?provider=${appKey}`;
 
-    console.log("[Integrations API] Initiating connection:", {
-      orgId: authContext.orgId,
-      appKey,
-      callbackUrl,
-    });
+    // Route to the appropriate OAuth authorize endpoint
+    if (appKey === "google") {
+      return NextResponse.json({
+        success: true,
+        redirectUrl: `${baseUrl}/api/integrations/google/authorize`,
+      });
+    }
 
-    const connectionRequest = await initiateConnection(
-      authContext.orgId,
-      appKey,
-      callbackUrl
-    );
+    if (appKey === "slack") {
+      return NextResponse.json({
+        success: true,
+        redirectUrl: `${baseUrl}/api/integrations/slack/authorize`,
+      });
+    }
 
-    console.log("[Integrations API] Connection initiated:", {
-      connectionId: connectionRequest.connectionId,
-      hasRedirectUrl: !!connectionRequest.redirectUrl,
-    });
-
-    return NextResponse.json({
-      success: true,
-      redirectUrl: connectionRequest.redirectUrl,
-      connectionId: connectionRequest.connectionId,
-    });
-  } catch (error) {
-    // Log detailed error
-    console.error("[Integrations API] Failed to initiate connection:", {
-      error: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined,
-    });
-    
-    // Return detailed error for debugging
-    const errorMessage = error instanceof Error ? error.message : "Failed to initiate connection";
     return NextResponse.json(
-      { error: errorMessage },
+      { error: `Unknown integration: ${appKey}` },
+      { status: 400 }
+    );
+  } catch (error) {
+    console.error("[Integrations API] Error:", error);
+    return NextResponse.json(
+      { error: "Failed to initiate connection" },
       { status: 500 }
     );
   }

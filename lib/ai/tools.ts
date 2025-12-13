@@ -16,11 +16,9 @@ import {
   revalidateFormCaches,
   revalidateCustomModuleCaches,
 } from "@/lib/cache-utils";
-import {
-  getActiveConnections,
-  executeComposioToolDirect,
-  FEATURED_APPS,
-} from "@/lib/composio";
+// Native integrations
+import { createGmailClient, createCalendarClient, hasGoogleConnection } from "@/lib/integrations/google";
+import { createSlackClient, hasSlackConnection } from "@/lib/integrations/slack";
 
 /**
  * AI Tools for Y-CRM
