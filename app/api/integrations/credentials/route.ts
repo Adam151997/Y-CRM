@@ -1,6 +1,9 @@
 /**
  * Credentials API
  * Save API key or basic auth credentials for an integration
+ * 
+ * Note: Currently all apps use OAuth via Composio defaults.
+ * This endpoint is kept for potential future API key/basic auth apps.
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -35,7 +38,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate app exists and requires credentials
+    // Validate app exists
     const app = getAppByKey(appKey);
     if (!app) {
       return NextResponse.json(
@@ -44,9 +47,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (app.authMethod !== "api_key" && app.authMethod !== "basic_jwt") {
+    // Currently all apps use OAuth - this endpoint is for future API key apps
+    // Check if app uses credential-based auth (API_KEY or BASIC)
+    const credentialAuthMethods = ["API_KEY", "BASIC"];
+    if (!credentialAuthMethods.includes(app.authMethod)) {
       return NextResponse.json(
-        { error: "This app does not support credential-based authentication" },
+        { error: "This app uses OAuth authentication. Please use the Connect button instead." },
         { status: 400 }
       );
     }
