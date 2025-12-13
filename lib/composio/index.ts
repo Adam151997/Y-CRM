@@ -35,6 +35,9 @@ export type {
   AuthMethod,
 } from "./apps";
 
+// Alias for backward compatibility
+export { COMPOSIO_APPS as FEATURED_APPS } from "./apps";
+
 // Tools
 export {
   composioToolToMCP,
@@ -56,6 +59,7 @@ export {
   syncConnectionStatuses,
   hasConnection,
   getActiveConnections,
+  saveCredentials,
 } from "./connections";
 export type { AppConnectionStatus } from "./connections";
 
