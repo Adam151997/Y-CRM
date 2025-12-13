@@ -2093,30 +2093,42 @@ export const analyzeDocumentTool = (orgId: string) =>
   });
 
 // =============================================================================
-// COMPOSIO INTEGRATION TOOLS
+// NATIVE INTEGRATION TOOLS (Google & Slack)
 // =============================================================================
 
 export const getConnectedIntegrationsTool = (orgId: string) =>
   tool({
-    description: "Get list of connected external integrations like Gmail, Calendar, Slack, etc.",
+    description: "Get list of connected external integrations like Google (Gmail, Calendar, Drive) and Slack.",
     parameters: z.object({}),
     execute: async () => {
       console.log("[Tool:getConnectedIntegrations] Executing");
       try {
-        const connections = await getActiveConnections(orgId);
-        const connectedApps = FEATURED_APPS.filter((app) =>
-          connections.includes(app.key)
-        );
+        const [googleConnected, slackConnected] = await Promise.all([
+          hasGoogleConnection(orgId),
+          hasSlackConnection(orgId),
+        ]);
+
+        const connectedApps: { name: string; services: string[] }[] = [];
+        
+        if (googleConnected) {
+          connectedApps.push({
+            name: "Google Workspace",
+            services: ["Gmail", "Calendar", "Drive", "Docs", "Sheets"],
+          });
+        }
+        
+        if (slackConnected) {
+          connectedApps.push({
+            name: "Slack",
+            services: ["Messaging"],
+          });
+        }
 
         return {
           success: true,
-          connectedApps: connectedApps.map((app) => ({
-            key: app.key,
-            name: app.name,
-            category: app.category,
-          })),
-          message: connections.length > 0
-            ? `You have ${connections.length} connected apps: ${connectedApps.map(a => a.name).join(", ")}`
+          connectedApps,
+          message: connectedApps.length > 0
+            ? `You have ${connectedApps.length} connected: ${connectedApps.map(a => a.name).join(", ")}`
             : "No external apps connected. Connect apps in Settings > Integrations.",
         };
       } catch (error) {
@@ -2128,7 +2140,7 @@ export const getConnectedIntegrationsTool = (orgId: string) =>
 
 export const sendEmailTool = (orgId: string) =>
   tool({
-    description: "Send an email via Gmail. Requires Gmail to be connected.",
+    description: "Send an email via Gmail. Requires Google to be connected.",
     parameters: z.object({
       to: z.string().email().describe("Recipient email address"),
       subject: z.string().describe("Email subject"),
@@ -2138,15 +2150,19 @@ export const sendEmailTool = (orgId: string) =>
     execute: async ({ to, subject, body, cc }) => {
       console.log("[Tool:sendEmail] Executing:", { to, subject });
       try {
-        const result = await executeComposioToolDirect(
-          "composio_gmail_send_email",
-          { to, subject, body, cc },
-          orgId
-        );
+        const isConnected = await hasGoogleConnection(orgId);
+        if (!isConnected) {
+          return { success: false, message: "Google is not connected. Please connect Google in Settings > Integrations." };
+        }
 
-        return result.success
-          ? { success: true, message: `Email sent successfully to ${to}` }
-          : { success: false, message: result.content || "Failed to send email" };
+        const gmail = createGmailClient(orgId);
+        const result = await gmail.sendEmail({ to, subject, body, cc });
+
+        return {
+          success: true,
+          message: `Email sent successfully to ${to}`,
+          messageId: result.id,
+        };
       } catch (error) {
         console.error("[Tool:sendEmail] Error:", error);
         return { success: false, message: error instanceof Error ? error.message : "Failed to send email" };
@@ -2154,39 +2170,167 @@ export const sendEmailTool = (orgId: string) =>
     },
   });
 
+export const searchEmailsTool = (orgId: string) =>
+  tool({
+    description: "Search emails in Gmail. Requires Google to be connected.",
+    parameters: z.object({
+      query: z.string().optional().describe("Search query (Gmail search syntax)"),
+      from: z.string().optional().describe("Filter by sender email"),
+      maxResults: z.number().min(1).max(20).default(10),
+    }),
+    execute: async ({ query, from, maxResults }) => {
+      console.log("[Tool:searchEmails] Executing:", { query, from, maxResults });
+      try {
+        const isConnected = await hasGoogleConnection(orgId);
+        if (!isConnected) {
+          return { success: false, message: "Google is not connected. Please connect Google in Settings > Integrations." };
+        }
+
+        const gmail = createGmailClient(orgId);
+        let searchQuery = query || "";
+        if (from) {
+          searchQuery = searchQuery ? `${searchQuery} from:${from}` : `from:${from}`;
+        }
+
+        const emails = await gmail.listEmails({ query: searchQuery, maxResults });
+
+        return {
+          success: true,
+          count: emails.length,
+          emails: emails.map(e => ({
+            id: e.id,
+            subject: e.subject,
+            from: e.from,
+            date: e.date,
+            snippet: e.snippet,
+          })),
+        };
+      } catch (error) {
+        console.error("[Tool:searchEmails] Error:", error);
+        return { success: false, message: error instanceof Error ? error.message : "Failed to search emails" };
+      }
+    },
+  });
+
 export const createCalendarEventTool = (orgId: string) =>
   tool({
-    description: "Create a Google Calendar event. Requires Google Calendar to be connected.",
+    description: "Create a Google Calendar event. Requires Google to be connected.",
     parameters: z.object({
       title: z.string().describe("Event title"),
       description: z.string().optional(),
       startTime: z.string().describe("Start time (ISO format)"),
-      endTime: z.string().optional(),
+      endTime: z.string().optional().describe("End time (ISO format, defaults to 1 hour after start)"),
       attendees: z.array(z.string().email()).optional(),
       location: z.string().optional(),
+      addMeetLink: z.boolean().default(false).describe("Add Google Meet link"),
     }),
-    execute: async ({ title, description, startTime, endTime, attendees, location }) => {
+    execute: async ({ title, description, startTime, endTime, attendees, location, addMeetLink }) => {
       console.log("[Tool:createCalendarEvent] Executing:", { title, startTime });
       try {
-        const result = await executeComposioToolDirect(
-          "composio_googlecalendar_create_event",
-          { 
-            summary: title, 
-            description, 
-            start: { dateTime: startTime },
-            end: endTime ? { dateTime: endTime } : undefined,
-            attendees: attendees?.map(email => ({ email })),
-            location,
-          },
-          orgId
-        );
+        const isConnected = await hasGoogleConnection(orgId);
+        if (!isConnected) {
+          return { success: false, message: "Google is not connected. Please connect Google in Settings > Integrations." };
+        }
 
-        return result.success
-          ? { success: true, message: `Calendar event "${title}" created successfully`, data: result.data }
-          : { success: false, message: result.content || "Failed to create calendar event" };
+        const calendar = createCalendarClient(orgId);
+        
+        // Default end time to 1 hour after start
+        const start = new Date(startTime);
+        const end = endTime ? new Date(endTime) : new Date(start.getTime() + 60 * 60 * 1000);
+
+        const event = await calendar.createEvent({
+          summary: title,
+          description,
+          startDateTime: start.toISOString(),
+          endDateTime: end.toISOString(),
+          attendees,
+          location,
+          addMeetLink,
+        });
+
+        return {
+          success: true,
+          message: `Calendar event "${title}" created successfully`,
+          eventId: event.id,
+          meetLink: event.hangoutLink,
+          link: event.htmlLink,
+        };
       } catch (error) {
         console.error("[Tool:createCalendarEvent] Error:", error);
         return { success: false, message: error instanceof Error ? error.message : "Failed to create event" };
+      }
+    },
+  });
+
+export const getUpcomingEventsTool = (orgId: string) =>
+  tool({
+    description: "Get upcoming calendar events. Requires Google to be connected.",
+    parameters: z.object({
+      days: z.number().min(1).max(30).default(7).describe("Number of days to look ahead"),
+    }),
+    execute: async ({ days }) => {
+      console.log("[Tool:getUpcomingEvents] Executing:", { days });
+      try {
+        const isConnected = await hasGoogleConnection(orgId);
+        if (!isConnected) {
+          return { success: false, message: "Google is not connected. Please connect Google in Settings > Integrations." };
+        }
+
+        const calendar = createCalendarClient(orgId);
+        const events = await calendar.getUpcomingEvents(days);
+
+        return {
+          success: true,
+          count: events.length,
+          events: events.map(e => ({
+            id: e.id,
+            title: e.summary,
+            start: e.start.dateTime || e.start.date,
+            end: e.end.dateTime || e.end.date,
+            location: e.location,
+            meetLink: e.hangoutLink,
+          })),
+        };
+      } catch (error) {
+        console.error("[Tool:getUpcomingEvents] Error:", error);
+        return { success: false, message: error instanceof Error ? error.message : "Failed to get events" };
+      }
+    },
+  });
+
+export const getTodayEventsTool = (orgId: string) =>
+  tool({
+    description: "Get today's calendar events. Requires Google to be connected.",
+    parameters: z.object({}),
+    execute: async () => {
+      console.log("[Tool:getTodayEvents] Executing");
+      try {
+        const isConnected = await hasGoogleConnection(orgId);
+        if (!isConnected) {
+          return { success: false, message: "Google is not connected. Please connect Google in Settings > Integrations." };
+        }
+
+        const calendar = createCalendarClient(orgId);
+        const events = await calendar.getTodayEvents();
+
+        return {
+          success: true,
+          count: events.length,
+          events: events.map(e => ({
+            id: e.id,
+            title: e.summary,
+            start: e.start.dateTime || e.start.date,
+            end: e.end.dateTime || e.end.date,
+            location: e.location,
+            meetLink: e.hangoutLink,
+          })),
+          message: events.length > 0 
+            ? `You have ${events.length} events today`
+            : "No events scheduled for today",
+        };
+      } catch (error) {
+        console.error("[Tool:getTodayEvents] Error:", error);
+        return { success: false, message: error instanceof Error ? error.message : "Failed to get events" };
       }
     },
   });
@@ -2195,21 +2339,25 @@ export const sendSlackMessageTool = (orgId: string) =>
   tool({
     description: "Send a message to a Slack channel or user. Requires Slack to be connected.",
     parameters: z.object({
-      channel: z.string().describe("Channel name or user ID"),
+      channel: z.string().describe("Channel name (e.g., #general) or channel ID"),
       message: z.string().describe("Message text"),
     }),
     execute: async ({ channel, message }) => {
       console.log("[Tool:sendSlackMessage] Executing:", { channel });
       try {
-        const result = await executeComposioToolDirect(
-          "composio_slack_send_message",
-          { channel, text: message },
-          orgId
-        );
+        const isConnected = await hasSlackConnection(orgId);
+        if (!isConnected) {
+          return { success: false, message: "Slack is not connected. Please connect Slack in Settings > Integrations." };
+        }
 
-        return result.success
-          ? { success: true, message: `Message sent to ${channel}` }
-          : { success: false, message: result.content || "Failed to send Slack message" };
+        const slack = createSlackClient(orgId);
+        const result = await slack.sendMessage({ channel, text: message });
+
+        return {
+          success: true,
+          message: `Message sent to ${channel}`,
+          timestamp: result.ts,
+        };
       } catch (error) {
         console.error("[Tool:sendSlackMessage] Error:", error);
         return { success: false, message: error instanceof Error ? error.message : "Failed to send message" };
@@ -2217,277 +2365,36 @@ export const sendSlackMessageTool = (orgId: string) =>
     },
   });
 
-export const createGitHubIssueTool = (orgId: string) =>
+export const listSlackChannelsTool = (orgId: string) =>
   tool({
-    description: "Create a GitHub issue. Requires GitHub to be connected.",
+    description: "List available Slack channels. Requires Slack to be connected.",
     parameters: z.object({
-      repo: z.string().describe("Repository (owner/repo)"),
-      title: z.string().describe("Issue title"),
-      body: z.string().optional(),
-      labels: z.array(z.string()).optional(),
+      limit: z.number().min(1).max(100).default(20),
     }),
-    execute: async ({ repo, title, body, labels }) => {
-      console.log("[Tool:createGitHubIssue] Executing:", { repo, title });
+    execute: async ({ limit }) => {
+      console.log("[Tool:listSlackChannels] Executing");
       try {
-        const [owner, repoName] = repo.split("/");
-        const result = await executeComposioToolDirect(
-          "composio_github_create_issue",
-          { owner, repo: repoName, title, body, labels },
-          orgId
-        );
+        const isConnected = await hasSlackConnection(orgId);
+        if (!isConnected) {
+          return { success: false, message: "Slack is not connected. Please connect Slack in Settings > Integrations." };
+        }
 
-        return result.success
-          ? { success: true, message: `GitHub issue "${title}" created in ${repo}`, data: result.data }
-          : { success: false, message: result.content || "Failed to create GitHub issue" };
-      } catch (error) {
-        console.error("[Tool:createGitHubIssue] Error:", error);
-        return { success: false, message: error instanceof Error ? error.message : "Failed to create issue" };
-      }
-    },
-  });
-
-export const executeExternalToolTool = (orgId: string) =>
-  tool({
-    description: "Execute any external tool via Composio",
-    parameters: z.object({
-      toolName: z.string().describe("Full tool name"),
-      arguments: z.record(z.unknown()).describe("Tool arguments"),
-    }),
-    execute: async ({ toolName, arguments: args }) => {
-      console.log("[Tool:executeExternalTool] Executing:", { toolName });
-      try {
-        const result = await executeComposioToolDirect(
-          toolName,
-          args as Record<string, unknown>,
-          orgId
-        );
+        const slack = createSlackClient(orgId);
+        const channels = await slack.listChannels(limit);
 
         return {
-          success: result.success,
-          message: result.content,
-          data: result.data,
+          success: true,
+          count: channels.length,
+          channels: channels.map(c => ({
+            id: c.id,
+            name: c.name,
+            isPrivate: c.is_private,
+            memberCount: c.num_members,
+          })),
         };
       } catch (error) {
-        console.error("[Tool:executeExternalTool] Error:", error);
-        return { success: false, message: error instanceof Error ? error.message : "Failed to execute tool" };
-      }
-    },
-  });
-
-// =============================================================================
-// NOTION TOOLS
-// =============================================================================
-
-export const createNotionPageTool = (orgId: string) =>
-  tool({
-    description: "Create a new page in Notion. Requires Notion to be connected.",
-    parameters: z.object({
-      title: z.string().describe("Page title"),
-      content: z.string().optional().describe("Page content (markdown supported)"),
-      parentPageId: z.string().optional().describe("Parent page ID (optional)"),
-      databaseId: z.string().optional().describe("Database ID to add entry to (optional)"),
-    }),
-    execute: async ({ title, content, parentPageId, databaseId }) => {
-      console.log("[Tool:createNotionPage] Executing:", { title });
-      try {
-        const params: Record<string, unknown> = { title };
-        if (content) params.content = content;
-        if (parentPageId) params.parent_page_id = parentPageId;
-        if (databaseId) params.database_id = databaseId;
-
-        const result = await executeComposioToolDirect(
-          "composio_notion_create_page",
-          params,
-          orgId
-        );
-
-        return result.success
-          ? { success: true, message: `Notion page "${title}" created successfully`, data: result.data }
-          : { success: false, message: result.content || "Failed to create Notion page. Make sure Notion is connected." };
-      } catch (error) {
-        console.error("[Tool:createNotionPage] Error:", error);
-        return { success: false, message: error instanceof Error ? error.message : "Failed to create Notion page" };
-      }
-    },
-  });
-
-// =============================================================================
-// TRELLO TOOLS
-// =============================================================================
-
-export const createTrelloCardTool = (orgId: string) =>
-  tool({
-    description: "Create a new card in Trello. Requires Trello to be connected.",
-    parameters: z.object({
-      name: z.string().describe("Card name/title"),
-      description: z.string().optional().describe("Card description"),
-      listId: z.string().describe("Trello list ID to add the card to"),
-      dueDate: z.string().optional().describe("Due date (ISO format)"),
-    }),
-    execute: async ({ name, description, listId, dueDate }) => {
-      console.log("[Tool:createTrelloCard] Executing:", { name, listId });
-      try {
-        const params: Record<string, unknown> = { name, idList: listId };
-        if (description) params.desc = description;
-        if (dueDate) params.due = dueDate;
-
-        const result = await executeComposioToolDirect(
-          "composio_trello_create_card",
-          params,
-          orgId
-        );
-
-        return result.success
-          ? { success: true, message: `Trello card "${name}" created successfully`, data: result.data }
-          : { success: false, message: result.content || "Failed to create Trello card. Make sure Trello is connected." };
-      } catch (error) {
-        console.error("[Tool:createTrelloCard] Error:", error);
-        return { success: false, message: error instanceof Error ? error.message : "Failed to create Trello card" };
-      }
-    },
-  });
-
-// =============================================================================
-// ASANA TOOLS
-// =============================================================================
-
-export const createAsanaTaskTool = (orgId: string) =>
-  tool({
-    description: "Create a new task in Asana. Requires Asana to be connected.",
-    parameters: z.object({
-      name: z.string().describe("Task name"),
-      notes: z.string().optional().describe("Task description/notes"),
-      projectId: z.string().describe("Asana project ID"),
-      dueDate: z.string().optional().describe("Due date (YYYY-MM-DD format)"),
-      assignee: z.string().optional().describe("Assignee email or user ID"),
-    }),
-    execute: async ({ name, notes, projectId, dueDate, assignee }) => {
-      console.log("[Tool:createAsanaTask] Executing:", { name, projectId });
-      try {
-        const params: Record<string, unknown> = { name, projects: [projectId] };
-        if (notes) params.notes = notes;
-        if (dueDate) params.due_on = dueDate;
-        if (assignee) params.assignee = assignee;
-
-        const result = await executeComposioToolDirect(
-          "composio_asana_create_task",
-          params,
-          orgId
-        );
-
-        return result.success
-          ? { success: true, message: `Asana task "${name}" created successfully`, data: result.data }
-          : { success: false, message: result.content || "Failed to create Asana task. Make sure Asana is connected." };
-      } catch (error) {
-        console.error("[Tool:createAsanaTask] Error:", error);
-        return { success: false, message: error instanceof Error ? error.message : "Failed to create Asana task" };
-      }
-    },
-  });
-
-// =============================================================================
-// MAILCHIMP TOOLS
-// =============================================================================
-
-export const addToMailchimpAudienceTool = (orgId: string) =>
-  tool({
-    description: "Add a contact to a Mailchimp audience/list. Requires Mailchimp to be connected.",
-    parameters: z.object({
-      email: z.string().email().describe("Contact email address"),
-      listId: z.string().describe("Mailchimp audience/list ID"),
-      firstName: z.string().optional().describe("Contact first name"),
-      lastName: z.string().optional().describe("Contact last name"),
-      tags: z.array(z.string()).optional().describe("Tags to apply"),
-    }),
-    execute: async ({ email, listId, firstName, lastName, tags }) => {
-      console.log("[Tool:addToMailchimpAudience] Executing:", { email, listId });
-      try {
-        const params: Record<string, unknown> = {
-          email_address: email,
-          list_id: listId,
-          status: "subscribed",
-        };
-        if (firstName || lastName) {
-          params.merge_fields = {};
-          if (firstName) (params.merge_fields as Record<string, string>).FNAME = firstName;
-          if (lastName) (params.merge_fields as Record<string, string>).LNAME = lastName;
-        }
-        if (tags) params.tags = tags;
-
-        const result = await executeComposioToolDirect(
-          "composio_mailchimp_add_member",
-          params,
-          orgId
-        );
-
-        return result.success
-          ? { success: true, message: `Added ${email} to Mailchimp audience`, data: result.data }
-          : { success: false, message: result.content || "Failed to add to Mailchimp audience. Make sure Mailchimp is connected." };
-      } catch (error) {
-        console.error("[Tool:addToMailchimpAudience] Error:", error);
-        return { success: false, message: error instanceof Error ? error.message : "Failed to add to audience" };
-      }
-    },
-  });
-
-export const getMailchimpAudiencesTool = (orgId: string) =>
-  tool({
-    description: "Get list of Mailchimp audiences/lists. Requires Mailchimp to be connected.",
-    parameters: z.object({}),
-    execute: async () => {
-      console.log("[Tool:getMailchimpAudiences] Executing");
-      try {
-        const result = await executeComposioToolDirect(
-          "composio_mailchimp_get_lists",
-          {},
-          orgId
-        );
-
-        return result.success
-          ? { success: true, message: "Retrieved Mailchimp audiences", data: result.data }
-          : { success: false, message: result.content || "Failed to get Mailchimp audiences" };
-      } catch (error) {
-        console.error("[Tool:getMailchimpAudiences] Error:", error);
-        return { success: false, message: error instanceof Error ? error.message : "Failed to get audiences" };
-      }
-    },
-  });
-
-// =============================================================================
-// LINKEDIN TOOLS
-// =============================================================================
-
-export const searchLinkedInProfileTool = (orgId: string) =>
-  tool({
-    description: "Search for a LinkedIn profile to enrich contact data. Requires LinkedIn to be connected.",
-    parameters: z.object({
-      email: z.string().email().optional().describe("Contact email to search"),
-      name: z.string().optional().describe("Person's full name"),
-      company: z.string().optional().describe("Company name"),
-    }),
-    execute: async ({ email, name, company }) => {
-      console.log("[Tool:searchLinkedInProfile] Executing:", { email, name, company });
-      try {
-        if (!email && !name) {
-          return { success: false, message: "Either email or name is required" };
-        }
-        const params: Record<string, unknown> = {};
-        if (email) params.email = email;
-        if (name) params.name = name;
-        if (company) params.company = company;
-
-        const result = await executeComposioToolDirect(
-          "composio_linkedin_search_people",
-          params,
-          orgId
-        );
-
-        return result.success
-          ? { success: true, message: "LinkedIn profile data retrieved", data: result.data }
-          : { success: false, message: result.content || "Failed to search LinkedIn. Make sure LinkedIn is connected." };
-      } catch (error) {
-        console.error("[Tool:searchLinkedInProfile] Error:", error);
-        return { success: false, message: error instanceof Error ? error.message : "Failed to search LinkedIn" };
+        console.error("[Tool:listSlackChannels] Error:", error);
+        return { success: false, message: error instanceof Error ? error.message : "Failed to list channels" };
       }
     },
   });
