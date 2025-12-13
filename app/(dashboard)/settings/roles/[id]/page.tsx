@@ -40,6 +40,7 @@ const BUILT_IN_MODULES = [
   { slug: "accounts", name: "Accounts", icon: Building },
   { slug: "opportunities", name: "Opportunities", icon: Target },
   { slug: "tasks", name: "Tasks", icon: CheckSquare },
+  { slug: "invoices", name: "Invoices", icon: FileText },
   { slug: "documents", name: "Documents", icon: FileText },
   { slug: "dashboard", name: "Dashboard", icon: LayoutGrid },
   { slug: "pipeline", name: "Pipeline", icon: Layers },
