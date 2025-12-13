@@ -437,8 +437,8 @@ const getInvoiceStats = cache(async (orgId: string) => {
   // Transform byStatus for component consumption
   const transformedByStatus = byStatus.map(item => ({
     status: item.status,
-    _count: item._count._all,
-    _sum: { total: item._sum.total ? Number(item._sum.total) : null },
+    _count: item._count?._all ?? 0,
+    _sum: { total: item._sum?.total ? Number(item._sum.total) : null },
   }));
 
   return {
