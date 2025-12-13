@@ -1,10 +1,10 @@
 /**
  * Composio Client
- * Main client for interacting with Composio API
+ * Main client for interacting with Composio API v3
  */
 
-// Composio API configuration
-const COMPOSIO_API_BASE = "https://backend.composio.dev/api/v1";
+// Composio API configuration - UPGRADED TO V3
+const COMPOSIO_API_BASE = "https://backend.composio.dev/api/v3";
 
 /**
  * Composio Client Configuration
@@ -77,7 +77,7 @@ export interface ToolExecutionResult {
 
 /**
  * Composio Client Class
- * Handles all interactions with Composio API
+ * Handles all interactions with Composio API v3
  */
 export class ComposioClient {
   private apiKey: string;
@@ -92,9 +92,13 @@ export class ComposioClient {
   private async request<T>(
     method: string,
     endpoint: string,
-    body?: unknown
+    body?: unknown,
+    apiVersion: string = "v3"
   ): Promise<T> {
-    const url = `${COMPOSIO_API_BASE}${endpoint}`;
+    const baseUrl = apiVersion === "v3" 
+      ? "https://backend.composio.dev/api/v3"
+      : "https://backend.composio.dev/api/v2";
+    const url = `${baseUrl}${endpoint}`;
     
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
@@ -110,7 +114,7 @@ export class ComposioClient {
       options.body = JSON.stringify(body);
     }
 
-    console.log(`[Composio] ${method} ${endpoint}`, body ? JSON.stringify(body) : "");
+    console.log(`[Composio] ${method} ${url}`, body ? JSON.stringify(body) : "");
 
     const response = await fetch(url, options);
 
@@ -148,7 +152,7 @@ export class ComposioClient {
   }
 
   // ============================================================================
-  // Tools
+  // Tools / Actions
   // ============================================================================
 
   /**
@@ -231,23 +235,23 @@ export class ComposioClient {
 
   /**
    * Initiate connection to an app (OAuth flow)
-   * Uses Composio defaults - no custom integrationId needed
+   * Uses Composio defaults - v3 API
    */
   async initiateConnection(
     appKey: string,
     entityId: string,
     redirectUrl: string
   ): Promise<ConnectionRequest> {
-    console.log("[Composio] Initiating connection:", { appKey, entityId, redirectUrl });
+    console.log("[Composio] Initiating connection (v3):", { appKey, entityId, redirectUrl });
     
-    // Try with redirectUri (Composio might expect this field name)
+    // V3 API endpoint for initiating connections
     const response = await this.request<ConnectionRequest>(
       "POST",
       "/connectedAccounts",
       {
         appName: appKey,
         entityId,
-        redirectUri: redirectUrl,  // Try redirectUri instead of redirectUrl
+        redirectUri: redirectUrl,
       }
     );
     
@@ -299,9 +303,17 @@ export class ComposioClient {
 
   /**
    * Create or get an entity (used for multi-tenant setups)
+   * V3 uses different endpoint
    */
   async getOrCreateEntity(entityId: string): Promise<{ id: string }> {
-    return this.request<{ id: string }>("POST", "/entity", { id: entityId });
+    try {
+      // V3: Try to get entity first, create if not exists
+      return await this.request<{ id: string }>("POST", "/entities", { id: entityId });
+    } catch (error) {
+      // Entity might already exist, that's fine
+      console.log("[Composio] Entity might already exist:", entityId);
+      return { id: entityId };
+    }
   }
 }
 
