@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from "next/server";
 import { getApiAuthContext } from "@/lib/auth";
-import { checkPermission } from "@/lib/api-permissions";
+import { requirePermission } from "@/lib/permissions";
 import { createAuditLog } from "@/lib/audit";
 import { revalidateInvoiceCaches } from "@/lib/cache-utils";
 import prisma from "@/lib/db";
@@ -34,15 +34,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const { id } = await params;
 
     // Check permission
-    const hasPermission = await checkPermission(
+    await requirePermission(
       authContext.userId,
       authContext.orgId,
       "invoices",
       "view"
     );
-    if (!hasPermission) {
-      return NextResponse.json({ error: "Permission denied" }, { status: 403 });
-    }
 
     // Verify invoice exists and belongs to org
     const invoice = await prisma.invoice.findFirst({
@@ -87,15 +84,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const { id } = await params;
 
     // Check permission
-    const hasPermission = await checkPermission(
+    await requirePermission(
       authContext.userId,
       authContext.orgId,
       "invoices",
       "edit"
     );
-    if (!hasPermission) {
-      return NextResponse.json({ error: "Permission denied" }, { status: 403 });
-    }
 
     // Get existing invoice
     const invoice = await prisma.invoice.findFirst({

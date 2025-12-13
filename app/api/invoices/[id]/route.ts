@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from "next/server";
 import { getApiAuthContext } from "@/lib/auth";
-import { checkPermission } from "@/lib/api-permissions";
+import { requirePermission } from "@/lib/permissions";
 import { createAuditLog } from "@/lib/audit";
 import { revalidateInvoiceCaches } from "@/lib/cache-utils";
 import prisma from "@/lib/db";
@@ -17,9 +17,7 @@ import { updateInvoiceSchema } from "@/lib/validation/invoices";
 import {
   calculateInvoiceTotals,
   calculateItemAmount,
-  determineInvoiceStatus,
 } from "@/lib/invoices";
-import { Decimal } from "@prisma/client/runtime/library";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -39,15 +37,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const { id } = await params;
 
     // Check permission
-    const hasPermission = await checkPermission(
+    await requirePermission(
       authContext.userId,
       authContext.orgId,
       "invoices",
       "view"
     );
-    if (!hasPermission) {
-      return NextResponse.json({ error: "Permission denied" }, { status: 403 });
-    }
 
     const invoice = await prisma.invoice.findFirst({
       where: {
@@ -117,15 +112,12 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const { id } = await params;
 
     // Check permission
-    const hasPermission = await checkPermission(
+    await requirePermission(
       authContext.userId,
       authContext.orgId,
       "invoices",
       "edit"
     );
-    if (!hasPermission) {
-      return NextResponse.json({ error: "Permission denied" }, { status: 403 });
-    }
 
     // Get existing invoice
     const existingInvoice = await prisma.invoice.findFirst({
@@ -320,15 +312,12 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     const { id } = await params;
 
     // Check permission
-    const hasPermission = await checkPermission(
+    await requirePermission(
       authContext.userId,
       authContext.orgId,
       "invoices",
       "delete"
     );
-    if (!hasPermission) {
-      return NextResponse.json({ error: "Permission denied" }, { status: 403 });
-    }
 
     // Get existing invoice
     const existingInvoice = await prisma.invoice.findFirst({
