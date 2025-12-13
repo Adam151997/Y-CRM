@@ -79,9 +79,9 @@ export const createInvoiceSchema = z.object({
   dueDate: z.coerce.date(),
   
   currency: z.string().default("USD"),
-  taxRate: z.number().min(0).max(100).optional(),
-  discountType: z.enum(DISCOUNT_TYPES).optional(),
-  discountValue: z.number().min(0).optional(),
+  taxRate: z.number().min(0).max(100).nullable().optional(),
+  discountType: z.enum(DISCOUNT_TYPES).nullable().optional(),
+  discountValue: z.number().min(0).nullable().optional(),
   
   notes: z.string().optional(),
   terms: z.string().optional(),
