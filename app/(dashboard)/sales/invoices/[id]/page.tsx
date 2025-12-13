@@ -7,6 +7,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Table,
   TableBody,
   TableCell,
@@ -105,10 +112,22 @@ const PAYMENT_METHOD_LABELS: Record<string, string> = {
   OTHER: "Other",
 };
 
+const STATUS_OPTIONS = [
+  { value: "DRAFT", label: "Draft", color: "bg-gray-100 text-gray-700" },
+  { value: "SENT", label: "Sent", color: "bg-blue-100 text-blue-700" },
+  { value: "VIEWED", label: "Viewed", color: "bg-purple-100 text-purple-700" },
+  { value: "PAID", label: "Paid", color: "bg-green-100 text-green-700" },
+  { value: "PARTIALLY_PAID", label: "Partially Paid", color: "bg-yellow-100 text-yellow-700" },
+  { value: "OVERDUE", label: "Overdue", color: "bg-red-100 text-red-700" },
+  { value: "CANCELLED", label: "Cancelled", color: "bg-gray-100 text-gray-700" },
+  { value: "VOID", label: "Void", color: "bg-gray-100 text-gray-700" },
+];
+
 export default function InvoiceDetailPage({ params }: PageProps) {
   const { id } = use(params);
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
 
   const fetchInvoice = async () => {
     try {
@@ -118,40 +137,90 @@ export default function InvoiceDetailPage({ params }: PageProps) {
       }
       const data = await response.json();
       
-      // Convert Decimal fields to numbers and safely handle objects
+      // Helper to safely convert to string
+      const safeString = (val: unknown): string => {
+        if (val === null || val === undefined) return '';
+        if (typeof val === 'object') return '';
+        return String(val);
+      };
+      
+      // Helper to safely parse address
+      const parseAddress = (addr: unknown) => {
+        if (!addr || typeof addr !== 'object') return undefined;
+        const a = addr as Record<string, unknown>;
+        return {
+          street: safeString(a.street),
+          city: safeString(a.city),
+          state: safeString(a.state),
+          zip: safeString(a.zip),
+          country: safeString(a.country),
+        };
+      };
+      
+      // Fully sanitize invoice data
       setInvoice({
-        ...data,
-        subtotal: Number(data.subtotal),
-        taxAmount: Number(data.taxAmount),
-        discountAmount: Number(data.discountAmount),
-        total: Number(data.total),
-        amountPaid: Number(data.amountPaid),
-        amountDue: Number(data.amountDue),
+        id: String(data.id),
+        invoiceNumber: String(data.invoiceNumber),
+        status: String(data.status),
+        issueDate: String(data.issueDate),
+        dueDate: String(data.dueDate),
+        sentAt: data.sentAt ? String(data.sentAt) : undefined,
+        paidAt: data.paidAt ? String(data.paidAt) : undefined,
+        currency: String(data.currency || 'USD'),
+        subtotal: Number(data.subtotal) || 0,
         taxRate: data.taxRate ? Number(data.taxRate) : undefined,
+        taxAmount: Number(data.taxAmount) || 0,
+        discountType: data.discountType ? String(data.discountType) : undefined,
         discountValue: data.discountValue ? Number(data.discountValue) : undefined,
+        discountAmount: Number(data.discountAmount) || 0,
+        total: Number(data.total) || 0,
+        amountPaid: Number(data.amountPaid) || 0,
+        amountDue: Number(data.amountDue) || 0,
+        notes: data.notes ? String(data.notes) : undefined,
+        terms: data.terms ? String(data.terms) : undefined,
         billingAddress: data.billingAddress && typeof data.billingAddress === 'object' 
           ? {
-              name: String(data.billingAddress.name || ''),
-              street: String(data.billingAddress.street || ''),
-              city: String(data.billingAddress.city || ''),
-              state: String(data.billingAddress.state || ''),
-              zip: String(data.billingAddress.zip || ''),
-              country: String(data.billingAddress.country || ''),
+              name: safeString((data.billingAddress as Record<string, unknown>).name),
+              street: safeString((data.billingAddress as Record<string, unknown>).street),
+              city: safeString((data.billingAddress as Record<string, unknown>).city),
+              state: safeString((data.billingAddress as Record<string, unknown>).state),
+              zip: safeString((data.billingAddress as Record<string, unknown>).zip),
+              country: safeString((data.billingAddress as Record<string, unknown>).country),
             }
           : undefined,
-        opportunity: data.opportunity ? {
-          ...data.opportunity,
-          value: Number(data.opportunity.value),
+        account: {
+          id: String(data.account.id),
+          name: String(data.account.name),
+          phone: data.account.phone ? String(data.account.phone) : undefined,
+          address: parseAddress(data.account.address),
+        },
+        contact: data.contact ? {
+          id: String(data.contact.id),
+          firstName: String(data.contact.firstName),
+          lastName: String(data.contact.lastName),
+          email: data.contact.email ? String(data.contact.email) : undefined,
+          phone: data.contact.phone ? String(data.contact.phone) : undefined,
         } : undefined,
-        items: data.items.map((item: Record<string, unknown>) => ({
-          ...item,
-          quantity: Number(item.quantity),
-          unitPrice: Number(item.unitPrice),
-          amount: Number(item.amount),
+        opportunity: data.opportunity ? {
+          id: String(data.opportunity.id),
+          name: String(data.opportunity.name),
+          value: Number(data.opportunity.value) || 0,
+        } : undefined,
+        items: (data.items || []).map((item: Record<string, unknown>) => ({
+          id: String(item.id),
+          description: String(item.description),
+          quantity: Number(item.quantity) || 0,
+          unitPrice: Number(item.unitPrice) || 0,
+          amount: Number(item.amount) || 0,
+          itemCode: item.itemCode ? String(item.itemCode) : undefined,
         })),
-        payments: data.payments.map((payment: Record<string, unknown>) => ({
-          ...payment,
-          amount: Number(payment.amount),
+        payments: (data.payments || []).map((payment: Record<string, unknown>) => ({
+          id: String(payment.id),
+          amount: Number(payment.amount) || 0,
+          paymentDate: String(payment.paymentDate),
+          method: String(payment.method),
+          reference: payment.reference ? String(payment.reference) : undefined,
+          notes: payment.notes ? String(payment.notes) : undefined,
         })),
       });
     } catch (error) {
@@ -159,6 +228,31 @@ export default function InvoiceDetailPage({ params }: PageProps) {
       toast.error("Failed to load invoice");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleStatusChange = async (newStatus: string) => {
+    if (!invoice || newStatus === invoice.status) return;
+    
+    setUpdatingStatus(true);
+    try {
+      const response = await fetch(`/api/invoices/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to update status");
+      }
+
+      toast.success(`Status updated to ${STATUS_OPTIONS.find(s => s.value === newStatus)?.label}`);
+      fetchInvoice();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to update status");
+    } finally {
+      setUpdatingStatus(false);
     }
   };
 
@@ -437,6 +531,39 @@ export default function InvoiceDetailPage({ params }: PageProps) {
 
         {/* Sidebar */}
         <div className="space-y-6">
+          {/* Status Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Status</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Select
+                value={invoice.status}
+                onValueChange={handleStatusChange}
+                disabled={updatingStatus}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  {STATUS_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${option.color}`}>
+                        {option.label}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {updatingStatus && (
+                <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  Updating...
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Account Card */}
           <Card>
             <CardHeader>
