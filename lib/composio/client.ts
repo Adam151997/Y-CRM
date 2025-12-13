@@ -226,28 +226,21 @@ export class ComposioClient {
 
   /**
    * Initiate connection to an app (OAuth flow)
+   * Uses Composio defaults - no custom integrationId needed
    */
   async initiateConnection(
     appKey: string,
     entityId: string,
-    redirectUrl: string,
-    integrationId?: string
+    redirectUrl: string
   ): Promise<ConnectionRequest> {
-    const payload: Record<string, unknown> = {
-      appName: appKey,
-      entityId,
-      redirectUrl,
-    };
-
-    // Use integration ID if provided (for custom OAuth configs)
-    if (integrationId) {
-      payload.integrationId = integrationId;
-    }
-
     return this.request<ConnectionRequest>(
       "POST",
       "/connectedAccounts",
-      payload
+      {
+        appName: appKey,
+        entityId,
+        redirectUrl,
+      }
     );
   }
 

@@ -65,18 +65,13 @@ import {
   sendSlackMessageTool,
   createGitHubIssueTool,
   executeExternalToolTool,
-  // New Integration Tools
-  sendWhatsAppMessageTool,
+  // Integration Tools (8 apps)
   createNotionPageTool,
   createTrelloCardTool,
   createAsanaTaskTool,
-  getGoogleAdsCampaignsTool,
-  getMetaAdsCampaignsTool,
   addToMailchimpAudienceTool,
   getMailchimpAudiencesTool,
   searchLinkedInProfileTool,
-  enrichCompanyDataTool,
-  enrichContactDataTool,
 } from "./tools";
 import { createAuditLog } from "@/lib/audit";
 import { createNotification, NotificationType } from "@/lib/notifications";
@@ -101,8 +96,8 @@ export interface AgentResult {
 type PrimaryAction = 
   | "task" | "lead" | "contact" | "account" | "opportunity" 
   | "ticket" | "note" | "campaign" | "segment" | "form"
-  | "search" | "stats" | "email" | "calendar" | "whatsapp"
-  | "notion" | "trello" | "asana" | "ads" | "mailchimp" | "enrich" | null;
+  | "search" | "stats" | "email" | "calendar" | "slack"
+  | "notion" | "trello" | "asana" | "mailchimp" | "linkedin" | null;
 
 /**
  * Get all available tools for the CRM agent
@@ -156,26 +151,19 @@ export function getCRMTools(orgId: string, userId: string) {
     searchCustomModuleRecords: searchCustomModuleRecordsTool(orgId),
     listCustomModules: listCustomModulesTool(orgId),
 
-    // EXTERNAL INTEGRATION TOOLS (Composio)
+    // EXTERNAL INTEGRATION TOOLS (Composio - 8 Apps)
     getConnectedIntegrations: getConnectedIntegrationsTool(orgId),
     sendEmail: sendEmailTool(orgId),
     createCalendarEvent: createCalendarEventTool(orgId),
     sendSlackMessage: sendSlackMessageTool(orgId),
     createGitHubIssue: createGitHubIssueTool(orgId),
     executeExternalTool: executeExternalToolTool(orgId),
-    
-    // NEW INTEGRATION TOOLS
-    sendWhatsAppMessage: sendWhatsAppMessageTool(orgId),
     createNotionPage: createNotionPageTool(orgId),
     createTrelloCard: createTrelloCardTool(orgId),
     createAsanaTask: createAsanaTaskTool(orgId),
-    getGoogleAdsCampaigns: getGoogleAdsCampaignsTool(orgId),
-    getMetaAdsCampaigns: getMetaAdsCampaignsTool(orgId),
     addToMailchimpAudience: addToMailchimpAudienceTool(orgId),
     getMailchimpAudiences: getMailchimpAudiencesTool(orgId),
     searchLinkedInProfile: searchLinkedInProfileTool(orgId),
-    enrichCompanyData: enrichCompanyDataTool(orgId),
-    enrichContactData: enrichContactDataTool(orgId),
   };
 }
 
@@ -232,9 +220,9 @@ function detectPrimaryAction(message: string): PrimaryAction {
   // Calendar patterns
   if (lower.match(/\b(schedule|create|add)\s+(a\s+)?(meeting|event|calendar)/)) return "calendar";
   
-  // WhatsApp patterns
-  if (lower.match(/\b(send|message)\s+(a\s+)?(whatsapp|wa)/)) return "whatsapp";
-  if (lower.includes("whatsapp")) return "whatsapp";
+  // Slack patterns
+  if (lower.match(/\b(send|post)\s+(a\s+)?(slack|message\s+to\s+slack)/)) return "slack";
+  if (lower.includes("slack")) return "slack";
   
   // Notion patterns
   if (lower.match(/\b(create|add)\s+(a\s+)?(notion|page\s+in\s+notion)/)) return "notion";
@@ -248,17 +236,13 @@ function detectPrimaryAction(message: string): PrimaryAction {
   if (lower.match(/\b(create|add)\s+(a\s+)?(asana|task\s+in\s+asana)/)) return "asana";
   if (lower.includes("asana")) return "asana";
   
-  // Ads patterns
-  if (lower.match(/\b(get|show|check)\s+(my\s+)?(ads?|campaigns?)/)) return "ads";
-  if (lower.includes("google ads") || lower.includes("meta ads") || lower.includes("facebook ads")) return "ads";
-  
   // Mailchimp patterns
   if (lower.match(/\b(add|subscribe)\s+(to\s+)?(mailchimp|audience|list)/)) return "mailchimp";
   if (lower.includes("mailchimp")) return "mailchimp";
   
-  // Data enrichment patterns
-  if (lower.match(/\b(enrich|lookup|find data|get data)/)) return "enrich";
-  if (lower.includes("linkedin") || lower.includes("zoominfo")) return "enrich";
+  // LinkedIn patterns
+  if (lower.match(/\b(search|find|lookup)\s+(linkedin|profile)/)) return "linkedin";
+  if (lower.includes("linkedin")) return "linkedin";
   
   return null;
 }
@@ -373,10 +357,8 @@ export function getFilteredTools(
       filtered.searchContacts = allTools.searchContacts;
       break;
       
-    case "whatsapp":
-      filtered.sendWhatsAppMessage = allTools.sendWhatsAppMessage;
-      filtered.searchContacts = allTools.searchContacts;
-      filtered.searchLeads = allTools.searchLeads;
+    case "slack":
+      filtered.sendSlackMessage = allTools.sendSlackMessage;
       break;
       
     case "notion":
@@ -391,11 +373,6 @@ export function getFilteredTools(
       filtered.createAsanaTask = allTools.createAsanaTask;
       break;
       
-    case "ads":
-      filtered.getGoogleAdsCampaigns = allTools.getGoogleAdsCampaigns;
-      filtered.getMetaAdsCampaigns = allTools.getMetaAdsCampaigns;
-      break;
-      
     case "mailchimp":
       filtered.addToMailchimpAudience = allTools.addToMailchimpAudience;
       filtered.getMailchimpAudiences = allTools.getMailchimpAudiences;
@@ -403,12 +380,9 @@ export function getFilteredTools(
       filtered.searchLeads = allTools.searchLeads;
       break;
       
-    case "enrich":
+    case "linkedin":
       filtered.searchLinkedInProfile = allTools.searchLinkedInProfile;
-      filtered.enrichCompanyData = allTools.enrichCompanyData;
-      filtered.enrichContactData = allTools.enrichContactData;
       filtered.searchContacts = allTools.searchContacts;
-      filtered.searchAccounts = allTools.searchAccounts;
       break;
       
     default:
@@ -444,9 +418,9 @@ function detectToolRequiredIntent(message: string): boolean {
     "ticket", "note", "campaign", "segment", "form",
     "playbook", "email", "event", "message",
     "dashboard", "stats", "statistics", "report",
-    // Integration apps
-    "whatsapp", "notion", "trello", "asana", "ads",
-    "mailchimp", "linkedin", "zoominfo", "calendar",
+    // Integration apps (8 apps)
+    "gmail", "slack", "notion", "trello", "asana",
+    "mailchimp", "linkedin", "calendar",
   ];
   
   const hasActionVerb = actionVerbs.some(verb => lower.includes(verb));

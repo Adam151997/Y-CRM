@@ -1,6 +1,6 @@
 /**
  * Composio Integration Module
- * Provides universal tool connections via Composio
+ * Provides universal tool connections via Composio (using Composio defaults)
  */
 
 // Client

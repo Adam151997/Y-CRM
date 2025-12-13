@@ -4,7 +4,7 @@
  */
 
 import { getComposioClient, ConnectedAccount, ConnectionRequest } from "./client";
-import { COMPOSIO_APPS, getAppByKey, ComposioAppConfig } from "./apps";
+import { COMPOSIO_APPS, getAppByKey } from "./apps";
 import prisma from "@/lib/db";
 
 /**
@@ -17,7 +17,6 @@ export interface AppConnectionStatus {
   category: string;
   description: string;
   authMethod: string;
-  integrationId: string;
   isConnected: boolean;
   connectionId?: string;
   connectedAt?: Date;
@@ -78,7 +77,6 @@ export async function getConnectionStatuses(
       category: app.category,
       description: app.description,
       authMethod: app.authMethod,
-      integrationId: app.integrationId,
       isConnected,
       connectionId: composioConnection?.id || localConnection?.connectionId || undefined,
       connectedAt: composioConnection?.createdAt 
@@ -93,7 +91,7 @@ export async function getConnectionStatuses(
 }
 
 /**
- * Initiate OAuth connection to an app
+ * Initiate OAuth connection to an app (using Composio defaults)
  */
 export async function initiateConnection(
   orgId: string,
@@ -111,12 +109,11 @@ export async function initiateConnection(
   // Ensure entity exists
   await client.getOrCreateEntity(entityId);
   
-  // Start OAuth flow with integration ID
+  // Start OAuth flow with Composio defaults
   const request = await client.initiateConnection(
     app.key, 
     entityId, 
-    callbackUrl,
-    app.integrationId
+    callbackUrl
   );
   
   // Store pending connection in database for tracking
@@ -132,16 +129,10 @@ export async function initiateConnection(
       provider: appKey,
       status: "PENDING",
       connectionId: request.connectionId,
-      metadata: {
-        integrationId: app.integrationId,
-      },
     },
     update: {
       status: "PENDING",
       connectionId: request.connectionId,
-      metadata: {
-        integrationId: app.integrationId,
-      },
       updatedAt: new Date(),
     },
   });
@@ -213,6 +204,7 @@ export async function handleOAuthCallback(
 
 /**
  * Save API Key / Basic Auth credentials for an app
+ * (Not needed with current OAuth-only apps, kept for future use)
  */
 export async function saveCredentials(
   orgId: string,
@@ -235,7 +227,7 @@ export async function saveCredentials(
     const response = await client.createConnectionWithCredentials(
       app.key,
       entityId,
-      app.integrationId,
+      "", // No integrationId with defaults
       credentials
     );
 
@@ -253,7 +245,6 @@ export async function saveCredentials(
         status: "ACTIVE",
         connectionId: response.connectionId,
         metadata: {
-          integrationId: app.integrationId,
           connectedAt: new Date().toISOString(),
         },
       },
@@ -261,7 +252,6 @@ export async function saveCredentials(
         status: "ACTIVE",
         connectionId: response.connectionId,
         metadata: {
-          integrationId: app.integrationId,
           connectedAt: new Date().toISOString(),
         },
         updatedAt: new Date(),
@@ -372,7 +362,6 @@ export async function syncConnectionStatuses(orgId: string): Promise<void> {
           connectionId: conn.id,
           metadata: {
             connectedAt: conn.createdAt,
-            integrationId: app.integrationId,
           },
         },
         update: {

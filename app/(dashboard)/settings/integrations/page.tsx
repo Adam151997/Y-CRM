@@ -31,8 +31,6 @@ import {
   Mail,
   Calendar,
   MessageSquare,
-  Megaphone,
-  BarChart3,
   Database,
   Key,
 } from "lucide-react";
@@ -45,7 +43,6 @@ interface Integration {
   category: string;
   description: string;
   authMethod: string;
-  integrationId: string;
   isConnected: boolean;
   connectionId?: string;
   connectedAt?: string;
@@ -72,36 +69,22 @@ const categoryConfig: Record<string, { label: string; icon: React.ReactNode; col
     color: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
     order: 3,
   },
-  advertising: { 
-    label: "Advertising", 
-    icon: <Megaphone className="h-5 w-5" />,
-    color: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300",
-    order: 4,
-  },
   marketing: { 
     label: "Marketing", 
     icon: <Mail className="h-5 w-5" />,
     color: "bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-300",
-    order: 5,
+    order: 4,
   },
   data_enrichment: { 
     label: "Data Enrichment", 
     icon: <Database className="h-5 w-5" />,
     color: "bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-300",
-    order: 6,
+    order: 5,
   },
 };
 
-// Credential fields for form-based auth apps
-const credentialFields: Record<string, { label: string; key: string; type: string; placeholder: string }[]> = {
-  facebookads: [
-    { label: "Access Token", key: "access_token", type: "password", placeholder: "Enter your Meta Ads access token" },
-  ],
-  zoominfo: [
-    { label: "Username", key: "username", type: "text", placeholder: "Enter your ZoomInfo username" },
-    { label: "Password", key: "password", type: "password", placeholder: "Enter your ZoomInfo password" },
-  ],
-};
+// Credential fields for form-based auth apps (not used with current OAuth-only apps)
+const credentialFields: Record<string, { label: string; key: string; type: string; placeholder: string }[]> = {};
 
 /**
  * App logo component with fallback
@@ -517,7 +500,7 @@ function IntegrationsContent() {
               <div>
                 <p className="font-medium">Communication</p>
                 <p className="text-sm text-muted-foreground">
-                  Send emails, Slack messages, WhatsApp
+                  Send emails via Gmail, Slack messages
                 </p>
               </div>
             </div>
@@ -526,7 +509,7 @@ function IntegrationsContent() {
               <div>
                 <p className="font-medium">Calendar</p>
                 <p className="text-sm text-muted-foreground">
-                  Schedule meetings, check availability
+                  Schedule meetings, create events
                 </p>
               </div>
             </div>
@@ -535,16 +518,7 @@ function IntegrationsContent() {
               <div>
                 <p className="font-medium">Productivity</p>
                 <p className="text-sm text-muted-foreground">
-                  Create tasks in Notion, Trello, Asana
-                </p>
-              </div>
-            </div>
-            <div className="flex gap-3 p-3 rounded-lg bg-muted/50">
-              <Megaphone className="h-5 w-5 text-orange-600 mt-0.5 flex-shrink-0" />
-              <div>
-                <p className="font-medium">Advertising</p>
-                <p className="text-sm text-muted-foreground">
-                  Manage Google Ads, Meta Ads campaigns
+                  Create pages in Notion, cards in Trello, tasks in Asana
                 </p>
               </div>
             </div>
@@ -553,7 +527,7 @@ function IntegrationsContent() {
               <div>
                 <p className="font-medium">Marketing</p>
                 <p className="text-sm text-muted-foreground">
-                  Create Mailchimp campaigns, audiences
+                  Add contacts to Mailchimp audiences
                 </p>
               </div>
             </div>
@@ -562,7 +536,7 @@ function IntegrationsContent() {
               <div>
                 <p className="font-medium">Data Enrichment</p>
                 <p className="text-sm text-muted-foreground">
-                  Enrich leads with LinkedIn, ZoomInfo
+                  Search LinkedIn profiles for contact data
                 </p>
               </div>
             </div>
