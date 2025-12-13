@@ -58,11 +58,22 @@ export async function POST(request: NextRequest) {
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
     const callbackUrl = `${baseUrl}/api/integrations/callback?provider=${appKey}`;
 
+    console.log("[Integrations API] Initiating connection:", {
+      orgId: authContext.orgId,
+      appKey,
+      callbackUrl,
+    });
+
     const connectionRequest = await initiateConnection(
       authContext.orgId,
       appKey,
       callbackUrl
     );
+
+    console.log("[Integrations API] Connection initiated:", {
+      connectionId: connectionRequest.connectionId,
+      hasRedirectUrl: !!connectionRequest.redirectUrl,
+    });
 
     return NextResponse.json({
       success: true,
@@ -70,9 +81,16 @@ export async function POST(request: NextRequest) {
       connectionId: connectionRequest.connectionId,
     });
   } catch (error) {
-    console.error("Failed to initiate connection:", error);
+    // Log detailed error
+    console.error("[Integrations API] Failed to initiate connection:", {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    
+    // Return detailed error for debugging
+    const errorMessage = error instanceof Error ? error.message : "Failed to initiate connection";
     return NextResponse.json(
-      { error: "Failed to initiate connection" },
+      { error: errorMessage },
       { status: 500 }
     );
   }

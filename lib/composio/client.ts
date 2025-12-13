@@ -110,14 +110,19 @@ export class ComposioClient {
       options.body = JSON.stringify(body);
     }
 
+    console.log(`[Composio] ${method} ${endpoint}`, body ? JSON.stringify(body) : "");
+
     const response = await fetch(url, options);
 
     if (!response.ok) {
       const errorText = await response.text();
+      console.error(`[Composio] Error ${response.status}:`, errorText);
       throw new Error(`Composio API Error: ${response.status} - ${errorText}`);
     }
 
-    return response.json();
+    const data = await response.json();
+    console.log(`[Composio] Response:`, JSON.stringify(data).substring(0, 500));
+    return data;
   }
 
   // ============================================================================
@@ -233,15 +238,21 @@ export class ComposioClient {
     entityId: string,
     redirectUrl: string
   ): Promise<ConnectionRequest> {
-    return this.request<ConnectionRequest>(
+    console.log("[Composio] Initiating connection:", { appKey, entityId, redirectUrl });
+    
+    // Try with redirectUri (Composio might expect this field name)
+    const response = await this.request<ConnectionRequest>(
       "POST",
       "/connectedAccounts",
       {
         appName: appKey,
         entityId,
-        redirectUrl,
+        redirectUri: redirectUrl,  // Try redirectUri instead of redirectUrl
       }
     );
+    
+    console.log("[Composio] Connection response:", response);
+    return response;
   }
 
   /**
