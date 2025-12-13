@@ -376,32 +376,32 @@ export async function GET(request: NextRequest, context: RouteContext) {
       <table class="totals-table">
         <tr>
           <td>Subtotal</td>
-          <td>${formatCurrency(invoice.subtotal, invoice.currency)}</td>
+          <td>${formatCurrency(Number(invoice.subtotal), invoice.currency)}</td>
         </tr>
         ${Number(invoice.discountAmount) > 0 ? `
         <tr class="discount">
           <td>Discount${invoice.discountType === 'PERCENTAGE' && invoice.discountValue ? ` (${Number(invoice.discountValue)}%)` : ''}</td>
-          <td>-${formatCurrency(invoice.discountAmount, invoice.currency)}</td>
+          <td>-${formatCurrency(Number(invoice.discountAmount), invoice.currency)}</td>
         </tr>
         ` : ''}
         ${Number(invoice.taxAmount) > 0 ? `
         <tr>
           <td>Tax${invoice.taxRate ? ` (${Number(invoice.taxRate)}%)` : ''}</td>
-          <td>${formatCurrency(invoice.taxAmount, invoice.currency)}</td>
+          <td>${formatCurrency(Number(invoice.taxAmount), invoice.currency)}</td>
         </tr>
         ` : ''}
         <tr class="total-row">
           <td>Total</td>
-          <td>${formatCurrency(invoice.total, invoice.currency)}</td>
+          <td>${formatCurrency(Number(invoice.total), invoice.currency)}</td>
         </tr>
         ${Number(invoice.amountPaid) > 0 ? `
         <tr>
           <td>Amount Paid</td>
-          <td style="color: #15803d;">-${formatCurrency(invoice.amountPaid, invoice.currency)}</td>
+          <td style="color: #15803d;">-${formatCurrency(Number(invoice.amountPaid), invoice.currency)}</td>
         </tr>
         <tr class="amount-due">
           <td>Amount Due</td>
-          <td>${formatCurrency(invoice.amountDue, invoice.currency)}</td>
+          <td>${formatCurrency(Number(invoice.amountDue), invoice.currency)}</td>
         </tr>
         ` : ''}
       </table>
