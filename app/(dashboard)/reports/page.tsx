@@ -435,11 +435,19 @@ const getInvoiceStats = cache(async (orgId: string) => {
   }
 
   // Transform byStatus for component consumption
-  const transformedByStatus = byStatus.map(item => ({
-    status: item.status,
-    _count: item._count?._all ?? 0,
-    _sum: { total: item._sum?.total ? Number(item._sum.total) : null },
-  }));
+  const transformedByStatus = byStatus.map(item => {
+    // Handle _count which can be true or an object with _all
+    let count = 0;
+    if (typeof item._count === 'object' && item._count !== null) {
+      count = item._count._all ?? 0;
+    }
+    
+    return {
+      status: item.status,
+      _count: count,
+      _sum: { total: item._sum?.total ? Number(item._sum.total) : null },
+    };
+  });
 
   return {
     totalInvoiced,
