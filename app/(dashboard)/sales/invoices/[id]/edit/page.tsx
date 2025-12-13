@@ -108,13 +108,14 @@ export default function EditInvoicePage({ params }: PageProps) {
         const accountsRes = await fetch("/api/accounts?limit=100");
         if (accountsRes.ok) {
           const accountsData = await accountsRes.json();
+          const accountsList = accountsData.data || accountsData.accounts || [];
           // Fetch contacts for each account
           const accountsWithContacts = await Promise.all(
-            accountsData.accounts.map(async (account: { id: string; name: string }) => {
+            accountsList.map(async (account: { id: string; name: string }) => {
               const contactsRes = await fetch(`/api/contacts?accountId=${account.id}&limit=50`);
               if (contactsRes.ok) {
                 const contactsData = await contactsRes.json();
-                return { ...account, contacts: contactsData.contacts || [] };
+                return { ...account, contacts: contactsData.data || contactsData.contacts || [] };
               }
               return account;
             })

@@ -81,7 +81,7 @@ function InvoicesContent() {
       const response = await fetch("/api/accounts?limit=100");
       if (response.ok) {
         const result = await response.json();
-        setAccounts(result.accounts || []);
+        setAccounts(result.data || result.accounts || []);
       }
     } catch (error) {
       console.error("Error fetching accounts:", error);

@@ -30,14 +30,15 @@ function NewInvoiceContent() {
       try {
         const response = await fetch("/api/accounts?limit=100");
         if (response.ok) {
-          const data = await response.json();
+          const result = await response.json();
+          const accountsList = result.data || result.accounts || [];
           // Fetch contacts for each account
           const accountsWithContacts = await Promise.all(
-            data.accounts.map(async (account: Account) => {
+            accountsList.map(async (account: Account) => {
               const contactsRes = await fetch(`/api/contacts?accountId=${account.id}&limit=50`);
               if (contactsRes.ok) {
                 const contactsData = await contactsRes.json();
-                return { ...account, contacts: contactsData.contacts || [] };
+                return { ...account, contacts: contactsData.data || contactsData.contacts || [] };
               }
               return account;
             })
