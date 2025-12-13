@@ -384,6 +384,7 @@ const getInvoiceStats = cache(async (orgId: string) => {
     prisma.invoice.groupBy({
       by: ["status"],
       where: { orgId },
+      orderBy: { status: "asc" },
       _count: { _all: true },
       _sum: { total: true },
     }),
