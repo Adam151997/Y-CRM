@@ -1,97 +1,26 @@
 /**
- * Composio Tools API
- * GET - List available tools for connected apps
- * POST - Execute a tool
+ * Integration Tools API - DEPRECATED
+ * Tools are now accessed directly via native integration clients.
+ * Use the Google and Slack clients directly instead.
  */
 
-import { NextRequest, NextResponse } from "next/server";
-import { getApiAuthContext } from "@/lib/auth";
-import {
-  getEntityId,
-  getConnectedAppTools,
-  executeComposioTool,
-  getActiveConnections,
-} from "@/lib/composio";
+import { NextResponse } from "next/server";
 
-/**
- * GET /api/integrations/tools
- * List available tools for the user's connected apps
- */
 export async function GET() {
-  try {
-    const authContext = await getApiAuthContext();
-    if (!authContext) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const entityId = getEntityId(authContext.orgId);
-    
-    // Get tools only for connected apps
-    const tools = await getConnectedAppTools(entityId);
-    const connectedApps = await getActiveConnections(authContext.orgId);
-
-    return NextResponse.json({
-      tools,
-      connectedApps,
-      totalTools: tools.length,
-    });
-  } catch (error) {
-    console.error("Failed to fetch tools:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch tools" },
-      { status: 500 }
-    );
-  }
+  return NextResponse.json(
+    { 
+      error: "This endpoint is deprecated. Use native integration clients directly.",
+      tools: [],
+      connectedApps: [],
+      totalTools: 0
+    },
+    { status: 410 }
+  );
 }
 
-/**
- * POST /api/integrations/tools
- * Execute a Composio tool
- */
-export async function POST(request: NextRequest) {
-  try {
-    const authContext = await getApiAuthContext();
-    if (!authContext) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const body = await request.json();
-    const { toolName, arguments: args } = body;
-
-    if (!toolName) {
-      return NextResponse.json(
-        { error: "toolName is required" },
-        { status: 400 }
-      );
-    }
-
-    const entityId = getEntityId(authContext.orgId);
-    
-    const result = await executeComposioTool(
-      toolName,
-      args || {},
-      entityId
-    );
-
-    if (result.success) {
-      return NextResponse.json({
-        success: true,
-        data: result.data,
-      });
-    } else {
-      return NextResponse.json(
-        {
-          success: false,
-          error: result.error,
-        },
-        { status: 400 }
-      );
-    }
-  } catch (error) {
-    console.error("Failed to execute tool:", error);
-    return NextResponse.json(
-      { error: "Failed to execute tool" },
-      { status: 500 }
-    );
-  }
+export async function POST() {
+  return NextResponse.json(
+    { error: "This endpoint is deprecated. Use native integration clients directly." },
+    { status: 410 }
+  );
 }

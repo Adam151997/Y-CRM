@@ -1,11 +1,15 @@
 /**
- * Single Integration API
- * DELETE - Disconnect an integration
+ * Single Integration API - DEPRECATED
+ * Use /api/integrations/disconnect for disconnecting integrations.
+ * Connection status is now returned from /api/integrations
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { getApiAuthContext } from "@/lib/auth";
-import { disconnectApp, hasConnection } from "@/lib/composio";
+import { getGoogleConnectionInfo } from "@/lib/integrations/google";
+import { getSlackConnectionInfo } from "@/lib/integrations/slack";
+import { disconnectGoogle } from "@/lib/integrations/google";
+import { disconnectSlack } from "@/lib/integrations/slack";
 
 interface RouteParams {
   params: Promise<{ provider: string }>;
@@ -23,7 +27,16 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     const { provider } = await params;
-    const isConnected = await hasConnection(authContext.orgId, provider);
+    
+    let isConnected = false;
+    
+    if (provider === "google") {
+      const info = await getGoogleConnectionInfo(authContext.orgId);
+      isConnected = info?.connected || false;
+    } else if (provider === "slack") {
+      const info = await getSlackConnectionInfo(authContext.orgId);
+      isConnected = info?.connected || false;
+    }
 
     return NextResponse.json({
       provider,
@@ -51,7 +64,16 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
     const { provider } = await params;
 
-    await disconnectApp(authContext.orgId, provider);
+    if (provider === "google") {
+      await disconnectGoogle(authContext.orgId);
+    } else if (provider === "slack") {
+      await disconnectSlack(authContext.orgId);
+    } else {
+      return NextResponse.json(
+        { error: `Unknown provider: ${provider}` },
+        { status: 400 }
+      );
+    }
 
     return NextResponse.json({
       success: true,

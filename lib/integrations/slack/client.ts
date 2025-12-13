@@ -155,7 +155,7 @@ export class SlackClient {
    * Find channel by name
    */
   async findChannelByName(name: string): Promise<SlackChannel | null> {
-    const channels = await this.listChannels(true);
+    const channels = await this.listChannels(100, true);
     const normalizedName = name.replace(/^#/, "").toLowerCase();
     
     return channels.find(c => c.name.toLowerCase() === normalizedName) || null;
