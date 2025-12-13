@@ -18,9 +18,6 @@ import {
   MessageSquare,
   Loader2,
   CheckCircle2,
-  Zap,
-  Brain,
-  Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
@@ -48,20 +45,14 @@ export default function AssistantPage() {
     onError: (error) => {
       toast.error(error.message);
     },
-    onFinish: (toolsCalled, modelUsed) => {
-      const modelLabel = modelUsed.includes("2.5") ? "Pro" : "Flash";
-      const modelIcon = modelUsed.includes("2.5") ? "🧠" : "⚡";
-      
+    onFinish: (toolsCalled) => {
       if (toolsCalled.length > 0) {
-        toast.success(`${modelIcon} ${modelLabel}: ${toolsCalled.join(", ")}`);
+        toast.success(`Completed: ${toolsCalled.join(", ")}`);
         
         // Refresh to show updated data across the app
-        // Small delay to ensure server-side cache is invalidated
         setTimeout(() => {
           router.refresh();
         }, 500);
-      } else {
-        toast.info(`${modelIcon} Powered by Gemini ${modelLabel}`);
       }
     },
   });
@@ -188,16 +179,7 @@ export default function AssistantPage() {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <div className="flex items-center gap-1 px-2 py-1 rounded bg-muted">
-              <Zap className="h-3 w-3 text-yellow-500" />
-              <span>Flash</span>
-            </div>
-            <div className="flex items-center gap-1 px-2 py-1 rounded bg-muted">
-              <Brain className="h-3 w-3 text-purple-500" />
-              <span>Pro (auto)</span>
-            </div>
-          </div>
+          
         </div>
 
         {/* Messages */}
@@ -216,26 +198,22 @@ export default function AssistantPage() {
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm max-w-2xl">
                 {[
-                  { text: "Create a lead for John Smith at Acme Corp", icon: "⚡" },
-                  { text: "Show me all my leads", icon: "⚡" },
-                  { text: "Add a task to follow up with Sarah tomorrow", icon: "⚡" },
-                  { text: "What are my dashboard stats?", icon: "⚡" },
-                  { text: "Analyze my sales pipeline performance", icon: "🧠" },
-                  { text: "Generate a report on lead conversion", icon: "🧠" },
+                  "Create a lead for John Smith at Acme Corp",
+                  "Show me all my leads",
+                  "Add a task to follow up with Sarah tomorrow",
+                  "What are my dashboard stats?",
+                  "Analyze my sales pipeline performance",
+                  "Generate a report on lead conversion",
                 ].map((suggestion) => (
                   <button
-                    key={suggestion.text}
-                    onClick={() => handleSuggestionClick(suggestion.text)}
+                    key={suggestion}
+                    onClick={() => handleSuggestionClick(suggestion)}
                     className="p-3 rounded-lg border text-left hover:bg-muted/50 transition-colors"
                   >
-                    <span className="mr-2">{suggestion.icon}</span>
-                    "{suggestion.text}"
+                    "{suggestion}"
                   </button>
                 ))}
               </div>
-              <p className="text-xs text-muted-foreground mt-4">
-                ⚡ Fast (Gemini 2.0 Flash) • 🧠 Advanced (Gemini 2.5 Pro) • 🎤 Voice enabled
-              </p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -329,9 +307,7 @@ export default function AssistantPage() {
               </Button>
             )}
           </form>
-          <p className="text-xs text-muted-foreground mt-2 text-center">
-            ⚡ CRUD → Flash • 🧠 Analytics → Pro • 🎤 Click mic to speak
-          </p>
+          
         </div>
       </Card>
     </div>

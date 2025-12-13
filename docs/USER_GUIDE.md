@@ -1,31 +1,43 @@
-# Y CRM User Guide
-
-## Welcome to Y CRM
-
-Y CRM is an AI-powered Customer Relationship Management system designed for small and medium businesses. It combines traditional CRM capabilities with intelligent AI assistants to help you manage Sales, Customer Success, and Marketing operations.
-
----
+# Y CRM - User Guide
 
 ## Getting Started
 
-### 1. Sign Up / Sign In
+### First Login
 
-1. Navigate to [y-crm.vercel.app](https://y-crm.vercel.app)
-2. Click "Get Started" or "Sign In"
-3. Create an account or sign in with your existing credentials
-4. You'll be taken to your dashboard
+1. Navigate to your Y CRM instance
+2. Sign in with your email or Google account
+3. If you're the first user, an organization will be created automatically
+4. You'll be assigned the **Admin** role with full access
 
-### 2. Understanding Workspaces
+### Inviting Team Members
 
-Y CRM is organized into three main workspaces:
+1. Go to **Settings → Team**
+2. Click **Invite Member**
+3. Enter their email address
+4. Select a role (Admin, Manager, Rep, or Read Only)
+5. They'll receive an email invitation
 
-| Workspace | Purpose | Key Modules |
-|-----------|---------|-------------|
-| **Sales** | Manage leads and deals | Leads, Contacts, Accounts, Opportunities, Pipeline |
-| **Customer Success** | Support existing customers | Tickets, Health Scores, Playbooks |
-| **Marketing** | Run campaigns | Campaigns, Segments, Forms |
+---
 
-Switch between workspaces using the dropdown in the sidebar.
+## Navigation
+
+### Workspaces
+
+Y CRM is organized into three workspaces accessible from the sidebar:
+
+| Workspace | Icon | Purpose |
+|-----------|------|---------|
+| **Sales** | 💼 | Lead-to-deal pipeline management |
+| **Customer Success** | 🎯 | Post-sale customer management |
+| **Marketing** | 📣 | Campaign and audience management |
+
+### Global Features
+
+- **Dashboard** - Customizable widget-based overview
+- **Tasks** - Cross-module task management
+- **Documents** - File storage and management
+- **AI Assistant** - Natural language CRM commands
+- **Search (Ctrl+K)** - Quick search across all modules
 
 ---
 
@@ -33,52 +45,77 @@ Switch between workspaces using the dropdown in the sidebar.
 
 ### Leads
 
-Leads are potential customers who have shown interest in your product.
+Leads represent potential customers who have shown interest but haven't been qualified yet.
 
-**To create a lead:**
-1. Go to Sales → Leads
-2. Click "Add Lead"
-3. Fill in the required fields (First Name, Last Name)
-4. Add optional details (Email, Phone, Company, Source)
-5. Click "Create Lead"
+**Creating a Lead:**
+1. Click **+ New Lead** or use AI: *"Create a lead for John Smith at Acme"*
+2. Fill in contact information
+3. Set source (Website, Referral, LinkedIn, etc.)
+4. Lead starts in **New** status
 
 **Lead Statuses:**
-- **New** - Just added, not contacted yet
-- **Contacted** - You've reached out
-- **Qualified** - Shows buying potential
-- **Converted** - Became a customer
-- **Lost** - Not moving forward
+- **New** - Just captured, not yet contacted
+- **Contacted** - Initial outreach made
+- **Qualified** - Meets criteria, ready for sales
+- **Unqualified** - Doesn't meet criteria
+- **Converted** - Became an opportunity
 
-**Converting Leads:**
-When a lead is ready to become a customer, click "Convert" to create a Contact and Account.
+**Converting a Lead:**
+1. Open the lead detail page
+2. Click **Convert to Opportunity**
+3. An Account, Contact, and Opportunity are created
 
 ### Contacts
 
-Contacts are individual people at companies you do business with.
+Contacts are individual people you interact with.
+
+**Key Fields:**
+- Name, Email, Phone
+- Title/Role
+- Associated Account
+- Primary Contact flag
 
 ### Accounts
 
-Accounts represent companies/organizations.
+Accounts represent companies or organizations.
 
 **Account Types:**
 - **Prospect** - Potential customer
-- **Customer** - Active customer
+- **Customer** - Active paying customer
 - **Partner** - Business partner
-- **Vendor** - Supplier
+- **Competitor** - Market competitor
+- **Other** - Miscellaneous
+
+**Account Tabs:**
+- **Overview** - Basic information and stats
+- **Contacts** - People at this company
+- **Opportunities** - Active deals
+- **Tasks** - Related tasks
+- **Notes** - Internal notes
+- **Renewals** - Contract renewals (if CS enabled)
 
 ### Opportunities
 
 Opportunities track potential deals through your sales pipeline.
 
 **Key Fields:**
-- **Value** - Deal amount
-- **Probability** - Likelihood to close (0-100%)
-- **Expected Close Date** - When you expect to close
-- **Stage** - Current pipeline stage
+- **Name** - Deal identifier
+- **Value** - Expected revenue
+- **Probability** - Likelihood to close (%)
+- **Expected Close Date** - Target close date
+- **Stage** - Pipeline position
 
-### Pipeline View
+**Pipeline View:**
+- Access via **Sales → Pipeline**
+- Drag-and-drop cards between stages
+- Visual overview of all active deals
 
-The Pipeline shows all opportunities in a Kanban board view. Drag and drop deals between stages.
+### Pipeline Configuration
+
+Customize your sales stages:
+1. Go to **Settings → Pipeline**
+2. Add, edit, or reorder stages
+3. Set default probability per stage
 
 ---
 
@@ -88,52 +125,69 @@ The Pipeline shows all opportunities in a Kanban board view. Drag and drop deals
 
 Support tickets track customer issues and requests.
 
-**Ticket Priority Levels:**
-- **Low** - Minor issues, no urgency
-- **Medium** - Standard issues
-- **High** - Important, needs attention
-- **Urgent** - Critical, immediate attention needed
+**Creating a Ticket:**
+1. Click **+ New Ticket**
+2. Select Account and Contact
+3. Set priority and category
+4. Describe the issue
 
 **Ticket Statuses:**
-- **Open** - New ticket
+- **Open** - New, awaiting response
 - **In Progress** - Being worked on
-- **Waiting** - Waiting for customer response
+- **Waiting** - Waiting for customer
 - **Resolved** - Issue fixed
-- **Closed** - Completed
+- **Closed** - Confirmed complete
+
+**Adding Messages:**
+- Public replies go to the customer
+- Internal notes (toggle) are team-only
 
 ### Health Scores
 
-Health Scores give you a quick view of account health.
+Health scores help identify at-risk accounts.
+
+**Five Components:**
+1. **Engagement** - Product usage and activity
+2. **Support** - Ticket volume and satisfaction
+3. **Adoption** - Feature utilization
+4. **Relationship** - Communication quality
+5. **Growth** - Expansion potential
 
 **Risk Levels:**
-- 🟢 **Low Risk** (Score 70-100) - Healthy customer
-- 🟡 **Medium Risk** (Score 40-69) - Some concerns
-- 🟠 **High Risk** (Score 20-39) - Needs attention
-- 🔴 **Critical** (Score 0-19) - At risk of churn
-
-**Health Components:**
-- Product Usage
-- Support Tickets
-- NPS Score
-- Engagement
-- Payment Status
+- 🟢 **Healthy** (80-100)
+- 🟡 **Medium Risk** (50-79)
+- 🔴 **At Risk** (0-49)
 
 ### Playbooks
 
-Playbooks are automated workflows for common CS scenarios.
+Automated workflows for common CS scenarios.
 
-**Example Playbooks:**
-- Onboarding new customers
-- Quarterly business reviews
-- At-risk customer outreach
-- Renewal preparation
+**Built-in Triggers:**
+- New customer onboarding
+- Health score drops
+- Renewal approaching
+- Ticket escalation
 
-**To run a playbook:**
-1. Go to Playbooks
-2. Select a playbook
-3. Click "Run Playbook"
-4. Choose the account
-5. The system creates tasks automatically
+**Creating a Playbook:**
+1. Go to **CS → Playbooks**
+2. Click **+ New Playbook**
+3. Define trigger conditions
+4. Add steps (tasks, emails, alerts)
+
+### Renewals
+
+Track contract renewals and prevent churn.
+
+**Renewal Statuses:**
+- **Upcoming** - Renewal date approaching
+- **In Progress** - Negotiation started
+- **Renewed** - Successfully renewed
+- **Churned** - Customer lost
+
+**Key Metrics:**
+- Contract value
+- Renewal probability
+- Days until renewal
 
 ---
 
@@ -141,244 +195,250 @@ Playbooks are automated workflows for common CS scenarios.
 
 ### Campaigns
 
-Campaigns track your marketing initiatives.
+Manage marketing campaigns across channels.
 
 **Campaign Types:**
 - Email
-- Social Media
-- Events
-- Webinars
-- SMS
-- Ads
+- Social
+- Event
+- Webinar
+- Content
+- Other
 
-**Campaign Statuses:**
-- **Draft** - Being created
-- **Scheduled** - Ready to launch
-- **Active** - Currently running
-- **Paused** - Temporarily stopped
-- **Completed** - Finished
+**Campaign Workflow:**
+1. Create campaign in **Draft** status
+2. Build content and select audience
+3. Move to **Scheduled** or **Active**
+4. Track performance metrics
 
 ### Segments
 
-Segments group contacts based on criteria.
+Define target audiences for campaigns.
 
 **Segment Types:**
-- **Dynamic** - Automatically updates based on rules
-- **Static** - Fixed list of contacts
+- **Static** - Manually selected contacts
+- **Dynamic** - Rule-based, auto-updating
 
-**Example Rules:**
-- Company size > 100 employees
-- Industry = Technology
-- Lead source = Website
+**Creating Dynamic Segments:**
+1. Click **+ New Segment**
+2. Add filter rules (industry, company size, etc.)
+3. Preview matching contacts
+4. Save segment
 
 ### Forms
 
-Forms capture leads from your website.
+Capture leads through web forms.
 
-**Form Features:**
-- Custom fields
-- Required field validation
-- Auto-create leads
-- Redirect URL after submission
+**Form Builder:**
+1. Create form with custom fields
+2. Copy embed code or hosted URL
+3. Submissions create leads automatically
 
 ---
 
 ## AI Assistant
 
-The AI Assistant can help you with tasks across all workspaces.
+### Accessing the Assistant
 
-### How to Use
+- Click **AI Assistant** in the sidebar
+- Or use the assistant in any workspace
 
-1. Click the AI Assistant icon (💬) in the header
-2. Type your request in natural language
-3. The assistant will understand and take action
+### Voice Commands
+
+1. Click the **microphone** icon
+2. Speak your command
+3. AI processes and executes
 
 ### Example Commands
 
-**Sales:**
-- "Create a new lead for John Smith at Acme Inc"
-- "Show me all qualified leads"
-- "Update the opportunity for Acme to $50,000"
-- "Add a follow-up task for tomorrow"
+**Creating Records:**
+- *"Create a lead for Sarah Johnson at TechCorp"*
+- *"Add a task to call John tomorrow at 2pm"*
+- *"Create an opportunity for $50,000 with Acme"*
 
-**Customer Success:**
-- "Create a ticket for account Acme about API issues"
-- "Show me all at-risk accounts"
-- "Run the onboarding playbook for new customer XYZ"
-- "What's the health score for Acme?"
+**Searching:**
+- *"Show me all leads from this week"*
+- *"Find opportunities closing this month"*
+- *"What's the health score for TechStart?"*
 
-**Marketing:**
-- "Create an email campaign for the summer promotion"
-- "Show me all active campaigns"
-- "Create a segment for enterprise leads"
+**Analytics:**
+- *"What are my dashboard stats?"*
+- *"How many leads did we get this month?"*
+- *"Show me at-risk accounts"*
 
-### Tips for Best Results
-
-1. Be specific with names and details
-2. The assistant remembers context within a conversation
-3. You can chain requests: "Create a lead and add a follow-up task"
-4. Ask for clarification if needed
+**Updates:**
+- *"Mark task 'Call John' as complete"*
+- *"Update the Acme opportunity to $75,000"*
+- *"Close ticket #123 as resolved"*
 
 ---
 
-## Dashboard Customization
+## Dashboard
 
-### Widgets
+### Widget System
 
-Each workspace has customizable widgets:
+Your dashboard is fully customizable with drag-and-drop widgets.
 
-**Sales Widgets:**
+**Available Widgets:**
 - Quick Stats
-- Leads by Status
 - Pipeline Value
-- Deals Closing Soon
+- Leads by Status
 - Recent Activity
 - Tasks Due Today
-
-**CS Widgets:**
 - Open Tickets
 - At-Risk Accounts
-- Health Distribution
 - Upcoming Renewals
-
-**Marketing Widgets:**
 - Campaign Performance
-- Form Submissions
-- Segment Sizes
-- Conversion Rate
+- And more...
 
-### Customizing Your Dashboard
-
-1. Click "Customize" on your dashboard
-2. Click "Add Widget" to add new widgets
-3. Drag widgets to rearrange
-4. Click the X to remove a widget
-5. Changes save automatically
+**Customizing:**
+1. Click **Customize Dashboard**
+2. Drag widgets to reposition
+3. Click ✕ to remove widgets
+4. Click **+ Add Widget** for new ones
+5. Save your layout
 
 ---
 
-## Team & Roles
+## Global Search (Ctrl+K)
 
-### Managing Your Team
+Press **Ctrl+K** (or **Cmd+K** on Mac) to open quick search.
 
-1. Go to Settings → Team
-2. View all team members and their roles
-3. Click "Invite User" to add new members
-4. Use the role dropdown to change a user's role
+**Search Across:**
+- Leads
+- Contacts
+- Accounts
+- Opportunities
+- Tasks
+- Tickets
+- Documents
+- Invoices
+- Campaigns
+- Custom Modules
 
-### Understanding Roles
+**Tips:**
+- Type to filter results instantly
+- Use arrow keys to navigate
+- Press Enter to open
+- Results show type icons and colors
 
-Y CRM includes four default roles:
+---
 
-| Role | Permissions | Description |
-|------|-------------|-------------|
-| **Admin** | Full access | Can do everything, including manage team and settings |
-| **Manager** | Full access | Can manage all records but not system settings |
-| **Rep** | View, Create, Edit | Standard user - can work with data but can't delete |
-| **Read Only** | View only | Can see data but can't make changes |
+## Documents
 
-### Creating Custom Roles
+### Uploading Files
 
-1. Go to Settings → Roles & Permissions
-2. Click "Create Role"
-3. Name your role
-4. Configure permissions for each module
-5. Click "Save"
+1. Go to **Documents**
+2. Click **Upload** or drag files
+3. Files are stored securely
 
-### Permission Grid
+**Supported Types:**
+- PDFs, Word documents
+- Images (PNG, JPG, GIF)
+- Spreadsheets (Excel, CSV)
+- Any file type
 
-When editing a role, you'll see a grid with:
-- **Rows**: Each CRM module (Leads, Contacts, etc.)
-- **Columns**: Actions (View, Create, Edit, Delete, All)
-- **Checkboxes**: Enable/disable each permission
+### Linking Documents
 
-### Tips for Role Management
+Documents can be linked to:
+- Leads
+- Contacts
+- Accounts
+- Opportunities
 
-- Start with the default roles and customize as needed
-- New team members automatically get the "Rep" role
-- Only Admins can manage team and roles
-- The Admin role cannot be deleted or modified
+---
+
+## Tasks
+
+### Task Properties
+
+- **Title** - What needs to be done
+- **Description** - Additional details
+- **Priority** - Low, Medium, High, Urgent
+- **Due Date** - When it's due
+- **Status** - Pending, In Progress, Completed
+- **Assignee** - Who's responsible
+
+### Task Links
+
+Tasks can be linked to:
+- Leads
+- Contacts
+- Accounts
+- Opportunities
+- Tickets
+
+### Quick Actions
+
+- ✓ Click checkbox to complete
+- Edit inline from list view
+- Bulk select and update
 
 ---
 
 ## Settings
 
+### Organization Settings
+
+**Settings → Organization**
+- Company name
+- Default timezone
+- Date format preferences
+
+### Branding
+
+**Settings → Branding**
+- Upload company logo
+- Set brand name (appears on invoices)
+
 ### Pipeline Stages
 
-Customize your opportunity stages:
-1. Go to Settings → Pipeline
-2. Add, edit, or delete stages
-3. Set stage order and colors
-4. Set default probabilities
+**Settings → Pipeline**
+- Customize lead stages
+- Customize opportunity stages
+- Set default probabilities
 
 ### Custom Fields
 
-Add custom fields to any module:
-1. Go to Settings → Custom Fields
-2. Select the module (Lead, Contact, Account, etc.)
-3. Click "Add Field"
-4. Choose field type (Text, Number, Date, Select, etc.)
-5. Set field name and options
+**Settings → Custom Fields**
+- Add fields to any module
+- Field types: Text, Number, Date, Select, Multi-select, Checkbox
 
-### Custom Modules
+### Team Management
 
-Create entirely new modules:
-1. Go to Settings → Modules
-2. Click "Create Module"
-3. Name your module
-4. Add custom fields
-5. Access via the sidebar
+**Settings → Team**
+- View all team members
+- Invite new members
+- Change user roles
+- Remove members
+
+### Roles & Permissions
+
+**Settings → Roles**
+- View default roles
+- Create custom roles
+- Configure granular permissions
+
+### Data Import/Export
+
+**Settings → Data**
+- Export any module to CSV
+- Import leads, contacts, accounts from CSV
+- Map CSV columns to CRM fields
 
 ### Integrations
 
-Connect external tools:
-1. Go to Settings → Integrations
-2. Available integrations:
-   - Email (Gmail, Outlook)
-   - Calendar (Google, Outlook)
-   - Slack
-   - GitHub
-3. Click "Connect" and authorize
+**Settings → Integrations**
+- Connect Google (Gmail, Calendar)
+- Connect Slack
+- View connected services
 
----
+### Activity Log
 
-## Omni-Search
-
-The Omni-Search feature lets you quickly find anything in Y CRM:
-
-1. Press `Ctrl/Cmd + K` to open search
-2. Start typing to search across all modules
-3. Use arrow keys to navigate results
-4. Press Enter to open the selected item
-5. Press Escape to close
-
-**What You Can Search:**
-- Leads (by name, email, company)
-- Contacts (by name, email)
-- Accounts (by name)
-- Opportunities (by name)
-- Tickets (by subject)
-- Tasks (by title)
-- Documents (by name)
-
----
-
-## Notifications
-
-Y CRM keeps you informed with in-app notifications.
-
-### Notification Types
-- New lead assigned to you
-- Task due today
-- Ticket escalated
-- Deal stage changed
-- At-risk account alert
-
-### Managing Notifications
-1. Click the bell icon in the header
-2. View your recent notifications
-3. Click a notification to go to the related record
-4. Click "Mark all as read" to clear them
+**Settings → Activity**
+- View all system activity
+- Filter by user, module, action
+- Export audit logs
 
 ---
 
@@ -386,10 +446,10 @@ Y CRM keeps you informed with in-app notifications.
 
 | Shortcut | Action |
 |----------|--------|
-| `Ctrl/Cmd + K` | Open quick search |
-| `Ctrl/Cmd + N` | Create new record |
-| `Ctrl/Cmd + /` | Open AI Assistant |
-| `Esc` | Close modals/dialogs |
+| Ctrl+K | Open global search |
+| Ctrl+N | New record (context-aware) |
+| Escape | Close modal/dialog |
+| ? | Show keyboard shortcuts |
 
 ---
 
@@ -397,54 +457,41 @@ Y CRM keeps you informed with in-app notifications.
 
 ### Lead Management
 - Respond to new leads within 24 hours
-- Update lead status regularly
-- Add notes after every interaction
-- Use tasks to schedule follow-ups
+- Use lead scoring to prioritize
+- Convert qualified leads promptly
 
-### Pipeline Management
-- Review pipeline weekly
-- Update opportunity values and close dates
-- Move stale deals to lost
-- Focus on high-probability deals
+### Pipeline Health
+- Update opportunity stages regularly
+- Keep close dates accurate
+- Review stale opportunities weekly
 
 ### Customer Success
 - Monitor health scores daily
-- Address high-risk accounts immediately
-- Use playbooks for consistent processes
-- Document resolutions in tickets
+- Address at-risk accounts immediately
+- Use playbooks for consistency
 
-### Marketing
-- Segment your audience for targeted campaigns
-- A/B test email campaigns
-- Track form conversion rates
-- Review campaign ROI regularly
+### Data Quality
+- Keep contact info up-to-date
+- Merge duplicate records
+- Use consistent naming conventions
 
----
-
-## Support
-
-Need help? Here are your options:
-
-1. **AI Assistant** - Ask the built-in AI for help
-2. **Documentation** - Check the docs folder
-3. **Email** - support@y-crm.com
-4. **GitHub Issues** - For bugs and feature requests
+### AI Assistant
+- Be specific in your commands
+- Use natural language
+- Check results after bulk operations
 
 ---
 
-## Glossary
+## Getting Help
 
-| Term | Definition |
-|------|------------|
-| **Lead** | A potential customer who has shown interest |
-| **Contact** | An individual person at a company |
-| **Account** | A company or organization |
-| **Opportunity** | A potential deal being tracked |
-| **Pipeline** | Visual representation of sales stages |
-| **Ticket** | A customer support request |
-| **Health Score** | Numerical indicator of customer health |
-| **Playbook** | Automated workflow for CS tasks |
-| **Campaign** | A marketing initiative |
-| **Segment** | A group of contacts with shared criteria |
-| **Form** | A web form for capturing leads |
-| **MCP** | Model Context Protocol for AI integration |
+### In-App Support
+- Use AI Assistant for questions
+- Check tooltips on form fields
+
+### Documentation
+- API docs at `/docs/API.md`
+- This user guide at `/docs/USER_GUIDE.md`
+
+### Feedback
+- Use thumbs up/down on AI responses
+- Report issues via Settings → Support

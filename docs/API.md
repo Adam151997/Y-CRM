@@ -1,405 +1,401 @@
-# Y CRM API Documentation
+# Y CRM - API Documentation
 
 ## Overview
 
-Y CRM provides a comprehensive REST API and MCP (Model Context Protocol) server for integrating with external applications and AI agents.
+Y CRM provides a comprehensive REST API for all CRM operations. All endpoints require authentication via Clerk session tokens.
+
+## Base URL
+
+```
+Development: http://localhost:3000/api
+Production: https://your-domain.com/api
+```
 
 ## Authentication
 
-All API requests require authentication via Clerk. Include the session token in the Authorization header:
+All API requests require a valid Clerk session. Include the session token in your requests:
 
-```
-Authorization: Bearer <session_token>
-```
-
-For MCP connections, use an API key:
-
-```
-X-API-Key: <your_api_key>
-```
-
----
-
-## REST API Endpoints
-
-### Base URL
-
-```
-https://y-crm.vercel.app/api
+```typescript
+const response = await fetch('/api/leads', {
+  headers: {
+    'Content-Type': 'application/json',
+    // Clerk handles auth via cookies automatically in browser
+  }
+});
 ```
 
 ---
 
-## Sales Module
+## Leads API
 
-### Leads
-
-#### List Leads
+### List Leads
 ```http
 GET /api/leads
 ```
 
-Query Parameters:
+**Query Parameters:**
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| status | string | Filter by status (NEW, CONTACTED, QUALIFIED, CONVERTED, LOST) |
-| source | string | Filter by source |
-| assignedToId | string | Filter by assigned user |
-| search | string | Search in name, email, company |
+| search | string | Search by name, email, company |
+| status | string | Filter by status (NEW, CONTACTED, QUALIFIED, etc.) |
+| source | string | Filter by lead source |
+| page | number | Page number (default: 1) |
+| limit | number | Items per page (default: 20, max: 100) |
 
-Response:
+**Response:**
 ```json
 {
-  "leads": [
-    {
-      "id": "uuid",
-      "firstName": "John",
-      "lastName": "Doe",
-      "email": "john@example.com",
-      "phone": "+1234567890",
-      "company": "Acme Inc",
-      "title": "CEO",
-      "source": "WEBSITE",
-      "status": "NEW",
-      "customFields": {},
-      "createdAt": "2024-01-01T00:00:00Z",
-      "updatedAt": "2024-01-01T00:00:00Z"
-    }
-  ],
-  "total": 100,
-  "page": 1,
-  "pageSize": 20
+  "leads": [...],
+  "pagination": {
+    "page": 1,
+    "limit": 20,
+    "total": 150,
+    "totalPages": 8
+  }
 }
 ```
 
-#### Create Lead
+### Get Lead
+```http
+GET /api/leads/:id
+```
+
+### Create Lead
 ```http
 POST /api/leads
 ```
 
-Request Body:
+**Request Body:**
 ```json
 {
   "firstName": "John",
-  "lastName": "Doe",
-  "email": "john@example.com",
-  "phone": "+1234567890",
-  "company": "Acme Inc",
-  "title": "CEO",
+  "lastName": "Smith",
+  "email": "john@acme.com",
+  "phone": "+1-555-0123",
+  "company": "Acme Corp",
+  "title": "CTO",
   "source": "WEBSITE",
   "status": "NEW"
 }
 ```
 
-#### Get Lead
-```http
-GET /api/leads/:id
-```
-
-#### Update Lead
+### Update Lead
 ```http
 PATCH /api/leads/:id
 ```
 
-#### Delete Lead
+### Delete Lead
 ```http
 DELETE /api/leads/:id
 ```
 
 ---
 
-### Contacts
+## Contacts API
 
-#### List Contacts
+### List Contacts
 ```http
 GET /api/contacts
 ```
 
-#### Create Contact
+**Query Parameters:**
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| search | string | Search by name, email |
+| accountId | string | Filter by account |
+| page | number | Page number |
+| limit | number | Items per page |
+
+### Create Contact
 ```http
 POST /api/contacts
 ```
 
-Request Body:
+**Request Body:**
 ```json
 {
-  "firstName": "Jane",
-  "lastName": "Smith",
-  "email": "jane@example.com",
-  "phone": "+1234567890",
-  "title": "VP Sales",
-  "accountId": "uuid"
+  "firstName": "Sarah",
+  "lastName": "Johnson",
+  "email": "sarah@company.com",
+  "phone": "+1-555-0456",
+  "title": "VP of Sales",
+  "accountId": "acc_123..."
 }
-```
-
-#### Get Contact
-```http
-GET /api/contacts/:id
-```
-
-#### Update Contact
-```http
-PATCH /api/contacts/:id
-```
-
-#### Delete Contact
-```http
-DELETE /api/contacts/:id
 ```
 
 ---
 
-### Accounts
+## Accounts API
 
-#### List Accounts
+### List Accounts
 ```http
 GET /api/accounts
 ```
 
-Query Parameters:
+**Query Parameters:**
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| type | string | Filter by type (PROSPECT, CUSTOMER, PARTNER, VENDOR) |
+| search | string | Search by name |
+| type | string | Filter by type (PROSPECT, CUSTOMER, PARTNER, etc.) |
 | industry | string | Filter by industry |
-| rating | string | Filter by rating (HOT, WARM, COLD) |
 
-#### Create Account
+### Create Account
 ```http
 POST /api/accounts
 ```
 
-#### Get Account
-```http
-GET /api/accounts/:id
-```
-
-#### Update Account
-```http
-PATCH /api/accounts/:id
-```
-
-#### Delete Account
-```http
-DELETE /api/accounts/:id
+**Request Body:**
+```json
+{
+  "name": "Acme Corporation",
+  "type": "CUSTOMER",
+  "industry": "Technology",
+  "website": "https://acme.com",
+  "phone": "+1-555-0789",
+  "employees": 500,
+  "annualRevenue": 10000000
+}
 ```
 
 ---
 
-### Opportunities
+## Opportunities API
 
-#### List Opportunities
+### List Opportunities
 ```http
 GET /api/opportunities
 ```
 
-Query Parameters:
+**Query Parameters:**
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| stageId | string | Filter by pipeline stage |
 | accountId | string | Filter by account |
-| closedWon | boolean | Filter by closed status |
+| stageId | string | Filter by pipeline stage |
+| closedWon | boolean | Filter by won/lost status |
 
-#### Create Opportunity
+### Create Opportunity
 ```http
 POST /api/opportunities
 ```
 
-Request Body:
+**Request Body:**
 ```json
 {
-  "name": "Enterprise Deal",
-  "accountId": "uuid",
+  "name": "Enterprise License Deal",
   "value": 50000,
-  "currency": "USD",
-  "probability": 60,
-  "stageId": "uuid",
-  "expectedCloseDate": "2024-06-01"
+  "probability": 75,
+  "expectedCloseDate": "2024-03-31",
+  "accountId": "acc_123...",
+  "stageId": "stage_456..."
 }
-```
-
-#### Get Opportunity
-```http
-GET /api/opportunities/:id
-```
-
-#### Update Opportunity
-```http
-PATCH /api/opportunities/:id
-```
-
-#### Delete Opportunity
-```http
-DELETE /api/opportunities/:id
 ```
 
 ---
 
-## Customer Success Module
+## Tasks API
 
-### Tickets
+### List Tasks
+```http
+GET /api/tasks
+```
 
-#### List Tickets
+**Query Parameters:**
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| status | string | PENDING, IN_PROGRESS, COMPLETED |
+| priority | string | LOW, MEDIUM, HIGH, URGENT |
+| dueDate | string | Filter by due date |
+| assigneeId | string | Filter by assignee |
+
+### Create Task
+```http
+POST /api/tasks
+```
+
+**Request Body:**
+```json
+{
+  "title": "Follow up with client",
+  "description": "Discuss contract renewal",
+  "priority": "HIGH",
+  "dueDate": "2024-01-15",
+  "leadId": "lead_123...",
+  "assigneeId": "user_456..."
+}
+```
+
+### Complete Task
+```http
+PATCH /api/tasks/:id
+```
+
+**Request Body:**
+```json
+{
+  "status": "COMPLETED"
+}
+```
+
+---
+
+## Tickets API (Customer Success)
+
+### List Tickets
 ```http
 GET /api/cs/tickets
 ```
 
-Query Parameters:
+**Query Parameters:**
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | status | string | OPEN, IN_PROGRESS, WAITING, RESOLVED, CLOSED |
 | priority | string | LOW, MEDIUM, HIGH, URGENT |
 | accountId | string | Filter by account |
 
-#### Create Ticket
+### Create Ticket
 ```http
 POST /api/cs/tickets
 ```
 
-Request Body:
+**Request Body:**
 ```json
 {
   "subject": "Integration Issue",
-  "description": "Unable to connect API",
+  "description": "API returning 500 errors...",
   "priority": "HIGH",
-  "accountId": "uuid",
-  "contactId": "uuid"
+  "category": "TECHNICAL",
+  "accountId": "acc_123...",
+  "contactId": "contact_456..."
 }
 ```
 
-#### Get Ticket
-```http
-GET /api/cs/tickets/:id
-```
-
-#### Update Ticket
-```http
-PATCH /api/cs/tickets/:id
-```
-
-#### Add Ticket Message
+### Add Message to Ticket
 ```http
 POST /api/cs/tickets/:id/messages
 ```
 
-Request Body:
+**Request Body:**
 ```json
 {
-  "content": "We're looking into this issue.",
+  "content": "We've identified the issue...",
   "isInternal": false
 }
 ```
 
 ---
 
-### Health Scores
+## Health Scores API
 
-#### List Health Scores
-```http
-GET /api/cs/health
-```
-
-Query Parameters:
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| riskLevel | string | LOW, MEDIUM, HIGH, CRITICAL |
-
-#### Get Account Health
+### Get Account Health
 ```http
 GET /api/cs/health/:accountId
 ```
 
-#### Update Health Score
+**Response:**
+```json
+{
+  "accountId": "acc_123...",
+  "overallScore": 75,
+  "riskLevel": "MEDIUM",
+  "components": {
+    "engagementScore": 80,
+    "supportScore": 60,
+    "adoptionScore": 85,
+    "relationshipScore": 70,
+    "growthScore": 75
+  },
+  "lastCalculated": "2024-01-15T10:00:00Z"
+}
+```
+
+### Update Health Score
 ```http
-PATCH /api/cs/health/:accountId
+PUT /api/cs/health/:accountId
 ```
 
 ---
 
-### Playbooks
+## Renewals API
 
-#### List Playbooks
+### List Renewals
 ```http
-GET /api/cs/playbooks
+GET /api/cs/renewals
 ```
 
-#### Create Playbook
+**Query Parameters:**
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| accountId | string | Filter by account |
+| status | string | UPCOMING, IN_PROGRESS, RENEWED, CHURNED |
+| upcomingDays | number | Renewals within X days |
+
+### Create Renewal
 ```http
-POST /api/cs/playbooks
+POST /api/cs/renewals
 ```
 
-#### Get Playbook
-```http
-GET /api/cs/playbooks/:id
-```
-
-#### Run Playbook
-```http
-POST /api/cs/playbooks/:id/run
-```
-
-Request Body:
+**Request Body:**
 ```json
 {
-  "accountId": "uuid"
+  "accountId": "acc_123...",
+  "contractName": "Enterprise License 2024",
+  "contractValue": 120000,
+  "startDate": "2024-01-01",
+  "endDate": "2024-12-31",
+  "probability": 80
 }
 ```
 
 ---
 
-## Marketing Module
+## Campaigns API (Marketing)
 
-### Campaigns
-
-#### List Campaigns
+### List Campaigns
 ```http
 GET /api/marketing/campaigns
 ```
 
-Query Parameters:
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| status | string | DRAFT, SCHEDULED, ACTIVE, PAUSED, COMPLETED |
-| type | string | EMAIL, SOCIAL, EVENT, WEBINAR, SMS, ADS |
-
-#### Create Campaign
+### Create Campaign
 ```http
 POST /api/marketing/campaigns
 ```
 
-Request Body:
+**Request Body:**
 ```json
 {
-  "name": "Summer Promo",
+  "name": "Q1 Product Launch",
   "type": "EMAIL",
   "status": "DRAFT",
-  "startDate": "2024-06-01",
-  "endDate": "2024-06-30",
-  "budget": 5000
+  "subject": "Introducing our new features",
+  "content": "<html>...</html>",
+  "segmentId": "seg_123..."
 }
 ```
 
 ---
 
-### Segments
+## Segments API
 
-#### List Segments
+### List Segments
 ```http
 GET /api/marketing/segments
 ```
 
-#### Create Segment
+### Create Segment
 ```http
 POST /api/marketing/segments
 ```
 
-Request Body:
+**Request Body:**
 ```json
 {
   "name": "Enterprise Leads",
   "type": "DYNAMIC",
+  "description": "Leads from enterprise companies",
   "rules": {
+    "operator": "AND",
     "conditions": [
-      { "field": "company_size", "operator": "gte", "value": 100 }
+      { "field": "company_size", "operator": "gte", "value": 500 }
     ]
   }
 }
@@ -407,145 +403,303 @@ Request Body:
 
 ---
 
-### Forms
+## Forms API
 
-#### List Forms
+### List Forms
 ```http
 GET /api/marketing/forms
 ```
 
-#### Create Form
+### Get Form Submissions
 ```http
-POST /api/marketing/forms
+GET /api/marketing/forms/:id/submissions
 ```
 
 ---
 
-## MCP Server
+## Invoices API
 
-### Connection
-
-Connect to the MCP server via Server-Sent Events:
-
-```
-GET /api/mcp/sse?token=<api_key>
-```
-
-The server returns a `X-Session-ID` header that must be used for subsequent requests.
-
-### Send Message
-
+### List Invoices
 ```http
-POST /api/mcp
-Headers:
-  X-Session-ID: <session_id>
-  X-API-Key: <api_key>
-  Content-Type: application/json
+GET /api/invoices
+```
 
-Body:
+**Query Parameters:**
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| status | string | DRAFT, SENT, PAID, OVERDUE, CANCELLED |
+| accountId | string | Filter by account |
+
+### Create Invoice
+```http
+POST /api/invoices
+```
+
+**Request Body:**
+```json
 {
-  "jsonrpc": "2.0",
-  "id": 1,
-  "method": "tools/call",
-  "params": {
-    "name": "ycrm_create_lead",
-    "arguments": {
-      "firstName": "John",
-      "lastName": "Doe",
-      "email": "john@example.com"
+  "accountId": "acc_123...",
+  "contactId": "contact_456...",
+  "issueDate": "2024-01-15",
+  "dueDate": "2024-02-15",
+  "items": [
+    {
+      "description": "Professional Services",
+      "quantity": 10,
+      "unitPrice": 150
     }
+  ],
+  "taxRate": 8.5
+}
+```
+
+### Send Invoice
+```http
+POST /api/invoices/:id/send
+```
+
+### Record Payment
+```http
+POST /api/invoices/:id/payments
+```
+
+**Request Body:**
+```json
+{
+  "amount": 1500,
+  "paymentMethod": "BANK_TRANSFER",
+  "reference": "TXN-123456"
+}
+```
+
+### Generate PDF
+```http
+GET /api/invoices/:id/pdf
+```
+
+---
+
+## Search API
+
+### Global Search
+```http
+GET /api/search?q=acme
+```
+
+**Response:**
+```json
+{
+  "results": [
+    {
+      "id": "acc_123...",
+      "type": "account",
+      "title": "Acme Corporation",
+      "subtitle": "Technology",
+      "href": "/accounts/acc_123..."
+    },
+    {
+      "id": "lead_456...",
+      "type": "lead",
+      "title": "John Smith",
+      "subtitle": "Acme Corp",
+      "href": "/leads/lead_456..."
+    }
+  ]
+}
+```
+
+---
+
+## Notifications API
+
+### List Notifications
+```http
+GET /api/notifications
+```
+
+### Mark as Read
+```http
+PATCH /api/notifications/:id
+```
+
+### Mark All as Read
+```http
+POST /api/notifications/mark-all-read
+```
+
+---
+
+## Team API
+
+### List Team Members
+```http
+GET /api/team
+```
+
+### Invite Member
+```http
+POST /api/team/invite
+```
+
+**Request Body:**
+```json
+{
+  "email": "new.member@company.com",
+  "roleId": "role_123..."
+}
+```
+
+### Update Member Role
+```http
+PATCH /api/team/:userId
+```
+
+---
+
+## Roles API
+
+### List Roles
+```http
+GET /api/roles
+```
+
+### Create Role
+```http
+POST /api/roles
+```
+
+**Request Body:**
+```json
+{
+  "name": "Sales Manager",
+  "description": "Full access to sales modules",
+  "permissions": {
+    "leads": ["view", "create", "edit", "delete"],
+    "contacts": ["view", "create", "edit"],
+    "accounts": ["view", "create", "edit"]
   }
 }
 ```
 
-### Available MCP Tools
-
-| Tool | Description |
-|------|-------------|
-| ycrm_create_lead | Create a new lead |
-| ycrm_search_leads | Search leads |
-| ycrm_create_contact | Create a contact |
-| ycrm_create_account | Create an account |
-| ycrm_create_task | Create a task |
-| ycrm_create_opportunity | Create an opportunity |
-| ycrm_create_ticket | Create a support ticket |
-| ycrm_search_tickets | Search tickets |
-| ycrm_get_health_score | Get account health |
-| ycrm_search_playbooks | List playbooks |
-| ycrm_create_campaign | Create a campaign |
-| ycrm_search_campaigns | Search campaigns |
-| ycrm_create_segment | Create an audience segment |
-| ycrm_create_form | Create a lead capture form |
-| ycrm_list_custom_modules | List custom modules |
-| ycrm_create_custom_module | Create a custom module |
-| ycrm_get_dashboard | Get dashboard stats |
-
 ---
 
-## AI Chat
+## AI Chat API
 
 ### Send Message
 ```http
 POST /api/ai/chat
 ```
 
-Request Body:
+**Request Body:**
 ```json
 {
   "messages": [
-    { "role": "user", "content": "Create a new lead for John Smith at Acme Inc" }
-  ],
-  "workspace": "sales"
+    { "role": "user", "content": "Create a lead for John Smith at Acme" }
+  ]
 }
 ```
 
-Response (streaming):
-```
-data: {"type":"text","content":"I'll create that lead for you..."}
-data: {"type":"tool_call","name":"createLead","args":{...}}
-data: {"type":"tool_result","result":{...}}
-data: {"type":"text","content":"Done! I've created the lead for John Smith."}
+**Response:**
+```json
+{
+  "success": true,
+  "response": "Created lead for John Smith at Acme Corp (ID: lead_123...)",
+  "toolsCalled": ["createLead"],
+  "toolResults": [{ "success": true, "leadId": "lead_123..." }],
+  "modelUsed": "gemini-2.0-flash"
+}
 ```
 
 ---
 
-## Error Handling
+## Export API
 
-All errors follow this format:
+### Export Data
+```http
+POST /api/export
+```
 
+**Request Body:**
 ```json
 {
-  "error": {
-    "code": "ERROR_CODE",
-    "message": "Human-readable error message",
-    "details": {}
+  "module": "leads",
+  "format": "csv",
+  "filters": {
+    "status": "QUALIFIED"
   }
 }
 ```
 
-Common Error Codes:
+---
+
+## Import API
+
+### Import Data
+```http
+POST /api/import
+```
+
+**Request Body (multipart/form-data):**
+- `file`: CSV file
+- `module`: Target module (leads, contacts, accounts)
+- `mapping`: Field mapping JSON
+
+---
+
+## Audit Logs API
+
+### List Audit Logs
+```http
+GET /api/audit-logs
+```
+
+**Query Parameters:**
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| module | string | Filter by module |
+| action | string | CREATE, UPDATE, DELETE |
+| userId | string | Filter by user |
+| startDate | string | Filter from date |
+| endDate | string | Filter to date |
+
+---
+
+## Error Responses
+
+All API errors follow this format:
+
+```json
+{
+  "error": "Error message",
+  "code": "ERROR_CODE",
+  "details": {}
+}
+```
+
+### Common Error Codes
+
 | Code | HTTP Status | Description |
 |------|-------------|-------------|
-| UNAUTHORIZED | 401 | Missing or invalid authentication |
+| UNAUTHORIZED | 401 | Invalid or missing authentication |
 | FORBIDDEN | 403 | Insufficient permissions |
 | NOT_FOUND | 404 | Resource not found |
-| VALIDATION_ERROR | 400 | Invalid request body |
+| VALIDATION_ERROR | 400 | Invalid request data |
 | RATE_LIMITED | 429 | Too many requests |
 | INTERNAL_ERROR | 500 | Server error |
 
 ---
 
-## Rate Limiting
+## Rate Limits
 
-- API: 100 requests per minute per user
-- AI Chat: Based on organization plan
-  - Free: 100 calls/month
-  - Pro: 1,000 calls/month
-  - Enterprise: Unlimited
+| Endpoint Category | Limit |
+|-------------------|-------|
+| Standard API | 100 requests/minute |
+| AI Chat | 20 requests/minute |
+| Export | 5 requests/minute |
+| Import | 2 requests/minute |
 
-Rate limit headers are included in responses:
-```
-X-RateLimit-Limit: 100
-X-RateLimit-Remaining: 95
-X-RateLimit-Reset: 1609459200
-```
+---
+
+## Webhooks (Coming Soon)
+
+Webhook support for real-time event notifications is planned for a future release.

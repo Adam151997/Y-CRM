@@ -11,18 +11,20 @@ import {
   DollarSign,
   CheckSquare,
   BarChart3,
+  FileText,
 } from "lucide-react";
 import { SalesOverview } from "./_components/sales-overview";
 import { LeadsBySource } from "./_components/leads-by-source";
 import { LeadsByStatus } from "./_components/leads-by-status";
 import { OpportunitiesByStage } from "./_components/opportunities-by-stage";
 import { RecentActivity } from "./_components/recent-activity";
+import { InvoiceOverview, InvoicesByStatus, MonthlyRevenue } from "./_components/invoice-analytics";
 
 export default async function ReportsPage() {
   const { orgId } = await getAuthContext();
 
   // Fetch all data in parallel with optimized queries
-  const [counts, monthlyStats, pipelineStats, groupedData, stages, recentActivity] = 
+  const [counts, monthlyStats, pipelineStats, groupedData, stages, recentActivity, invoiceStats] = 
     await Promise.all([
       getCounts(orgId),
       getMonthlyStats(orgId),
@@ -30,6 +32,7 @@ export default async function ReportsPage() {
       getGroupedData(orgId),
       getStages(orgId),
       getRecentActivity(orgId),
+      getInvoiceStats(orgId),
     ]);
 
   // Calculate metrics
@@ -60,7 +63,7 @@ export default async function ReportsPage() {
       </div>
 
       {/* Overview Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
@@ -146,6 +149,26 @@ export default async function ReportsPage() {
             </div>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div className="p-2 rounded-lg bg-emerald-500/10">
+                <FileText className="h-5 w-5 text-emerald-500" />
+              </div>
+              <span className="text-xs text-muted-foreground">
+                {invoiceStats.collectionRate.toFixed(0)}% collected
+              </span>
+            </div>
+            <div className="mt-3">
+              <p className="text-2xl font-bold">${invoiceStats.totalPaid.toLocaleString()}</p>
+              <p className="text-sm text-muted-foreground">Revenue Collected</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                ${invoiceStats.totalOverdue.toLocaleString()} overdue
+              </p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Charts */}
@@ -162,6 +185,10 @@ export default async function ReportsPage() {
           <TabsTrigger value="activity">
             <Target className="h-4 w-4 mr-2" />
             Activity
+          </TabsTrigger>
+          <TabsTrigger value="invoices">
+            <FileText className="h-4 w-4 mr-2" />
+            Invoices
           </TabsTrigger>
         </TabsList>
 
@@ -188,6 +215,19 @@ export default async function ReportsPage() {
 
         <TabsContent value="activity" className="space-y-4">
           <RecentActivity activities={recentActivity} />
+        </TabsContent>
+
+        <TabsContent value="invoices" className="space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <InvoiceOverview
+              totalInvoiced={invoiceStats.totalInvoiced}
+              totalPaid={invoiceStats.totalPaid}
+              totalOverdue={invoiceStats.totalOverdue}
+              totalPending={invoiceStats.totalPending}
+            />
+            <InvoicesByStatus data={invoiceStats.byStatus} />
+          </div>
+          <MonthlyRevenue data={invoiceStats.monthlyData} />
         </TabsContent>
       </Tabs>
     </div>
@@ -307,4 +347,99 @@ const getRecentActivity = cache(async (orgId: string) => {
     orderBy: { createdAt: "desc" },
     take: 10,
   });
+});
+
+/**
+ * Get invoice statistics
+ */
+const getInvoiceStats = cache(async (orgId: string) => {
+  const now = new Date();
+  
+  // Get invoice totals by status
+  const [paidInvoices, overdueInvoices, pendingInvoices, byStatus, allInvoices] = await prisma.$transaction([
+    // Total paid
+    prisma.invoice.aggregate({
+      where: { orgId, status: "PAID" },
+      _sum: { total: true },
+    }),
+    // Total overdue
+    prisma.invoice.aggregate({
+      where: { 
+        orgId, 
+        status: { in: ["SENT", "PARTIALLY_PAID"] },
+        dueDate: { lt: now },
+      },
+      _sum: { total: true },
+    }),
+    // Total pending (sent but not overdue)
+    prisma.invoice.aggregate({
+      where: { 
+        orgId, 
+        status: { in: ["SENT", "PARTIALLY_PAID"] },
+        dueDate: { gte: now },
+      },
+      _sum: { total: true },
+    }),
+    // Group by status
+    prisma.invoice.groupBy({
+      by: ["status"],
+      where: { orgId },
+      _count: true,
+      _sum: { total: true },
+    }),
+    // All invoices total
+    prisma.invoice.aggregate({
+      where: { orgId, status: { not: "DRAFT" } },
+      _sum: { total: true },
+    }),
+  ]);
+
+  const totalPaid = Number(paidInvoices._sum.total || 0);
+  const totalOverdue = Number(overdueInvoices._sum.total || 0);
+  const totalPending = Number(pendingInvoices._sum.total || 0);
+  const totalInvoiced = Number(allInvoices._sum.total || 0);
+  const collectionRate = totalInvoiced > 0 ? (totalPaid / totalInvoiced) * 100 : 0;
+
+  // Get monthly data for the last 6 months
+  const monthlyData: { month: string; invoiced: number; collected: number }[] = [];
+  
+  for (let i = 5; i >= 0; i--) {
+    const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0);
+    const monthName = monthStart.toLocaleDateString("en-US", { month: "short" });
+
+    const [invoiced, collected] = await prisma.$transaction([
+      prisma.invoice.aggregate({
+        where: {
+          orgId,
+          issueDate: { gte: monthStart, lte: monthEnd },
+          status: { not: "DRAFT" },
+        },
+        _sum: { total: true },
+      }),
+      prisma.invoice.aggregate({
+        where: {
+          orgId,
+          paidAt: { gte: monthStart, lte: monthEnd },
+        },
+        _sum: { amountPaid: true },
+      }),
+    ]);
+
+    monthlyData.push({
+      month: monthName,
+      invoiced: Number(invoiced._sum.total || 0),
+      collected: Number(collected._sum.amountPaid || 0),
+    });
+  }
+
+  return {
+    totalInvoiced,
+    totalPaid,
+    totalOverdue,
+    totalPending,
+    collectionRate,
+    byStatus,
+    monthlyData,
+  };
 });

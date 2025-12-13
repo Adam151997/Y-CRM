@@ -1,243 +1,459 @@
-# Y-CRM MCP Implementation
-
-This document describes the Model Context Protocol (MCP) implementation for Y-CRM.
+# Y CRM - MCP Integration Guide
 
 ## Overview
 
-Y-CRM implements both **MCP Client** and **MCP Server** capabilities:
+Y CRM includes a built-in Model Context Protocol (MCP) server that allows external AI agents (like Claude Desktop, custom AI applications, or other MCP-compatible clients) to interact with your CRM data.
 
-- **MCP Server**: Exposes Y-CRM tools to external clients (Claude Desktop, other AI agents)
-- **MCP Client**: Connects to external MCP servers (Composio, custom servers) to use their tools
+## What is MCP?
 
-## Architecture
+The Model Context Protocol is an open standard for connecting AI assistants to external data sources and tools. It enables AI agents to:
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                              Y-CRM System                                    │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                              │
-│  ┌─────────────────────────────────────────────────────────────────────┐    │
-│  │                        AI Agent (Orchestrator)                       │    │
-│  └──────────────────────────────┬───────────────────────────────────────┘    │
-│                                 │                                            │
-│              ┌──────────────────┼──────────────────┐                         │
-│              │                  │                  │                         │
-│              ▼                  ▼                  ▼                         │
-│  ┌───────────────────┐ ┌───────────────┐ ┌───────────────────┐              │
-│  │  Internal Tools   │ │  MCP Client   │ │   MCP Server      │              │
-│  │  (Prisma DB)      │ │  (Outbound)   │ │   (Inbound)       │              │
-│  └───────────────────┘ └───────────────┘ └───────────────────┘              │
-│                                                                              │
-└──────────────────────────────────────────────────────────────────────────────┘
-```
+- Read data from your CRM
+- Create and update records
+- Execute complex workflows
+- Access real-time business information
 
-## File Structure
+## Connection Methods
+
+### 1. Server-Sent Events (SSE) - Recommended
+
+Best for real-time, long-running connections.
 
 ```
-lib/mcp/
-├── protocol/           # MCP protocol types and helpers
-│   ├── types.ts        # JSON-RPC 2.0, MCP message types
-│   ├── errors.ts       # Error codes and factory functions
-│   ├── capabilities.ts # Server/client capabilities
-│   └── index.ts
-│
-├── client/             # MCP Client implementation
-│   ├── index.ts        # MCPClient class
-│   ├── session.ts      # Session management
-│   └── transport/      # Transport implementations
-│       ├── base.ts     # Transport interface
-│       ├── sse.ts      # Server-Sent Events transport
-│       └── stdio.ts    # Stdio transport (Node.js)
-│
-├── server/             # MCP Server implementation
-│   ├── index.ts        # MCPServer class
-│   ├── handler.ts      # JSON-RPC request handler
-│   └── transport/      # Server transports
-│       ├── base.ts
-│       ├── sse.ts      # SSE for HTTP clients
-│       └── stdio.ts    # Stdio for CLI clients
-│
-├── registry/           # Unified tool registry
-│   ├── index.ts        # ToolRegistry class
-│   └── internal.ts     # Y-CRM internal tools
-│
-└── index.ts            # Barrel exports
-
-app/api/mcp/
-├── route.ts            # POST handler for JSON-RPC messages
-└── sse/
-    └── route.ts        # GET handler for SSE connections
-
-scripts/
-└── mcp-server.ts       # Standalone stdio server for Claude Desktop
+GET /api/mcp/sse?token=YOUR_API_KEY
 ```
 
-## Protocol Compliance
-
-### JSON-RPC 2.0
-
-All communication follows JSON-RPC 2.0:
-
-```json
-// Request
-{ "jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {} }
-
-// Response
-{ "jsonrpc": "2.0", "id": 1, "result": { "tools": [...] } }
-
-// Error
-{ "jsonrpc": "2.0", "id": 1, "error": { "code": -32601, "message": "..." } }
-
-// Notification (no id)
-{ "jsonrpc": "2.0", "method": "notifications/initialized" }
+**Headers:**
+```
+Accept: text/event-stream
+Cache-Control: no-cache
 ```
 
-### Supported MCP Methods
+### 2. HTTP POST (JSON-RPC)
 
-| Method | Description |
-|--------|-------------|
-| `initialize` | Capability negotiation |
-| `notifications/initialized` | Client ready notification |
-| `ping` | Health check |
-| `tools/list` | List available tools |
-| `tools/call` | Execute a tool |
-| `resources/list` | List available resources |
-| `resources/read` | Read a resource |
+Best for simple request/response interactions.
 
-## Usage
+```
+POST /api/mcp
+X-Session-ID: your-session-id
+X-API-Key: YOUR_API_KEY
+Content-Type: application/json
+```
 
-### Using Y-CRM as an MCP Server
+---
 
-#### Via HTTP (SSE)
+## Authentication
 
-1. Connect to SSE endpoint:
+### API Key Setup
+
+1. Go to **Settings → Integrations**
+2. Find **MCP Server** section
+3. Generate an API key
+4. Store securely - it won't be shown again
+
+### Environment Variable
+
+Set the `MCP_API_KEY` environment variable for the standalone server:
+
 ```bash
-curl -N "http://localhost:3000/api/mcp/sse?token=your-api-key"
+export MCP_API_KEY=your-api-key
 ```
 
-2. Send JSON-RPC messages:
-```bash
-curl -X POST "http://localhost:3000/api/mcp" \
-  -H "Content-Type: application/json" \
-  -H "X-Session-ID: <session-id-from-sse>" \
-  -H "X-API-Key: your-api-key" \
-  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{...}}'
-```
+---
 
-#### Via Claude Desktop (Stdio)
+## Available Tools
 
-Add to your Claude Desktop config:
+The MCP server exposes 44 tools across all CRM modules:
 
-**Mac/Linux**: `~/.config/claude/claude_desktop_config.json`
-**Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+### Sales Tools
+
+| Tool | Description |
+|------|-------------|
+| `createLead` | Create a new lead |
+| `searchLeads` | Search and filter leads |
+| `updateLead` | Update lead properties |
+| `deleteLead` | Delete a lead |
+| `createContact` | Create a new contact |
+| `searchContacts` | Search contacts |
+| `createAccount` | Create a new account |
+| `searchAccounts` | Search accounts |
+| `createOpportunity` | Create an opportunity |
+| `searchOpportunities` | Search opportunities |
+| `createNote` | Add a note to any record |
+
+### Customer Success Tools
+
+| Tool | Description |
+|------|-------------|
+| `createTicket` | Create support ticket |
+| `searchTickets` | Search tickets |
+| `updateTicket` | Update ticket status/priority |
+| `addTicketMessage` | Add message to ticket |
+| `getHealthScore` | Get account health score |
+| `searchAtRiskAccounts` | Find at-risk accounts |
+| `searchPlaybooks` | List available playbooks |
+| `runPlaybook` | Execute a playbook |
+| `createRenewal` | Create renewal tracking |
+| `searchRenewals` | Search renewals |
+| `updateRenewal` | Update renewal status |
+| `getUpcomingRenewals` | Get renewals by timeframe |
+
+### Marketing Tools
+
+| Tool | Description |
+|------|-------------|
+| `createCampaign` | Create marketing campaign |
+| `searchCampaigns` | Search campaigns |
+| `createSegment` | Create audience segment |
+| `searchSegments` | Search segments |
+| `createForm` | Create lead capture form |
+| `searchForms` | Search forms |
+
+### Task Tools
+
+| Tool | Description |
+|------|-------------|
+| `createTask` | Create a task |
+| `completeTask` | Mark task complete |
+| `searchTasks` | Search tasks |
+
+### Document Tools
+
+| Tool | Description |
+|------|-------------|
+| `searchDocuments` | Search documents |
+| `getDocumentStats` | Get document statistics |
+| `analyzeDocument` | AI analysis of document |
+
+### Custom Module Tools
+
+| Tool | Description |
+|------|-------------|
+| `createCustomModule` | Create new module |
+| `createCustomField` | Add field to module |
+| `createCustomModuleRecord` | Create record |
+| `searchCustomModuleRecords` | Search records |
+| `listCustomModules` | List all custom modules |
+
+### Integration Tools
+
+| Tool | Description |
+|------|-------------|
+| `getConnectedIntegrations` | List connected services |
+| `sendEmail` | Send email via Gmail |
+| `createCalendarEvent` | Create calendar event |
+| `sendSlackMessage` | Send Slack message |
+
+### Utility Tools
+
+| Tool | Description |
+|------|-------------|
+| `getDashboardStats` | Get dashboard metrics |
+| `searchActivities` | Search activity timeline |
+
+---
+
+## Claude Desktop Integration
+
+### Configuration
+
+Add to your Claude Desktop config (`claude_desktop_config.json`):
 
 ```json
 {
   "mcpServers": {
     "y-crm": {
       "command": "npx",
-      "args": ["tsx", "/path/to/y-crm/scripts/mcp-server.ts"],
+      "args": ["-y", "@anthropic/mcp-client"],
       "env": {
-        "Y_CRM_API_URL": "http://localhost:3000",
-        "Y_CRM_API_KEY": "your-api-key"
+        "MCP_SERVER_URL": "https://your-crm.com/api/mcp/sse",
+        "MCP_API_KEY": "your-api-key"
       }
     }
   }
 }
 ```
 
-### Using Y-CRM as an MCP Client
+### Alternative: Direct SSE Connection
 
-```typescript
-import { createMCPClient, getToolRegistry } from "@/lib/mcp";
-
-// Connect to an external MCP server
-const client = await createMCPClient({
-  transport: {
-    type: "sse",
-    url: "https://mcp.composio.dev",
-    headers: { Authorization: "Bearer ..." }
-  }
-});
-
-// List tools from external server
-const tools = await client.listTools();
-
-// Call a tool
-const result = await client.callTool("gmail_send", {
-  to: "user@example.com",
-  subject: "Hello"
-});
-
-// Or register with the unified registry
-const registry = getToolRegistry();
-await registry.addMCPClient("composio", client);
-
-// Now all tools are available through the registry
-const allTools = registry.getAllTools();
-```
-
-## Available Tools
-
-Y-CRM exposes these tools via MCP:
-
-| Tool | Description |
-|------|-------------|
-| `ycrm_create_lead` | Create a new lead |
-| `ycrm_search_leads` | Search for leads |
-| `ycrm_create_contact` | Create a new contact |
-| `ycrm_create_task` | Create a new task |
-| `ycrm_create_account` | Create a new account |
-| `ycrm_get_dashboard` | Get CRM dashboard summary |
-
-## Security
-
-- API key authentication for HTTP clients
-- Session-based connection management
-- Org/user context for multi-tenancy
-- Audit logging for all tool executions
-
-## Adding New Tools
-
-1. Define the tool in `lib/mcp/registry/internal.ts`:
-
-```typescript
-const myNewTool: InternalToolDefinition = {
-  name: "my_new_tool",
-  tool: {
-    name: "ycrm_my_new_tool",
-    description: "Description of what the tool does",
-    inputSchema: {
-      type: "object",
-      properties: {
-        param1: { type: "string", description: "..." }
-      },
-      required: ["param1"]
+```json
+{
+  "mcpServers": {
+    "y-crm": {
+      "transport": "sse",
+      "url": "https://your-crm.com/api/mcp/sse?token=your-api-key"
     }
-  },
-  execute: async (args, context) => {
-    // Implementation
-    return { success: true, data: { ... } };
   }
-};
+}
 ```
 
-2. Add to the `internalTools` array.
+---
 
-## Testing
+## Standalone MCP Server
+
+For advanced use cases, run the MCP server independently:
 
 ```bash
-# Run the stdio server directly
+# Start standalone server
 npm run mcp:server
 
-# Test with a simple JSON-RPC message
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' | npm run mcp:server
+# With custom port
+MCP_PORT=3001 npm run mcp:server
 ```
 
-## Future Improvements
+### Docker Deployment
 
-- [ ] API key management UI
-- [ ] WebSocket transport
-- [ ] Resource subscriptions
-- [ ] Progress notifications for long operations
-- [ ] Rate limiting per client
+```dockerfile
+FROM node:18-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
+COPY . .
+ENV MCP_API_KEY=your-key
+EXPOSE 3001
+CMD ["npm", "run", "mcp:server"]
+```
+
+---
+
+## JSON-RPC Protocol
+
+### Request Format
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/call",
+  "params": {
+    "name": "createLead",
+    "arguments": {
+      "firstName": "John",
+      "lastName": "Smith",
+      "email": "john@example.com",
+      "company": "Acme Corp"
+    }
+  }
+}
+```
+
+### Response Format
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Successfully created lead: John Smith (ID: lead_abc123)"
+      }
+    ]
+  }
+}
+```
+
+### Error Response
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "error": {
+    "code": -32602,
+    "message": "Invalid params: email is required"
+  }
+}
+```
+
+---
+
+## Tool Schemas
+
+### createLead
+
+```json
+{
+  "name": "createLead",
+  "description": "Create a new lead in the CRM",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "firstName": { "type": "string", "description": "First name" },
+      "lastName": { "type": "string", "description": "Last name" },
+      "email": { "type": "string", "description": "Email address" },
+      "phone": { "type": "string", "description": "Phone number" },
+      "company": { "type": "string", "description": "Company name" },
+      "title": { "type": "string", "description": "Job title" },
+      "source": { 
+        "type": "string", 
+        "enum": ["WEBSITE", "REFERRAL", "LINKEDIN", "COLD_CALL", "EVENT", "OTHER"]
+      }
+    },
+    "required": ["firstName", "lastName"]
+  }
+}
+```
+
+### searchLeads
+
+```json
+{
+  "name": "searchLeads",
+  "description": "Search for leads with filters",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "query": { "type": "string", "description": "Search term" },
+      "status": { 
+        "type": "string",
+        "enum": ["NEW", "CONTACTED", "QUALIFIED", "UNQUALIFIED", "CONVERTED"]
+      },
+      "source": { "type": "string" },
+      "limit": { "type": "number", "default": 10 }
+    }
+  }
+}
+```
+
+### createTask
+
+```json
+{
+  "name": "createTask",
+  "description": "Create a task linked to a CRM record",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "title": { "type": "string", "description": "Task title" },
+      "description": { "type": "string" },
+      "priority": { 
+        "type": "string",
+        "enum": ["LOW", "MEDIUM", "HIGH", "URGENT"]
+      },
+      "dueDate": { "type": "string", "format": "date" },
+      "leadId": { "type": "string" },
+      "contactId": { "type": "string" },
+      "accountId": { "type": "string" },
+      "opportunityId": { "type": "string" }
+    },
+    "required": ["title"]
+  }
+}
+```
+
+---
+
+## Example Conversations
+
+### Creating Records
+
+**User:** Create a lead for Sarah Johnson, VP of Engineering at TechCorp. Her email is sarah@techcorp.com.
+
+**AI calls:** `createLead`
+```json
+{
+  "firstName": "Sarah",
+  "lastName": "Johnson",
+  "email": "sarah@techcorp.com",
+  "company": "TechCorp",
+  "title": "VP of Engineering"
+}
+```
+
+**Response:** Created lead Sarah Johnson at TechCorp (ID: lead_xyz789)
+
+### Searching Data
+
+**User:** Show me all high-priority tickets that are still open.
+
+**AI calls:** `searchTickets`
+```json
+{
+  "status": "OPEN",
+  "priority": "HIGH"
+}
+```
+
+**Response:** Found 3 open high-priority tickets...
+
+### Complex Workflows
+
+**User:** Find all accounts with health scores below 50 and create follow-up tasks for each.
+
+**AI calls:**
+1. `searchAtRiskAccounts` with threshold 50
+2. For each account: `createTask` with appropriate details
+
+---
+
+## Security Considerations
+
+### API Key Best Practices
+
+1. **Rotate regularly** - Generate new keys periodically
+2. **Limit scope** - Use separate keys for different integrations
+3. **Monitor usage** - Check audit logs for suspicious activity
+4. **Secure storage** - Never commit keys to version control
+
+### Rate Limits
+
+| Operation | Limit |
+|-----------|-------|
+| Tool calls | 100/minute |
+| SSE connections | 5 concurrent |
+| Batch operations | 50 records/call |
+
+### Permissions
+
+MCP operations respect your RBAC settings. The API key inherits permissions from the user who generated it.
+
+---
+
+## Troubleshooting
+
+### Connection Issues
+
+**Problem:** SSE connection drops frequently
+
+**Solution:**
+- Check network stability
+- Implement reconnection logic
+- Use heartbeat/ping messages
+
+### Authentication Errors
+
+**Problem:** 401 Unauthorized
+
+**Solution:**
+- Verify API key is correct
+- Check key hasn't expired
+- Ensure key has required permissions
+
+### Tool Execution Failures
+
+**Problem:** Tool returns error
+
+**Solution:**
+- Check input schema matches requirements
+- Verify required fields are provided
+- Check for valid enum values
+
+### Debugging
+
+Enable verbose logging:
+
+```bash
+DEBUG=mcp:* npm run mcp:server
+```
+
+---
+
+## Changelog
+
+### v1.0.0
+- Initial MCP server release
+- 44 tools across all modules
+- SSE and HTTP transport support
+- Claude Desktop integration
