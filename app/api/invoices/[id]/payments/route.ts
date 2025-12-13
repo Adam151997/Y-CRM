@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from "next/server";
 import { getApiAuthContext } from "@/lib/auth";
-import { requirePermission } from "@/lib/permissions";
+import { requirePermission, PermissionError } from "@/lib/permissions";
 import { createAuditLog } from "@/lib/audit";
 import { revalidateInvoiceCaches } from "@/lib/cache-utils";
 import prisma from "@/lib/db";
@@ -63,6 +63,14 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ payments });
   } catch (error) {
     console.error("[Invoice Payments GET] Error:", error);
+    
+    if (error instanceof PermissionError) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: error.status }
+      );
+    }
+    
     return NextResponse.json(
       { error: "Failed to fetch payments" },
       { status: 500 }
@@ -202,6 +210,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }, { status: 201 });
   } catch (error) {
     console.error("[Invoice Payments POST] Error:", error);
+    
+    if (error instanceof PermissionError) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: error.status }
+      );
+    }
     
     if (error instanceof Error && error.name === "ZodError") {
       return NextResponse.json(

@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from "next/server";
 import { getApiAuthContext } from "@/lib/auth";
-import { requirePermission } from "@/lib/permissions";
+import { requirePermission, PermissionError } from "@/lib/permissions";
 import { createAuditLog } from "@/lib/audit";
 import { revalidateInvoiceCaches } from "@/lib/cache-utils";
 import prisma from "@/lib/db";
@@ -171,6 +171,13 @@ Thank you for your business!`;
     });
   } catch (error) {
     console.error("[Send Invoice] Error:", error);
+    
+    if (error instanceof PermissionError) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: error.status }
+      );
+    }
     
     if (error instanceof Error && error.name === "ZodError") {
       return NextResponse.json(

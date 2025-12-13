@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from "next/server";
 import { getApiAuthContext } from "@/lib/auth";
-import { requirePermission } from "@/lib/permissions";
+import { requirePermission, PermissionError } from "@/lib/permissions";
 import { createAuditLog } from "@/lib/audit";
 import { revalidateInvoiceCaches } from "@/lib/cache-utils";
 import prisma from "@/lib/db";
@@ -91,6 +91,14 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json(invoice);
   } catch (error) {
     console.error("[Invoice GET] Error:", error);
+    
+    if (error instanceof PermissionError) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: error.status }
+      );
+    }
+    
     return NextResponse.json(
       { error: "Failed to fetch invoice" },
       { status: 500 }
@@ -284,6 +292,13 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   } catch (error) {
     console.error("[Invoice PUT] Error:", error);
     
+    if (error instanceof PermissionError) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: error.status }
+      );
+    }
+    
     if (error instanceof Error && error.name === "ZodError") {
       return NextResponse.json(
         { error: "Invalid input", details: error },
@@ -360,6 +375,14 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("[Invoice DELETE] Error:", error);
+    
+    if (error instanceof PermissionError) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: error.status }
+      );
+    }
+    
     return NextResponse.json(
       { error: "Failed to delete invoice" },
       { status: 500 }
