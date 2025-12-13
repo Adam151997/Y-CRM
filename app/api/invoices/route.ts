@@ -12,6 +12,7 @@ import { requirePermission } from "@/lib/permissions";
 import { createAuditLog } from "@/lib/audit";
 import { revalidateInvoiceCaches } from "@/lib/cache-utils";
 import prisma from "@/lib/db";
+import { Prisma } from "@prisma/client";
 import {
   createInvoiceSchema,
   invoiceFiltersSchema,
@@ -225,8 +226,8 @@ export async function POST(request: NextRequest) {
         notes: data.notes,
         terms: data.terms,
         footer: data.footer,
-        billingAddress,
-        customFields: data.customFields || {},
+        billingAddress: billingAddress as Prisma.InputJsonValue,
+        customFields: (data.customFields || {}) as Prisma.InputJsonValue,
         createdById: authContext.userId,
         createdByType: "USER",
         items: {
