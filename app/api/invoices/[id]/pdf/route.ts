@@ -365,8 +365,8 @@ export async function GET(request: NextRequest, context: RouteContext) {
               ${item.itemCode ? `<div class="item-code">SKU: ${item.itemCode}</div>` : ''}
             </td>
             <td>${Number(item.quantity)}</td>
-            <td>${formatCurrency(item.unitPrice, invoice.currency)}</td>
-            <td>${formatCurrency(item.amount, invoice.currency)}</td>
+            <td>${formatCurrency(Number(item.unitPrice), invoice.currency)}</td>
+            <td>${formatCurrency(Number(item.amount), invoice.currency)}</td>
           </tr>
         `).join('')}
       </tbody>
