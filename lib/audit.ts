@@ -23,6 +23,7 @@ export type AuditModule =
   | "NOTE"
   | "ACTIVITY"
   | "DOCUMENT"
+  | "INVOICE"
   | "CUSTOM_MODULE"
   | "CUSTOM_MODULE_RECORD"
   | "CUSTOM_FIELD"
