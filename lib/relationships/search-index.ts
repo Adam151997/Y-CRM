@@ -233,7 +233,9 @@ export async function batchLoadRecords(
   }
 
   // Fetch each module's records in batch
-  for (const [module, ids] of byModule) {
+  const moduleEntries = Array.from(byModule.entries());
+  for (let i = 0; i < moduleEntries.length; i++) {
+    const [module, ids] = moduleEntries[i];
     try {
       const modelMap: Record<string, string> = {
         accounts: "account",
