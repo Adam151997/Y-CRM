@@ -36,17 +36,18 @@ async function fetchTeamMembers(): Promise<TeamMember[]> {
   }
 
   // Start new fetch
-  const fetchPromise = (async () => {
+  const fetchPromise: Promise<TeamMember[]> = (async (): Promise<TeamMember[]> => {
     try {
       const response = await fetch("/api/team");
       if (!response.ok) throw new Error("Failed to fetch team");
       const data = await response.json();
-      teamMembersCache = data.members || [];
-      return teamMembersCache;
+      const members: TeamMember[] = data.members || [];
+      teamMembersCache = members;
+      return members;
     } catch (error) {
       console.error("Failed to fetch team members:", error);
       teamMembersCachePromise = null;
-      return [] as TeamMember[];
+      return [];
     }
   })();
 
