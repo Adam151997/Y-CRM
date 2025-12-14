@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, Pencil, Trash2, GripVertical, Inbox, Link2 } from "lucide-react";
 import { toast } from "sonner";
+import { EditCustomFieldDialog } from "./edit-custom-field-dialog";
 
 interface CustomField {
   id: string;
@@ -27,6 +29,8 @@ interface CustomField {
   fieldType: string;
   required: boolean;
   options: unknown;
+  placeholder?: string | null;
+  helpText?: string | null;
   displayOrder: number;
   isActive: boolean;
   isSystem: boolean;
@@ -87,6 +91,17 @@ export function CustomFieldsList({
   moduleName 
 }: CustomFieldsListProps) {
   const router = useRouter();
+  const [editingField, setEditingField] = useState<CustomField | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+
+  const handleEdit = (field: CustomField) => {
+    if (field.isSystem) {
+      toast.error("System fields cannot be edited");
+      return;
+    }
+    setEditingField(field);
+    setEditDialogOpen(true);
+  };
 
   const handleDelete = async (id: string, name: string, isSystem: boolean) => {
     if (isSystem) {
@@ -127,96 +142,108 @@ export function CustomFieldsList({
   }
 
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead className="w-10"></TableHead>
-          <TableHead>Field Name</TableHead>
-          <TableHead>Field Key</TableHead>
-          <TableHead>Type</TableHead>
-          <TableHead>Required</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead className="w-10"></TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {fields.map((field) => (
-          <TableRow key={field.id}>
-            <TableCell>
-              <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
-            </TableCell>
-            <TableCell className="font-medium">
-              <div className="flex items-center gap-2">
-                {field.fieldName}
-                {field.isSystem && (
-                  <Badge variant="outline" className="text-xs">
-                    System
+    <>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-10"></TableHead>
+            <TableHead>Field Name</TableHead>
+            <TableHead>Field Key</TableHead>
+            <TableHead>Type</TableHead>
+            <TableHead>Required</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead className="w-10"></TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {fields.map((field) => (
+            <TableRow key={field.id}>
+              <TableCell>
+                <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
+              </TableCell>
+              <TableCell className="font-medium">
+                <div className="flex items-center gap-2">
+                  {field.fieldName}
+                  {field.isSystem && (
+                    <Badge variant="outline" className="text-xs">
+                      System
+                    </Badge>
+                  )}
+                </div>
+                {field.fieldType === "RELATIONSHIP" && field.relatedModule && (
+                  <div className="flex items-center gap-1 mt-0.5 text-xs text-muted-foreground">
+                    <Link2 className="h-3 w-3" />
+                    Links to {moduleDisplayNames[field.relatedModule] || field.relatedModule}
+                  </div>
+                )}
+              </TableCell>
+              <TableCell>
+                <code className="text-xs bg-muted px-1.5 py-0.5 rounded">
+                  {field.fieldKey}
+                </code>
+              </TableCell>
+              <TableCell>
+                <Badge className={fieldTypeColors[field.fieldType] || "bg-gray-500/10 text-gray-500"}>
+                  {fieldTypeLabels[field.fieldType] || field.fieldType}
+                </Badge>
+              </TableCell>
+              <TableCell>
+                {field.required ? (
+                  <Badge variant="outline" className="text-orange-500 border-orange-500">
+                    Required
+                  </Badge>
+                ) : (
+                  <span className="text-muted-foreground text-sm">Optional</span>
+                )}
+              </TableCell>
+              <TableCell>
+                {field.isActive ? (
+                  <Badge variant="outline" className="text-green-500 border-green-500">
+                    Active
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="text-slate-500">
+                    Inactive
                   </Badge>
                 )}
-              </div>
-              {field.fieldType === "RELATIONSHIP" && field.relatedModule && (
-                <div className="flex items-center gap-1 mt-0.5 text-xs text-muted-foreground">
-                  <Link2 className="h-3 w-3" />
-                  Links to {moduleDisplayNames[field.relatedModule] || field.relatedModule}
-                </div>
-              )}
-            </TableCell>
-            <TableCell>
-              <code className="text-xs bg-muted px-1.5 py-0.5 rounded">
-                {field.fieldKey}
-              </code>
-            </TableCell>
-            <TableCell>
-              <Badge className={fieldTypeColors[field.fieldType] || "bg-gray-500/10 text-gray-500"}>
-                {fieldTypeLabels[field.fieldType] || field.fieldType}
-              </Badge>
-            </TableCell>
-            <TableCell>
-              {field.required ? (
-                <Badge variant="outline" className="text-orange-500 border-orange-500">
-                  Required
-                </Badge>
-              ) : (
-                <span className="text-muted-foreground text-sm">Optional</span>
-              )}
-            </TableCell>
-            <TableCell>
-              {field.isActive ? (
-                <Badge variant="outline" className="text-green-500 border-green-500">
-                  Active
-                </Badge>
-              ) : (
-                <Badge variant="outline" className="text-slate-500">
-                  Inactive
-                </Badge>
-              )}
-            </TableCell>
-            <TableCell>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon">
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem>
-                    <Pencil className="h-4 w-4 mr-2" />
-                    Edit
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    className={field.isSystem ? "text-muted-foreground" : "text-red-600"}
-                    onClick={() => handleDelete(field.id, field.fieldName, field.isSystem)}
-                    disabled={field.isSystem}
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+              </TableCell>
+              <TableCell>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem
+                      onClick={() => handleEdit(field)}
+                      disabled={field.isSystem}
+                      className={field.isSystem ? "text-muted-foreground" : ""}
+                    >
+                      <Pencil className="h-4 w-4 mr-2" />
+                      Edit
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className={field.isSystem ? "text-muted-foreground" : "text-red-600"}
+                      onClick={() => handleDelete(field.id, field.fieldName, field.isSystem)}
+                      disabled={field.isSystem}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+
+      <EditCustomFieldDialog
+        field={editingField}
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+      />
+    </>
   );
 }

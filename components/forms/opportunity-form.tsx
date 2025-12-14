@@ -36,6 +36,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { AssigneeSelector } from "./assignee-selector";
 import { CustomFieldsForm } from "./custom-fields-renderer";
+import { CURRENCIES } from "@/lib/constants/currencies";
 
 const opportunityFormSchema = z.object({
   name: z.string().min(1, "Opportunity name is required").max(200),
@@ -78,15 +79,6 @@ interface OpportunityFormProps {
   };
   initialCustomFields?: Record<string, unknown>;
 }
-
-const currencies = [
-  { value: "USD", label: "USD ($)" },
-  { value: "EUR", label: "EUR (€)" },
-  { value: "GBP", label: "GBP (£)" },
-  { value: "CAD", label: "CAD ($)" },
-  { value: "AUD", label: "AUD ($)" },
-  { value: "JPY", label: "JPY (¥)" },
-];
 
 const NO_SELECTION = "_none";
 
@@ -303,7 +295,7 @@ export function OpportunityForm({ accounts, stages, initialData, initialCustomFi
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {currencies.map((currency) => (
+                          {CURRENCIES.map((currency) => (
                             <SelectItem key={currency.value} value={currency.value}>
                               {currency.label}
                             </SelectItem>

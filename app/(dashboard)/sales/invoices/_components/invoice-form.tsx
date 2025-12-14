@@ -29,6 +29,7 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { Plus, Trash2, Loader2 } from "lucide-react";
 import { createInvoiceSchema } from "@/lib/validation/invoices";
+import { CURRENCIES } from "@/lib/constants/currencies";
 
 // Form schema
 const formSchema = z.object({
@@ -276,10 +277,11 @@ export function InvoiceForm({ accounts, defaultAccountId }: InvoiceFormProps) {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="USD">USD - US Dollar</SelectItem>
-                        <SelectItem value="EUR">EUR - Euro</SelectItem>
-                        <SelectItem value="GBP">GBP - British Pound</SelectItem>
-                        <SelectItem value="EGP">EGP - Egyptian Pound</SelectItem>
+                        {CURRENCIES.map((currency) => (
+                          <SelectItem key={currency.value} value={currency.value}>
+                            {currency.label}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                     <FormMessage />

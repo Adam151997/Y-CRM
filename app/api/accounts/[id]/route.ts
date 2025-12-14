@@ -137,6 +137,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       annualRevenue: data.annualRevenue,
       employeeCount: data.employeeCount,
       rating: data.rating,
+      assignedToId: data.assignedToId,
     };
 
     // Handle address JSON field

@@ -251,7 +251,10 @@ export const customFieldModuleSchema = z.enum([
 
 export const customFieldTypeSchema = z.enum([
   "TEXT",
+  "TEXTAREA",
   "NUMBER",
+  "CURRENCY",
+  "PERCENT",
   "DATE",
   "SELECT",
   "MULTISELECT",
@@ -259,6 +262,7 @@ export const customFieldTypeSchema = z.enum([
   "URL",
   "EMAIL",
   "PHONE",
+  "RELATIONSHIP",
 ]);
 
 export const createCustomFieldSchema = z.object({

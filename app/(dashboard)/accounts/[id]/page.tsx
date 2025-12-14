@@ -177,53 +177,57 @@ export default async function AccountDetailPage({ params }: AccountDetailPagePro
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Stats Cards - 3 columns */}
         <div className="lg:col-span-3 grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-blue-500/10">
-                <Users className="h-5 w-5 text-blue-500" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{account._count.contacts}</p>
-                <p className="text-sm text-muted-foreground">Contacts</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-green-500/10">
-                <Target className="h-5 w-5 text-green-500" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{account._count.opportunities}</p>
-                <p className="text-sm text-muted-foreground">Opportunities</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-purple-500/10">
-                <DollarSign className="h-5 w-5 text-purple-500" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{formatRevenue(totalOpportunityValue)}</p>
-                <p className="text-sm text-muted-foreground">Pipeline Value</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-          <Card>
+          <Card className="overflow-hidden">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-orange-500/10">
+                <div className="p-2 rounded-lg bg-blue-500/10 flex-shrink-0">
+                  <Users className="h-5 w-5 text-blue-500" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-2xl font-bold truncate">{account._count.contacts}</p>
+                  <p className="text-sm text-muted-foreground">Contacts</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="overflow-hidden">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-green-500/10 flex-shrink-0">
+                  <Target className="h-5 w-5 text-green-500" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-2xl font-bold truncate">{account._count.opportunities}</p>
+                  <p className="text-sm text-muted-foreground">Opportunities</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="overflow-hidden">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-purple-500/10 flex-shrink-0">
+                  <DollarSign className="h-5 w-5 text-purple-500" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-2xl font-bold truncate" title={formatRevenue(totalOpportunityValue)}>
+                    {formatRevenue(totalOpportunityValue)}
+                  </p>
+                  <p className="text-sm text-muted-foreground">Pipeline Value</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="overflow-hidden">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-orange-500/10 flex-shrink-0">
                   <TrendingUp className="h-5 w-5 text-orange-500" />
                 </div>
-                <div>
-                  <p className="text-2xl font-bold">{formatRevenue(account.annualRevenue)}</p>
+                <div className="min-w-0">
+                  <p className="text-2xl font-bold truncate" title={formatRevenue(account.annualRevenue)}>
+                    {formatRevenue(account.annualRevenue)}
+                  </p>
                   <p className="text-sm text-muted-foreground">Annual Revenue</p>
                 </div>
               </div>

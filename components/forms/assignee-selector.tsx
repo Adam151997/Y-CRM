@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import {
   Select,
   SelectContent,
@@ -20,6 +20,48 @@ interface TeamMember {
   imageUrl: string | null;
 }
 
+// Cache for team members to avoid repeated API calls
+let teamMembersCache: TeamMember[] | null = null;
+let teamMembersCachePromise: Promise<TeamMember[]> | null = null;
+
+async function fetchTeamMembers(): Promise<TeamMember[]> {
+  // Return cached data if available
+  if (teamMembersCache) {
+    return teamMembersCache;
+  }
+
+  // Return existing promise if fetch is in progress
+  if (teamMembersCachePromise) {
+    return teamMembersCachePromise;
+  }
+
+  // Start new fetch
+  teamMembersCachePromise = fetch("/api/team")
+    .then((response) => {
+      if (!response.ok) throw new Error("Failed to fetch team");
+      return response.json();
+    })
+    .then((data) => {
+      teamMembersCache = data.members || [];
+      return teamMembersCache;
+    })
+    .catch((error) => {
+      console.error("Failed to fetch team members:", error);
+      teamMembersCachePromise = null;
+      return [];
+    });
+
+  return teamMembersCachePromise;
+}
+
+// Export function to clear cache when team membership changes
+export function clearTeamMembersCache() {
+  teamMembersCache = null;
+  teamMembersCachePromise = null;
+}
+
+const UNASSIGNED_VALUE = "__unassigned__";
+
 interface AssigneeSelectorProps {
   value?: string | null;
   onChange: (value: string | null) => void;
@@ -33,78 +75,86 @@ export function AssigneeSelector({
   disabled = false,
   placeholder = "Select assignee",
 }: AssigneeSelectorProps) {
-  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>(teamMembersCache || []);
+  const [isLoading, setIsLoading] = useState(!teamMembersCache);
 
   useEffect(() => {
-    const fetchTeamMembers = async () => {
-      try {
-        const response = await fetch("/api/team");
-        if (response.ok) {
-          const data = await response.json();
-          setTeamMembers(data.members || []);
-        }
-      } catch (error) {
-        console.error("Failed to fetch team members:", error);
-      } finally {
+    let mounted = true;
+
+    fetchTeamMembers().then((members) => {
+      if (mounted) {
+        setTeamMembers(members);
         setIsLoading(false);
       }
-    };
+    });
 
-    fetchTeamMembers();
+    return () => {
+      mounted = false;
+    };
   }, []);
+
+  const getInitials = useCallback((member: TeamMember) => {
+    if (member.firstName && member.lastName) {
+      return `${member.firstName[0]}${member.lastName[0]}`.toUpperCase();
+    }
+    return member.email[0].toUpperCase();
+  }, []);
+
+  const getDisplayName = useCallback((member: TeamMember) => {
+    if (member.firstName && member.lastName) {
+      return `${member.firstName} ${member.lastName}`;
+    }
+    return member.email;
+  }, []);
+
+  // Convert null/undefined to our special unassigned value for the Select
+  const selectValue = value || UNASSIGNED_VALUE;
+
+  // Find the selected member for display
+  const selectedMember = useMemo(() => {
+    if (!value) return null;
+    return teamMembers.find((m) => m.id === value) || null;
+  }, [value, teamMembers]);
+
+  const handleValueChange = useCallback((newValue: string) => {
+    // Convert our special unassigned value back to null
+    onChange(newValue === UNASSIGNED_VALUE ? null : newValue);
+  }, [onChange]);
 
   if (isLoading) {
     return <Skeleton className="h-10 w-full" />;
   }
 
-  const getInitials = (member: TeamMember) => {
-    if (member.firstName && member.lastName) {
-      return `${member.firstName[0]}${member.lastName[0]}`.toUpperCase();
-    }
-    return member.email[0].toUpperCase();
-  };
-
-  const getDisplayName = (member: TeamMember) => {
-    if (member.firstName && member.lastName) {
-      return `${member.firstName} ${member.lastName}`;
-    }
-    return member.email;
-  };
-
   return (
     <Select
-      value={value || "unassigned"}
-      onValueChange={(val) => onChange(val === "unassigned" ? null : val)}
+      value={selectValue}
+      onValueChange={handleValueChange}
       disabled={disabled}
     >
       <SelectTrigger>
         <SelectValue placeholder={placeholder}>
-          {value ? (
-            (() => {
-              const member = teamMembers.find((m) => m.id === value);
-              if (member) {
-                return (
-                  <div className="flex items-center gap-2">
-                    <Avatar className="h-5 w-5">
-                      <AvatarImage src={member.imageUrl || undefined} />
-                      <AvatarFallback className="text-[10px]">
-                        {getInitials(member)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span>{getDisplayName(member)}</span>
-                  </div>
-                );
-              }
-              return placeholder;
-            })()
+          {selectedMember ? (
+            <div className="flex items-center gap-2">
+              <Avatar className="h-5 w-5">
+                <AvatarImage src={selectedMember.imageUrl || undefined} />
+                <AvatarFallback className="text-[10px]">
+                  {getInitials(selectedMember)}
+                </AvatarFallback>
+              </Avatar>
+              <span>{getDisplayName(selectedMember)}</span>
+            </div>
           ) : (
-            <span className="text-muted-foreground">{placeholder}</span>
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <div className="h-5 w-5 rounded-full bg-muted flex items-center justify-center">
+                <User className="h-3 w-3" />
+              </div>
+              <span>Unassigned</span>
+            </div>
           )}
         </SelectValue>
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value="unassigned">
+        <SelectItem value={UNASSIGNED_VALUE}>
           <div className="flex items-center gap-2">
             <div className="h-5 w-5 rounded-full bg-muted flex items-center justify-center">
               <User className="h-3 w-3 text-muted-foreground" />
@@ -141,32 +191,28 @@ export function AssigneeDisplay({
   className,
   showUnassigned = true,
 }: AssigneeDisplayProps) {
-  const [member, setMember] = useState<TeamMember | null>(null);
-  const [isLoading, setIsLoading] = useState(!!assigneeId);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>(teamMembersCache || []);
+  const [isLoading, setIsLoading] = useState(!teamMembersCache);
 
   useEffect(() => {
-    if (!assigneeId) {
-      setIsLoading(false);
-      return;
-    }
+    let mounted = true;
 
-    const fetchMember = async () => {
-      try {
-        const response = await fetch("/api/team");
-        if (response.ok) {
-          const data = await response.json();
-          const found = data.members?.find((m: TeamMember) => m.id === assigneeId);
-          setMember(found || null);
-        }
-      } catch (error) {
-        console.error("Failed to fetch team member:", error);
-      } finally {
+    fetchTeamMembers().then((members) => {
+      if (mounted) {
+        setTeamMembers(members);
         setIsLoading(false);
       }
-    };
+    });
 
-    fetchMember();
-  }, [assigneeId]);
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const member = useMemo(() => {
+    if (!assigneeId) return null;
+    return teamMembers.find((m) => m.id === assigneeId) || null;
+  }, [assigneeId, teamMembers]);
 
   if (isLoading) {
     return <Skeleton className="h-6 w-24" />;
@@ -175,7 +221,7 @@ export function AssigneeDisplay({
   if (!assigneeId || !member) {
     if (!showUnassigned) return null;
     return (
-      <div className={`flex items-center gap-2 text-muted-foreground ${className}`}>
+      <div className={`flex items-center gap-2 text-muted-foreground ${className || ""}`}>
         <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center">
           <User className="h-3 w-3" />
         </div>
@@ -199,7 +245,7 @@ export function AssigneeDisplay({
   };
 
   return (
-    <div className={`flex items-center gap-2 ${className}`}>
+    <div className={`flex items-center gap-2 ${className || ""}`}>
       <Avatar className="h-6 w-6">
         <AvatarImage src={member.imageUrl || undefined} />
         <AvatarFallback className="text-[10px]">{getInitials()}</AvatarFallback>
