@@ -59,11 +59,11 @@ function cacheResults(key: string, results: unknown[]): void {
 export function invalidateSearchCache(orgId: string, moduleId?: string): void {
   const keysToDelete: string[] = [];
   
-  for (const key of searchCache.keys()) {
+  Array.from(searchCache.keys()).forEach((key) => {
     if (key.startsWith(orgId) && (!moduleId || key.includes(moduleId))) {
       keysToDelete.push(key);
     }
-  }
+  });
   
   keysToDelete.forEach(key => searchCache.delete(key));
 }
