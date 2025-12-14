@@ -8,6 +8,7 @@
  */
 
 import prisma from "@/lib/db";
+import { Prisma } from "@prisma/client";
 
 // Built-in modules that can be relationship targets
 export const BUILT_IN_MODULES = ["accounts", "contacts", "leads", "opportunities"] as const;
@@ -230,12 +231,12 @@ export async function cleanupOrphanedRelationships(
           });
 
           for (const record of records) {
-            const data = (record.data as Record<string, unknown>) || {};
-            data[field.fieldKey] = null;
+            const recordData = (record.data as Record<string, unknown>) || {};
+            recordData[field.fieldKey] = null;
 
             await prisma.customModuleRecord.update({
               where: { id: record.id },
-              data: { data },
+              data: { data: recordData as Prisma.InputJsonValue },
             });
             cleaned++;
           }
