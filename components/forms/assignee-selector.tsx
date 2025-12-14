@@ -36,22 +36,22 @@ async function fetchTeamMembers(): Promise<TeamMember[]> {
   }
 
   // Start new fetch
-  teamMembersCachePromise = fetch("/api/team")
-    .then((response) => {
+  const fetchPromise = (async () => {
+    try {
+      const response = await fetch("/api/team");
       if (!response.ok) throw new Error("Failed to fetch team");
-      return response.json();
-    })
-    .then((data) => {
+      const data = await response.json();
       teamMembersCache = data.members || [];
       return teamMembersCache;
-    })
-    .catch((error) => {
+    } catch (error) {
       console.error("Failed to fetch team members:", error);
       teamMembersCachePromise = null;
-      return [];
-    });
+      return [] as TeamMember[];
+    }
+  })();
 
-  return teamMembersCachePromise;
+  teamMembersCachePromise = fetchPromise;
+  return fetchPromise;
 }
 
 // Export function to clear cache when team membership changes
