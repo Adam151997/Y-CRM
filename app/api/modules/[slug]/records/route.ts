@@ -4,6 +4,7 @@ import { getApiAuthContext } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { createAuditLog } from "@/lib/audit";
 import { Prisma } from "@prisma/client";
+import { validateRelationships } from "@/lib/relationships";
 
 interface RouteParams {
   params: Promise<{ slug: string }>;
@@ -108,6 +109,15 @@ function validateRecordData(
           if (invalid.length > 0) {
             errors.push(`${field.fieldKey} contains invalid options: ${invalid.join(", ")}`);
           }
+        }
+        break;
+
+      case "RELATIONSHIP":
+        // Basic format check - async validation done separately
+        if (typeof value !== "string") {
+          errors.push(`${field.fieldKey} must be a string (record ID)`);
+        } else if (value && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)) {
+          errors.push(`${field.fieldKey} must be a valid UUID`);
         }
         break;
     }
@@ -234,6 +244,30 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         { error: "Validation failed", details: validation.errors },
         { status: 400 }
       );
+    }
+
+    // Validate relationship fields (check that referenced records exist)
+    const relationshipFields = module.fields.filter(
+      (f) => f.fieldType === "RELATIONSHIP" && f.relatedModule
+    );
+    
+    if (relationshipFields.length > 0) {
+      const relationshipValidation = await validateRelationships(
+        auth.orgId,
+        relationshipFields.map((f) => ({
+          fieldKey: f.fieldKey,
+          fieldType: f.fieldType,
+          relatedModule: f.relatedModule,
+        })),
+        data
+      );
+
+      if (!relationshipValidation.valid) {
+        return NextResponse.json(
+          { error: "Relationship validation failed", details: relationshipValidation.errors },
+          { status: 400 }
+        );
+      }
     }
 
     // Create the record

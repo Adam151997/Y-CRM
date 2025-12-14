@@ -3,7 +3,7 @@ import { getApiAuthContext } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { createAuditLog } from "@/lib/audit";
 import { Prisma } from "@prisma/client";
-import { cleanupOrphanedRelationships } from "@/lib/relationships";
+import { cleanupOrphanedRelationships, validateRelationships } from "@/lib/relationships";
 
 interface RouteParams {
   params: Promise<{ slug: string; id: string }>;
@@ -119,6 +119,32 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const mergedData = data
       ? { ...existingData, ...data }
       : existingData;
+
+    // Validate relationship fields if data contains any
+    if (data) {
+      const relationshipFields = module.fields.filter(
+        (f) => f.fieldType === "RELATIONSHIP" && f.relatedModule && data[f.fieldKey] !== undefined
+      );
+      
+      if (relationshipFields.length > 0) {
+        const relationshipValidation = await validateRelationships(
+          auth.orgId,
+          relationshipFields.map((f) => ({
+            fieldKey: f.fieldKey,
+            fieldType: f.fieldType,
+            relatedModule: f.relatedModule,
+          })),
+          data
+        );
+
+        if (!relationshipValidation.valid) {
+          return NextResponse.json(
+            { error: "Relationship validation failed", details: relationshipValidation.errors },
+            { status: 400 }
+          );
+        }
+      }
+    }
 
     // Update the record
     const record = await prisma.customModuleRecord.update({
