@@ -3,6 +3,7 @@ import { getApiAuthContext } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { createAuditLog } from "@/lib/audit";
 import { Prisma } from "@prisma/client";
+import { cleanupOrphanedRelationships } from "@/lib/relationships";
 
 interface RouteParams {
   params: Promise<{ slug: string; id: string }>;
@@ -194,6 +195,13 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       where: { id },
     });
 
+    // Clean up orphaned relationships pointing to this record
+    const cleanupResult = await cleanupOrphanedRelationships(
+      auth.orgId,
+      slug, // Use module slug as identifier
+      id
+    );
+
     // Audit log
     await createAuditLog({
       orgId: auth.orgId,
@@ -203,7 +211,11 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       actorType: "USER",
       actorId: auth.userId,
       previousState: existing as unknown as Record<string, unknown>,
-      metadata: { moduleSlug: module.slug, moduleName: module.name },
+      metadata: { 
+        moduleSlug: module.slug, 
+        moduleName: module.name,
+        relationshipsCleanedUp: cleanupResult.cleaned,
+      },
     });
 
     return NextResponse.json({ success: true });

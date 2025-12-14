@@ -7,6 +7,7 @@ import { createNotification } from "@/lib/notifications";
 import { updateLeadSchema } from "@/lib/validation/schemas";
 import { validateCustomFields } from "@/lib/validation/custom-fields";
 import { checkRoutePermission } from "@/lib/api-permissions";
+import { cleanupOrphanedRelationships } from "@/lib/relationships";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -265,6 +266,13 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       where: { id },
     });
 
+    // Clean up orphaned relationships in other modules
+    const cleanupResult = await cleanupOrphanedRelationships(
+      auth.orgId,
+      "leads",
+      id
+    );
+
     // Audit log
     await createAuditLog({
       orgId: auth.orgId,
@@ -274,6 +282,9 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       actorType: "USER",
       actorId: auth.userId,
       previousState: existingLead as unknown as Record<string, unknown>,
+      metadata: {
+        relationshipsCleanedUp: cleanupResult.cleaned,
+      },
     });
 
     return NextResponse.json({ success: true });

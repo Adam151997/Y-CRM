@@ -918,6 +918,10 @@ model CustomFieldDefinition {
   isActive        Boolean  @default(true)
   isSystem        Boolean  @default(false) // System fields can't be deleted
 
+  // Schema evolution tracking (Fix #5)
+  version         Int      @default(1)
+  previousVersions Json?   // Track field definition changes
+
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 

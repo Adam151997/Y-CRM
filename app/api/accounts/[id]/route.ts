@@ -5,6 +5,7 @@ import { Prisma } from "@prisma/client";
 import { createAuditLog } from "@/lib/audit";
 import { updateAccountSchema } from "@/lib/validation/schemas";
 import { validateCustomFields } from "@/lib/validation/custom-fields";
+import { cleanupOrphanedRelationships } from "@/lib/relationships";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -226,6 +227,18 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       where: { id },
     });
 
+    // Clean up orphaned relationships in other modules
+    // This sets any relationship fields pointing to this account to null
+    const cleanupResult = await cleanupOrphanedRelationships(
+      auth.orgId,
+      "accounts",
+      id
+    );
+    
+    if (cleanupResult.errors.length > 0) {
+      console.warn("Relationship cleanup warnings:", cleanupResult.errors);
+    }
+
     // Audit log
     await createAuditLog({
       orgId: auth.orgId,
@@ -235,6 +248,9 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       actorType: "USER",
       actorId: auth.userId,
       previousState: existingAccount as unknown as Record<string, unknown>,
+      metadata: {
+        relationshipsCleanedUp: cleanupResult.cleaned,
+      },
     });
 
     return NextResponse.json({ success: true });

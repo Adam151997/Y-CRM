@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getApiAuthContext } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { createAuditLog } from "@/lib/audit";
+import { cleanupOrphanedRelationships } from "@/lib/relationships";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -156,6 +157,14 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Module not found" }, { status: 404 });
     }
 
+    // Clean up orphaned relationships in other modules before deleting
+    // Use the module slug as the identifier
+    const cleanupResult = await cleanupOrphanedRelationships(
+      auth.orgId,
+      existing.slug,
+      "*" // Wildcard - clean up all references to this module
+    );
+
     // Delete the module (cascades to records and fields)
     await prisma.customModule.delete({
       where: { id },
@@ -170,7 +179,10 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       actorType: "USER",
       actorId: auth.userId,
       previousState: existing as unknown as Record<string, unknown>,
-      metadata: { recordsDeleted: existing._count.records },
+      metadata: { 
+        recordsDeleted: existing._count.records,
+        relationshipsCleanedUp: cleanupResult.cleaned,
+      },
     });
 
     return NextResponse.json({ success: true });

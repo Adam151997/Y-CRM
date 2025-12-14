@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -14,7 +14,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Link2, X, Search } from "lucide-react";
 import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -36,6 +36,7 @@ export interface CustomFieldDefinition {
   placeholder: string | null;
   helpText: string | null;
   displayOrder: number;
+  relatedModule?: string | null;
 }
 
 interface CustomFieldsFormProps {
@@ -60,7 +61,6 @@ export function CustomFieldsForm({
         const response = await fetch(`/api/settings/custom-fields?module=${module}`);
         if (response.ok) {
           const data = await response.json();
-          // API returns array directly
           setFields(Array.isArray(data) ? data : []);
         }
       } catch (error) {
@@ -270,6 +270,17 @@ function CustomFieldInput({ field, value, onChange, disabled }: CustomFieldInput
           </div>
         );
 
+      case "RELATIONSHIP":
+        return (
+          <RelationshipSelector
+            value={(value as string) || null}
+            onChange={onChange}
+            relatedModule={field.relatedModule || ""}
+            placeholder={field.placeholder || `Select ${field.relatedModule}...`}
+            disabled={disabled}
+          />
+        );
+
       default:
         return (
           <Input
@@ -296,6 +307,220 @@ function CustomFieldInput({ field, value, onChange, disabled }: CustomFieldInput
   );
 }
 
+// =============================================================================
+// RELATIONSHIP SELECTOR COMPONENT
+// Fixes Issue #3: Adds proper record picker for relationship fields
+// =============================================================================
+
+interface RelationshipSelectorProps {
+  value: string | null;
+  onChange: (value: unknown) => void;
+  relatedModule: string;
+  placeholder?: string;
+  disabled?: boolean;
+}
+
+interface RecordOption {
+  id: string;
+  label: string;
+}
+
+function RelationshipSelector({
+  value,
+  onChange,
+  relatedModule,
+  placeholder = "Select record...",
+  disabled = false,
+}: RelationshipSelectorProps) {
+  const [options, setOptions] = useState<RecordOption[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isOpen, setIsOpen] = useState(false);
+  const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
+
+  // Fetch options from the related module
+  const fetchOptions = useCallback(async (query: string = "") => {
+    if (!relatedModule) return;
+    
+    setIsLoading(true);
+    try {
+      // Determine if it's a built-in or custom module
+      const builtInModules = ["accounts", "contacts", "leads", "opportunities"];
+      const isBuiltIn = builtInModules.includes(relatedModule.toLowerCase());
+
+      let url: string;
+      if (isBuiltIn) {
+        url = `/api/${relatedModule.toLowerCase()}?limit=50${query ? `&search=${encodeURIComponent(query)}` : ""}`;
+      } else {
+        url = `/api/modules/${relatedModule}/records?limit=50${query ? `&search=${encodeURIComponent(query)}` : ""}`;
+      }
+
+      const response = await fetch(url);
+      if (response.ok) {
+        const data = await response.json();
+        
+        // Extract records based on response structure
+        let records: RecordOption[] = [];
+        
+        if (isBuiltIn) {
+          // Built-in modules return array directly or with a key
+          const items = data.items || data.records || data || [];
+          records = items.map((item: any) => ({
+            id: item.id,
+            label: getRecordLabel(item, relatedModule),
+          }));
+        } else {
+          // Custom modules return { records: [...] }
+          const items = data.records || [];
+          records = items.map((item: any) => ({
+            id: item.id,
+            label: getRecordLabel(item, relatedModule),
+          }));
+        }
+        
+        setOptions(records);
+      }
+    } catch (error) {
+      console.error("Failed to fetch relationship options:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [relatedModule]);
+
+  // Fetch selected record label on mount
+  useEffect(() => {
+    if (value && !selectedLabel) {
+      fetchRecordLabel(value);
+    }
+  }, [value]);
+
+  // Fetch options when opening
+  useEffect(() => {
+    if (isOpen) {
+      fetchOptions(searchQuery);
+    }
+  }, [isOpen, searchQuery, fetchOptions]);
+
+  const fetchRecordLabel = async (recordId: string) => {
+    if (!relatedModule || !recordId) return;
+
+    try {
+      const builtInModules = ["accounts", "contacts", "leads", "opportunities"];
+      const isBuiltIn = builtInModules.includes(relatedModule.toLowerCase());
+
+      let url: string;
+      if (isBuiltIn) {
+        url = `/api/${relatedModule.toLowerCase()}/${recordId}`;
+      } else {
+        url = `/api/modules/${relatedModule}/records/${recordId}`;
+      }
+
+      const response = await fetch(url);
+      if (response.ok) {
+        const data = await response.json();
+        const record = data.record || data;
+        setSelectedLabel(getRecordLabel(record, relatedModule));
+      }
+    } catch (error) {
+      console.error("Failed to fetch record label:", error);
+    }
+  };
+
+  const getRecordLabel = (record: any, module: string): string => {
+    // For built-in modules
+    if (record.name) return record.name;
+    if (record.firstName && record.lastName) return `${record.firstName} ${record.lastName}`;
+    
+    // For custom modules, try common label fields
+    const data = record.data || record;
+    return data.name || data.title || data.label || record.id?.substring(0, 8) || "Unknown";
+  };
+
+  const handleSelect = (recordId: string, label: string) => {
+    onChange(recordId);
+    setSelectedLabel(label);
+    setIsOpen(false);
+    setSearchQuery("");
+  };
+
+  const handleClear = () => {
+    onChange(null);
+    setSelectedLabel(null);
+  };
+
+  return (
+    <Popover open={isOpen} onOpenChange={setIsOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          role="combobox"
+          aria-expanded={isOpen}
+          className={cn(
+            "w-full justify-between",
+            !value && "text-muted-foreground"
+          )}
+          disabled={disabled}
+        >
+          <div className="flex items-center gap-2 truncate">
+            <Link2 className="h-4 w-4 flex-shrink-0" />
+            <span className="truncate">{selectedLabel || placeholder}</span>
+          </div>
+          {value && !disabled && (
+            <X
+              className="h-4 w-4 flex-shrink-0 opacity-50 hover:opacity-100"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleClear();
+              }}
+            />
+          )}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[300px] p-0" align="start">
+        <div className="p-2 border-b">
+          <div className="flex items-center gap-2 px-2">
+            <Search className="h-4 w-4 text-muted-foreground" />
+            <input
+              className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+              placeholder={`Search ${relatedModule}...`}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+        </div>
+        <div className="max-h-[200px] overflow-y-auto">
+          {isLoading ? (
+            <div className="p-4 text-center text-sm text-muted-foreground">
+              Loading...
+            </div>
+          ) : options.length === 0 ? (
+            <div className="p-4 text-center text-sm text-muted-foreground">
+              No records found
+            </div>
+          ) : (
+            options.map((option) => (
+              <div
+                key={option.id}
+                className={cn(
+                  "px-3 py-2 text-sm cursor-pointer hover:bg-accent",
+                  value === option.id && "bg-accent"
+                )}
+                onClick={() => handleSelect(option.id, option.label)}
+              >
+                {option.label}
+              </div>
+            ))
+          )}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+// =============================================================================
+// DISPLAY COMPONENTS
+// =============================================================================
+
 interface CustomFieldsDisplayProps {
   module: "LEAD" | "CONTACT" | "ACCOUNT" | "OPPORTUNITY";
   values: Record<string, unknown>;
@@ -316,7 +541,6 @@ export function CustomFieldsDisplay({
         const response = await fetch(`/api/settings/custom-fields?module=${module}`);
         if (response.ok) {
           const data = await response.json();
-          // API returns array directly
           setFields(Array.isArray(data) ? data : []);
         }
       } catch (error) {
@@ -342,31 +566,6 @@ export function CustomFieldsDisplay({
     return null;
   }
 
-  const formatValue = (field: CustomFieldDefinition, value: unknown): string => {
-    if (value === null || value === undefined || value === "") {
-      return "-";
-    }
-
-    switch (field.fieldType) {
-      case "BOOLEAN":
-        return value ? "Yes" : "No";
-      case "DATE":
-        try {
-          return format(new Date(value as string), "PPP");
-        } catch {
-          return String(value);
-        }
-      case "CURRENCY":
-        return `$${Number(value).toLocaleString()}`;
-      case "PERCENT":
-        return `${value}%`;
-      case "MULTISELECT":
-        return Array.isArray(value) ? value.join(", ") : String(value);
-      default:
-        return String(value);
-    }
-  };
-
   return (
     <div className={cn("space-y-3", className)}>
       {fields.map((field) => {
@@ -377,11 +576,115 @@ export function CustomFieldsDisplay({
           <div key={field.id} className="flex justify-between items-start">
             <span className="text-sm text-muted-foreground">{field.fieldName}</span>
             <span className="text-sm font-medium text-right max-w-[60%]">
-              {formatValue(field, value)}
+              {field.fieldType === "RELATIONSHIP" ? (
+                <RelationshipDisplay
+                  recordId={value as string}
+                  relatedModule={field.relatedModule || ""}
+                />
+              ) : (
+                formatValue(field, value)
+              )}
             </span>
           </div>
         );
       })}
     </div>
+  );
+}
+
+function formatValue(field: CustomFieldDefinition, value: unknown): string {
+  if (value === null || value === undefined || value === "") {
+    return "-";
+  }
+
+  switch (field.fieldType) {
+    case "BOOLEAN":
+      return value ? "Yes" : "No";
+    case "DATE":
+      try {
+        return format(new Date(value as string), "PPP");
+      } catch {
+        return String(value);
+      }
+    case "CURRENCY":
+      return `$${Number(value).toLocaleString()}`;
+    case "PERCENT":
+      return `${value}%`;
+    case "MULTISELECT":
+      return Array.isArray(value) ? value.join(", ") : String(value);
+    default:
+      return String(value);
+  }
+}
+
+// =============================================================================
+// RELATIONSHIP DISPLAY COMPONENT
+// Shows linked record label instead of just UUID
+// =============================================================================
+
+interface RelationshipDisplayProps {
+  recordId: string;
+  relatedModule: string;
+}
+
+function RelationshipDisplay({ recordId, relatedModule }: RelationshipDisplayProps) {
+  const [label, setLabel] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (!recordId || !relatedModule) {
+      setIsLoading(false);
+      return;
+    }
+
+    const fetchLabel = async () => {
+      try {
+        const builtInModules = ["accounts", "contacts", "leads", "opportunities"];
+        const isBuiltIn = builtInModules.includes(relatedModule.toLowerCase());
+
+        let url: string;
+        if (isBuiltIn) {
+          url = `/api/${relatedModule.toLowerCase()}/${recordId}`;
+        } else {
+          url = `/api/modules/${relatedModule}/records/${recordId}`;
+        }
+
+        const response = await fetch(url);
+        if (response.ok) {
+          const data = await response.json();
+          const record = data.record || data;
+          
+          // Extract label
+          if (record.name) {
+            setLabel(record.name);
+          } else if (record.firstName && record.lastName) {
+            setLabel(`${record.firstName} ${record.lastName}`);
+          } else if (record.data) {
+            setLabel(record.data.name || record.data.title || recordId.substring(0, 8));
+          } else {
+            setLabel(recordId.substring(0, 8));
+          }
+        } else {
+          setLabel("(deleted)");
+        }
+      } catch (error) {
+        setLabel("(error)");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchLabel();
+  }, [recordId, relatedModule]);
+
+  if (isLoading) {
+    return <Skeleton className="h-4 w-20 inline-block" />;
+  }
+
+  return (
+    <span className="inline-flex items-center gap-1">
+      <Link2 className="h-3 w-3 text-muted-foreground" />
+      {label || "-"}
+    </span>
   );
 }
