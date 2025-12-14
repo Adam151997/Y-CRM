@@ -21,6 +21,8 @@ import { format } from "date-fns";
 import { ContactNotes } from "./_components/contact-notes";
 import { ContactTasks } from "./_components/contact-tasks";
 import { ContactActivity } from "./_components/contact-activity";
+import { AssigneeDisplay } from "@/components/forms/assignee-selector";
+import { CustomFieldsDisplay } from "@/components/forms/custom-fields-renderer";
 
 interface ContactPageProps {
   params: Promise<{ id: string }>;
@@ -133,6 +135,32 @@ export default async function ContactPage({ params }: ContactPageProps) {
                   Added {format(new Date(contact.createdAt), "MMM d, yyyy")}
                 </span>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Assignment */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Assignment</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-muted-foreground">Assigned To</span>
+                <AssigneeDisplay assigneeId={contact.assignedToId} />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Custom Fields */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Additional Information</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CustomFieldsDisplay
+                module="CONTACT"
+                values={(contact.customFields as Record<string, unknown>) || {}}
+              />
             </CardContent>
           </Card>
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -33,6 +34,8 @@ import {
 import { CalendarIcon, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { AssigneeSelector } from "./assignee-selector";
+import { CustomFieldsForm } from "./custom-fields-renderer";
 
 const opportunityFormSchema = z.object({
   name: z.string().min(1, "Opportunity name is required").max(200),
@@ -42,6 +45,7 @@ const opportunityFormSchema = z.object({
   accountId: z.string().uuid("Please select an account"),
   stageId: z.string().uuid("Please select a stage"),
   expectedCloseDate: z.date().optional().nullable(),
+  assignedToId: z.string().nullable().optional(),
 });
 
 type OpportunityFormValues = z.infer<typeof opportunityFormSchema>;
@@ -70,7 +74,9 @@ interface OpportunityFormProps {
     accountId: string;
     stageId: string;
     expectedCloseDate?: Date | null;
+    assignedToId?: string | null;
   };
+  initialCustomFields?: Record<string, unknown>;
 }
 
 const currencies = [
@@ -84,9 +90,12 @@ const currencies = [
 
 const NO_SELECTION = "_none";
 
-export function OpportunityForm({ accounts, stages, initialData }: OpportunityFormProps) {
+export function OpportunityForm({ accounts, stages, initialData, initialCustomFields }: OpportunityFormProps) {
   const router = useRouter();
   const isEditing = !!initialData;
+  const [customFields, setCustomFields] = useState<Record<string, unknown>>(
+    initialCustomFields || {}
+  );
 
   const form = useForm<OpportunityFormValues>({
     resolver: zodResolver(opportunityFormSchema),
@@ -100,6 +109,7 @@ export function OpportunityForm({ accounts, stages, initialData }: OpportunityFo
       expectedCloseDate: initialData?.expectedCloseDate
         ? new Date(initialData.expectedCloseDate)
         : null,
+      assignedToId: initialData?.assignedToId || null,
     },
   });
 
@@ -122,6 +132,8 @@ export function OpportunityForm({ accounts, stages, initialData }: OpportunityFo
         accountId: data.accountId,
         stageId: data.stageId,
         expectedCloseDate: data.expectedCloseDate || null,
+        assignedToId: data.assignedToId || null,
+        customFields,
       };
 
       const url = isEditing
@@ -156,231 +168,266 @@ export function OpportunityForm({ accounts, stages, initialData }: OpportunityFo
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        {/* Basic Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Opportunity Details</CardTitle>
-          </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem className="md:col-span-2">
-                  <FormLabel>Opportunity Name *</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Enterprise License Deal" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="accountId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Account *</FormLabel>
-                  <Select
-                    value={field.value || NO_SELECTION}
-                    onValueChange={(value) =>
-                      field.onChange(value === NO_SELECTION ? "" : value)
-                    }
-                  >
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Basic Information */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Opportunity Details</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Opportunity Name *</FormLabel>
                     <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select account" />
-                      </SelectTrigger>
+                      <Input placeholder="Enterprise License Deal" {...field} />
                     </FormControl>
-                    <SelectContent>
-                      <SelectItem value={NO_SELECTION}>Select account</SelectItem>
-                      {accounts.map((account) => (
-                        <SelectItem key={account.id} value={account.id}>
-                          {account.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="stageId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Pipeline Stage *</FormLabel>
-                  <Select
-                    value={field.value || NO_SELECTION}
-                    onValueChange={(value) =>
-                      handleStageChange(value === NO_SELECTION ? "" : value)
-                    }
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select stage" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value={NO_SELECTION}>Select stage</SelectItem>
-                      {stages.map((stage) => (
-                        <SelectItem key={stage.id} value={stage.id}>
-                          <div className="flex items-center gap-2">
-                            <div
-                              className="w-3 h-3 rounded-full"
-                              style={{ backgroundColor: stage.color || "#6B7280" }}
-                            />
-                            {stage.name}
-                            {stage.probability !== null && (
-                              <span className="text-muted-foreground text-xs">
-                                ({stage.probability}%)
-                              </span>
-                            )}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </CardContent>
-        </Card>
-
-        {/* Value & Probability */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Value & Probability</CardTitle>
-          </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <FormField
-              control={form.control}
-              name="value"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Deal Value *</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      placeholder="50000"
-                      {...field}
-                      onChange={(e) => field.onChange(Number(e.target.value))}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="currency"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Currency</FormLabel>
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {currencies.map((currency) => (
-                        <SelectItem key={currency.value} value={currency.value}>
-                          {currency.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="probability"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Win Probability (%)</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      min={0}
-                      max={100}
-                      {...field}
-                      onChange={(e) => field.onChange(Number(e.target.value))}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="md:col-span-3 p-4 bg-muted rounded-lg">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Weighted Value:</span>
-                <span className="text-lg font-semibold">
-                  ${weightedValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                </span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Timeline */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Timeline</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <FormField
-              control={form.control}
-              name="expectedCloseDate"
-              render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel>Expected Close Date</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
+              <FormField
+                control={form.control}
+                name="accountId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Account *</FormLabel>
+                    <Select
+                      value={field.value || NO_SELECTION}
+                      onValueChange={(value) =>
+                        field.onChange(value === NO_SELECTION ? "" : value)
+                      }
+                    >
                       <FormControl>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full md:w-[280px] pl-3 text-left font-normal",
-                            !field.value && "text-muted-foreground"
-                          )}
-                        >
-                          {field.value ? (
-                            format(field.value, "PPP")
-                          ) : (
-                            <span>Pick a date</span>
-                          )}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select account" />
+                        </SelectTrigger>
                       </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={field.value || undefined}
-                        onSelect={field.onChange}
-                        initialFocus
+                      <SelectContent>
+                        <SelectItem value={NO_SELECTION}>Select account</SelectItem>
+                        {accounts.map((account) => (
+                          <SelectItem key={account.id} value={account.id}>
+                            {account.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="stageId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Pipeline Stage *</FormLabel>
+                    <Select
+                      value={field.value || NO_SELECTION}
+                      onValueChange={(value) =>
+                        handleStageChange(value === NO_SELECTION ? "" : value)
+                      }
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select stage" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value={NO_SELECTION}>Select stage</SelectItem>
+                        {stages.map((stage) => (
+                          <SelectItem key={stage.id} value={stage.id}>
+                            <div className="flex items-center gap-2">
+                              <div
+                                className="w-3 h-3 rounded-full"
+                                style={{ backgroundColor: stage.color || "#6B7280" }}
+                              />
+                              {stage.name}
+                              {stage.probability !== null && (
+                                <span className="text-muted-foreground text-xs">
+                                  ({stage.probability}%)
+                                </span>
+                              )}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </CardContent>
+          </Card>
+
+          {/* Value & Probability */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Value & Probability</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="value"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Deal Value *</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          placeholder="50000"
+                          {...field}
+                          onChange={(e) => field.onChange(Number(e.target.value))}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="currency"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Currency</FormLabel>
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {currencies.map((currency) => (
+                            <SelectItem key={currency.value} value={currency.value}>
+                              {currency.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <FormField
+                control={form.control}
+                name="probability"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Win Probability (%)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        min={0}
+                        max={100}
+                        {...field}
+                        onChange={(e) => field.onChange(Number(e.target.value))}
                       />
-                    </PopoverContent>
-                  </Popover>
-                  <FormDescription>
-                    When do you expect this deal to close?
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </CardContent>
-        </Card>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="p-4 bg-muted rounded-lg">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Weighted Value:</span>
+                  <span className="text-lg font-semibold">
+                    ${weightedValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Timeline & Assignment */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Timeline & Assignment</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <FormField
+                control={form.control}
+                name="expectedCloseDate"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Expected Close Date</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full pl-3 text-left font-normal",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value ? (
+                              format(field.value, "PPP")
+                            ) : (
+                              <span>Pick a date</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value || undefined}
+                          onSelect={field.onChange}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <FormDescription>
+                      When do you expect this deal to close?
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="assignedToId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Assigned To</FormLabel>
+                    <FormControl>
+                      <AssigneeSelector
+                        value={field.value}
+                        onChange={field.onChange}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </CardContent>
+          </Card>
+
+          {/* Custom Fields */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Additional Information</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CustomFieldsForm
+                module="OPPORTUNITY"
+                values={customFields}
+                onChange={setCustomFields}
+              />
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Actions */}
         <div className="flex items-center gap-4">

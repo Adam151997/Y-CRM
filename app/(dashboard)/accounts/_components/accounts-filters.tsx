@@ -12,12 +12,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Search, X } from "lucide-react";
+import { OwnerFilter, ALL_VALUE as OWNER_ALL } from "@/components/filters/owner-filter";
 
 interface AccountsFiltersProps {
   currentType?: string;
   currentIndustry?: string;
   currentRating?: string;
   currentQuery?: string;
+  currentOwner?: string;
+  currentUserId?: string;
 }
 
 const types = [
@@ -40,6 +43,8 @@ export function AccountsFilters({
   currentIndustry,
   currentRating,
   currentQuery,
+  currentOwner,
+  currentUserId,
 }: AccountsFiltersProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -49,7 +54,7 @@ export function AccountsFilters({
   const updateFilters = (key: string, value: string | null) => {
     const params = new URLSearchParams(searchParams.toString());
 
-    if (value && value !== ALL_VALUE) {
+    if (value && value !== ALL_VALUE && value !== OWNER_ALL) {
       params.set(key, value);
     } else {
       params.delete(key);
@@ -74,7 +79,7 @@ export function AccountsFilters({
     });
   };
 
-  const hasFilters = currentType || currentIndustry || currentRating || currentQuery;
+  const hasFilters = currentType || currentIndustry || currentRating || currentQuery || currentOwner;
 
   return (
     <div className="flex flex-col sm:flex-row gap-4">
@@ -129,6 +134,12 @@ export function AccountsFilters({
             ))}
           </SelectContent>
         </Select>
+
+        <OwnerFilter
+          value={currentOwner}
+          onChange={(value) => updateFilters("owner", value)}
+          currentUserId={currentUserId}
+        />
 
         {hasFilters && (
           <Button variant="ghost" size="icon" onClick={clearFilters}>

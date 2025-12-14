@@ -62,7 +62,9 @@ export default async function EditLeadPage({ params }: EditLeadPageProps) {
           source: lead.source || "",
           status: lead.status,
           pipelineStageId: lead.pipelineStageId || "",
+          assignedToId: lead.assignedToId || null,
         }}
+        defaultCustomFields={(lead.customFields as Record<string, unknown>) || {}}
       />
     </div>
   );

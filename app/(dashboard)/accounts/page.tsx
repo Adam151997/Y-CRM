@@ -16,11 +16,12 @@ interface AccountsPageProps {
     query?: string;
     sortBy?: string;
     sortOrder?: string;
+    owner?: string;
   }>;
 }
 
 export default async function AccountsPage({ searchParams }: AccountsPageProps) {
-  const { orgId } = await getAuthContext();
+  const { orgId, userId } = await getAuthContext();
   const params = await searchParams;
 
   const page = parseInt(params.page || "1");
@@ -33,6 +34,18 @@ export default async function AccountsPage({ searchParams }: AccountsPageProps) 
   if (params.type) where.type = params.type;
   if (params.industry) where.industry = params.industry;
   if (params.rating) where.rating = params.rating;
+  
+  // Owner filter
+  if (params.owner) {
+    if (params.owner === "_my") {
+      where.assignedToId = userId;
+    } else if (params.owner === "_unassigned") {
+      where.assignedToId = null;
+    } else {
+      where.assignedToId = params.owner;
+    }
+  }
+  
   if (params.query) {
     where.OR = [
       { name: { contains: params.query, mode: "insensitive" } },
@@ -83,6 +96,8 @@ export default async function AccountsPage({ searchParams }: AccountsPageProps) 
         currentIndustry={params.industry}
         currentRating={params.rating}
         currentQuery={params.query}
+        currentOwner={params.owner}
+        currentUserId={userId}
       />
 
       {/* Table */}

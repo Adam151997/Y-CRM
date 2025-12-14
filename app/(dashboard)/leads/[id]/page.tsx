@@ -13,10 +13,7 @@ import {
   Mail,
   Phone,
   Building2,
-  Calendar,
   User,
-  MapPin,
-  Clock,
   MessageSquare,
   CheckSquare,
   FileText,
@@ -27,6 +24,8 @@ import { LeadNotes } from "./_components/lead-notes";
 import { LeadTasks } from "./_components/lead-tasks";
 import { LeadTimeline } from "./_components/lead-timeline";
 import { LeadActions } from "./_components/lead-actions";
+import { AssigneeDisplay } from "@/components/forms/assignee-selector";
+import { CustomFieldsDisplay } from "@/components/forms/custom-fields-renderer";
 
 interface LeadDetailPageProps {
   params: Promise<{ id: string }>;
@@ -72,6 +71,8 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
   const pendingTasks = lead.tasks.filter(
     (t) => t.status === "PENDING" || t.status === "IN_PROGRESS"
   );
+
+  const customFieldValues = (lead.customFields as Record<string, unknown>) || {};
 
   return (
     <div className="space-y-6">
@@ -204,36 +205,28 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
                   </span>
                 </div>
               )}
-              {lead.assignedToId && (
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Assigned To</span>
-                  <span>User</span>
-                </div>
-              )}
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-muted-foreground">Assigned To</span>
+                <AssigneeDisplay assigneeId={lead.assignedToId} />
+              </div>
             </CardContent>
           </Card>
 
           {/* Custom Fields */}
-          {lead.customFields &&
-            Object.keys(lead.customFields as object).length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Custom Fields</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {Object.entries(lead.customFields as object).map(
-                    ([key, value]) => (
-                      <div key={key} className="flex justify-between text-sm">
-                        <span className="text-muted-foreground capitalize">
-                          {key.replace(/_/g, " ")}
-                        </span>
-                        <span>{String(value)}</span>
-                      </div>
-                    )
-                  )}
-                </CardContent>
-              </Card>
-            )}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Custom Fields</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CustomFieldsDisplay
+                module="LEAD"
+                values={customFieldValues}
+              />
+              {Object.keys(customFieldValues).length === 0 && (
+                <p className="text-sm text-muted-foreground">No custom fields set</p>
+              )}
+            </CardContent>
+          </Card>
         </div>
 
         {/* Right Column - Tabs */}

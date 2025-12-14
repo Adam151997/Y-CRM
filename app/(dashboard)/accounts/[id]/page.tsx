@@ -23,6 +23,8 @@ import { AccountNotes } from "./_components/account-notes";
 import { AccountTasks } from "./_components/account-tasks";
 import { AccountActions } from "./_components/account-actions";
 import { AccountRenewals } from "./_components/account-renewals";
+import { AssigneeDisplay } from "@/components/forms/assignee-selector";
+import { CustomFieldsDisplay } from "@/components/forms/custom-fields-renderer";
 
 interface AccountDetailPageProps {
   params: Promise<{ id: string }>;
@@ -171,8 +173,10 @@ export default async function AccountDetailPage({ params }: AccountDetailPagePro
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Stats Cards & Account Details */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* Stats Cards - 3 columns */}
+        <div className="lg:col-span-3 grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -212,19 +216,47 @@ export default async function AccountDetailPage({ params }: AccountDetailPagePro
             </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-orange-500/10">
-                <TrendingUp className="h-5 w-5 text-orange-500" />
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-orange-500/10">
+                  <TrendingUp className="h-5 w-5 text-orange-500" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">{formatRevenue(account.annualRevenue)}</p>
+                  <p className="text-sm text-muted-foreground">Annual Revenue</p>
+                </div>
               </div>
-              <div>
-                <p className="text-2xl font-bold">{formatRevenue(account.annualRevenue)}</p>
-                <p className="text-sm text-muted-foreground">Annual Revenue</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Account Details - 1 column */}
+        <div className="space-y-4">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Assignment</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-muted-foreground">Owner</span>
+                <AssigneeDisplay assigneeId={account.assignedToId} />
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Additional Info</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CustomFieldsDisplay
+                module="ACCOUNT"
+                values={(account.customFields as Record<string, unknown>) || {}}
+              />
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       {/* Tabs */}

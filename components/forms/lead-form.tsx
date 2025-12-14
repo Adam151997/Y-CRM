@@ -25,6 +25,8 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { AssigneeSelector } from "./assignee-selector";
+import { CustomFieldsForm } from "./custom-fields-renderer";
 
 const leadFormSchema = z.object({
   firstName: z.string().min(1, "First name is required").max(100),
@@ -36,6 +38,7 @@ const leadFormSchema = z.object({
   source: z.string().optional(),
   status: z.string().default("NEW"),
   pipelineStageId: z.string().optional(),
+  assignedToId: z.string().nullable().optional(),
 });
 
 type LeadFormValues = z.infer<typeof leadFormSchema>;
@@ -49,6 +52,7 @@ interface PipelineStage {
 interface LeadFormProps {
   pipelineStages: PipelineStage[];
   defaultValues?: Partial<LeadFormValues>;
+  defaultCustomFields?: Record<string, unknown>;
   leadId?: string;
   mode: "create" | "edit";
 }
@@ -75,11 +79,15 @@ const statuses = [
 export function LeadForm({
   pipelineStages,
   defaultValues,
+  defaultCustomFields,
   leadId,
   mode,
 }: LeadFormProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [customFields, setCustomFields] = useState<Record<string, unknown>>(
+    defaultCustomFields || {}
+  );
 
   const form = useForm<LeadFormValues>({
     resolver: zodResolver(leadFormSchema),
@@ -93,6 +101,7 @@ export function LeadForm({
       source: "",
       status: "NEW",
       pipelineStageId: "",
+      assignedToId: null,
       ...defaultValues,
     },
   });
@@ -109,6 +118,8 @@ export function LeadForm({
         title: data.title || null,
         source: data.source || null,
         pipelineStageId: data.pipelineStageId || null,
+        assignedToId: data.assignedToId || null,
+        customFields,
       };
 
       const url = mode === "create" ? "/api/leads" : `/api/leads/${leadId}`;
@@ -280,76 +291,105 @@ export function LeadForm({
           </Card>
 
           {/* Status & Pipeline */}
-          <Card className="lg:col-span-2">
+          <Card>
             <CardHeader>
-              <CardTitle className="text-base">Status & Pipeline</CardTitle>
+              <CardTitle className="text-base">Status & Assignment</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="status"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Status</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select status" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {statuses.map((status) => (
-                            <SelectItem key={status.value} value={status.value}>
-                              {status.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+              <FormField
+                control={form.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Status</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {statuses.map((status) => (
+                          <SelectItem key={status.value} value={status.value}>
+                            {status.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-                <FormField
-                  control={form.control}
-                  name="pipelineStageId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Pipeline Stage</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select stage" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {pipelineStages.map((stage) => (
-                            <SelectItem key={stage.id} value={stage.id}>
-                              <div className="flex items-center gap-2">
-                                <div
-                                  className="w-2 h-2 rounded-full"
-                                  style={{
-                                    backgroundColor: stage.color || "#6B7280",
-                                  }}
-                                />
-                                {stage.name}
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+              <FormField
+                control={form.control}
+                name="pipelineStageId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Pipeline Stage</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select stage" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {pipelineStages.map((stage) => (
+                          <SelectItem key={stage.id} value={stage.id}>
+                            <div className="flex items-center gap-2">
+                              <div
+                                className="w-2 h-2 rounded-full"
+                                style={{
+                                  backgroundColor: stage.color || "#6B7280",
+                                }}
+                              />
+                              {stage.name}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="assignedToId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Assigned To</FormLabel>
+                    <FormControl>
+                      <AssigneeSelector
+                        value={field.value}
+                        onChange={field.onChange}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </CardContent>
+          </Card>
+
+          {/* Custom Fields */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Additional Information</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CustomFieldsForm
+                module="LEAD"
+                values={customFields}
+                onChange={setCustomFields}
+              />
             </CardContent>
           </Card>
         </div>

@@ -47,23 +47,23 @@ export default async function EditContactPage({ params }: EditContactPageProps) 
       </div>
 
       {/* Form */}
-      <div className="max-w-2xl">
-        <ContactForm
-          accounts={accounts}
-          initialData={{
-            id: contact.id,
-            firstName: contact.firstName,
-            lastName: contact.lastName,
-            email: contact.email || "",
-            phone: contact.phone || "",
-            title: contact.title || "",
-            department: contact.department || "",
-            accountId: contact.accountId || "",
-            isPrimary: contact.isPrimary,
-          }}
-          mode="edit"
-        />
-      </div>
+      <ContactForm
+        accounts={accounts}
+        initialData={{
+          id: contact.id,
+          firstName: contact.firstName,
+          lastName: contact.lastName,
+          email: contact.email || "",
+          phone: contact.phone || "",
+          title: contact.title || "",
+          department: contact.department || "",
+          accountId: contact.accountId || "",
+          isPrimary: contact.isPrimary,
+          assignedToId: contact.assignedToId || null,
+        }}
+        initialCustomFields={(contact.customFields as Record<string, unknown>) || {}}
+        mode="edit"
+      />
     </div>
   );
 }

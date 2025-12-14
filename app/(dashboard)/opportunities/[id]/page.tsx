@@ -20,6 +20,8 @@ import { OpportunityNotes } from "./_components/opportunity-notes";
 import { OpportunityTasks } from "./_components/opportunity-tasks";
 import { OpportunityActions } from "./_components/opportunity-actions";
 import { OpportunityTimeline } from "./_components/opportunity-timeline";
+import { AssigneeDisplay } from "@/components/forms/assignee-selector";
+import { CustomFieldsDisplay } from "@/components/forms/custom-fields-renderer";
 
 interface OpportunityDetailPageProps {
   params: Promise<{ id: string }>;
@@ -207,19 +209,47 @@ export default async function OpportunityDetailPage({ params }: OpportunityDetai
         </Card>
       </div>
 
-      {/* Pipeline Progress */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Pipeline Progress</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <OpportunityTimeline
-            stages={allStages}
-            currentStageId={opportunity.stageId}
-            closedWon={opportunity.closedWon}
-          />
-        </CardContent>
-      </Card>
+      {/* Pipeline Progress & Details */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle className="text-base">Pipeline Progress</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <OpportunityTimeline
+              stages={allStages}
+              currentStageId={opportunity.stageId}
+              closedWon={opportunity.closedWon}
+            />
+          </CardContent>
+        </Card>
+
+        <div className="space-y-4">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Assignment</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-muted-foreground">Owner</span>
+                <AssigneeDisplay assigneeId={opportunity.assignedToId} />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Additional Info</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CustomFieldsDisplay
+                module="OPPORTUNITY"
+                values={(opportunity.customFields as Record<string, unknown>) || {}}
+              />
+            </CardContent>
+          </Card>
+        </div>
+      </div>
 
       {/* Tabs */}
       <Tabs defaultValue="notes" className="space-y-4">

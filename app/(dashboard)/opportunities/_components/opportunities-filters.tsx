@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Search, X } from "lucide-react";
+import { OwnerFilter, ALL_VALUE as OWNER_ALL } from "@/components/filters/owner-filter";
 
 interface PipelineStage {
   id: string;
@@ -30,6 +31,8 @@ interface OpportunitiesFiltersProps {
   currentStageId?: string;
   currentAccountId?: string;
   currentQuery?: string;
+  currentOwner?: string;
+  currentUserId?: string;
 }
 
 const ALL_VALUE = "_all";
@@ -40,6 +43,8 @@ export function OpportunitiesFilters({
   currentStageId,
   currentAccountId,
   currentQuery,
+  currentOwner,
+  currentUserId,
 }: OpportunitiesFiltersProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -49,7 +54,7 @@ export function OpportunitiesFilters({
   const updateFilters = (key: string, value: string | null) => {
     const params = new URLSearchParams(searchParams.toString());
 
-    if (value && value !== ALL_VALUE) {
+    if (value && value !== ALL_VALUE && value !== OWNER_ALL) {
       params.set(key, value);
     } else {
       params.delete(key);
@@ -75,7 +80,7 @@ export function OpportunitiesFilters({
     });
   };
 
-  const hasFilters = currentStageId || currentAccountId || currentQuery;
+  const hasFilters = currentStageId || currentAccountId || currentQuery || currentOwner;
 
   return (
     <div className="flex flex-col sm:flex-row gap-4">
@@ -96,7 +101,7 @@ export function OpportunitiesFilters({
       </form>
 
       {/* Filters */}
-      <div className="flex gap-2">
+      <div className="flex gap-2 flex-wrap">
         <Select
           value={currentStageId || ALL_VALUE}
           onValueChange={(value) => updateFilters("stageId", value)}
@@ -136,6 +141,12 @@ export function OpportunitiesFilters({
             ))}
           </SelectContent>
         </Select>
+
+        <OwnerFilter
+          value={currentOwner}
+          onChange={(value) => updateFilters("owner", value)}
+          currentUserId={currentUserId}
+        />
 
         {hasFilters && (
           <Button variant="ghost" size="icon" onClick={clearFilters}>

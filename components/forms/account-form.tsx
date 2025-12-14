@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -7,7 +8,6 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Form,
   FormControl,
@@ -15,7 +15,6 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-  FormDescription,
 } from "@/components/ui/form";
 import {
   Select,
@@ -26,6 +25,8 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
+import { AssigneeSelector } from "./assignee-selector";
+import { CustomFieldsForm } from "./custom-fields-renderer";
 
 const accountFormSchema = z.object({
   name: z.string().min(1, "Account name is required").max(200),
@@ -41,6 +42,7 @@ const accountFormSchema = z.object({
   state: z.string().max(100).optional().nullable(),
   zip: z.string().max(20).optional().nullable(),
   country: z.string().max(100).optional().nullable(),
+  assignedToId: z.string().nullable().optional(),
 });
 
 type AccountFormValues = z.infer<typeof accountFormSchema>;
@@ -56,6 +58,7 @@ interface AccountFormProps {
     rating?: string | null;
     annualRevenue?: number | null;
     employeeCount?: number | null;
+    assignedToId?: string | null;
     address?: {
       street?: string;
       city?: string;
@@ -64,6 +67,7 @@ interface AccountFormProps {
       country?: string;
     } | null;
   };
+  initialCustomFields?: Record<string, unknown>;
 }
 
 const accountTypes = [
@@ -102,9 +106,12 @@ const industries = [
 
 const NO_SELECTION = "_none";
 
-export function AccountForm({ initialData }: AccountFormProps) {
+export function AccountForm({ initialData, initialCustomFields }: AccountFormProps) {
   const router = useRouter();
   const isEditing = !!initialData;
+  const [customFields, setCustomFields] = useState<Record<string, unknown>>(
+    initialCustomFields || {}
+  );
 
   const form = useForm<AccountFormValues>({
     resolver: zodResolver(accountFormSchema),
@@ -122,6 +129,7 @@ export function AccountForm({ initialData }: AccountFormProps) {
       state: initialData?.address?.state || "",
       zip: initialData?.address?.zip || "",
       country: initialData?.address?.country || "",
+      assignedToId: initialData?.assignedToId || null,
     },
   });
 
@@ -149,6 +157,8 @@ export function AccountForm({ initialData }: AccountFormProps) {
         annualRevenue: data.annualRevenue || null,
         employeeCount: data.employeeCount || null,
         address,
+        assignedToId: data.assignedToId || null,
+        customFields,
       };
 
       const url = isEditing ? `/api/accounts/${initialData.id}` : "/api/accounts";
@@ -177,290 +187,329 @@ export function AccountForm({ initialData }: AccountFormProps) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        {/* Basic Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Basic Information</CardTitle>
-          </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem className="md:col-span-2">
-                  <FormLabel>Account Name *</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Acme Corporation" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="industry"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Industry</FormLabel>
-                  <Select
-                    value={field.value || NO_SELECTION}
-                    onValueChange={(value) =>
-                      field.onChange(value === NO_SELECTION ? null : value)
-                    }
-                  >
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Basic Information */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Basic Information</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Account Name *</FormLabel>
                     <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select industry" />
-                      </SelectTrigger>
+                      <Input placeholder="Acme Corporation" {...field} />
                     </FormControl>
-                    <SelectContent>
-                      <SelectItem value={NO_SELECTION}>Select industry</SelectItem>
-                      {industries.map((industry) => (
-                        <SelectItem key={industry} value={industry}>
-                          {industry}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="website"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Website</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="https://example.com"
-                      {...field}
-                      value={field.value || ""}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="phone"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Phone</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="+1 (555) 000-0000"
-                      {...field}
-                      value={field.value || ""}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="type"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Account Type</FormLabel>
-                  <Select
-                    value={field.value || NO_SELECTION}
-                    onValueChange={(value) =>
-                      field.onChange(value === NO_SELECTION ? null : value)
-                    }
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select type" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value={NO_SELECTION}>Select type</SelectItem>
-                      {accountTypes.map((type) => (
-                        <SelectItem key={type.value} value={type.value}>
-                          {type.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </CardContent>
-        </Card>
-
-        {/* Classification */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Classification & Financials</CardTitle>
-          </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <FormField
-              control={form.control}
-              name="rating"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Rating</FormLabel>
-                  <Select
-                    value={field.value || NO_SELECTION}
-                    onValueChange={(value) =>
-                      field.onChange(value === NO_SELECTION ? null : value)
-                    }
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select rating" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value={NO_SELECTION}>Select rating</SelectItem>
-                      {accountRatings.map((rating) => (
-                        <SelectItem key={rating.value} value={rating.value}>
-                          {rating.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="annualRevenue"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Annual Revenue ($)</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      placeholder="1000000"
-                      {...field}
-                      value={field.value || ""}
-                      onChange={(e) =>
-                        field.onChange(e.target.value ? Number(e.target.value) : undefined)
+              <FormField
+                control={form.control}
+                name="industry"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Industry</FormLabel>
+                    <Select
+                      value={field.value || NO_SELECTION}
+                      onValueChange={(value) =>
+                        field.onChange(value === NO_SELECTION ? null : value)
                       }
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select industry" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value={NO_SELECTION}>Select industry</SelectItem>
+                        {industries.map((industry) => (
+                          <SelectItem key={industry} value={industry}>
+                            {industry}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="employeeCount"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Employees</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      placeholder="50"
-                      {...field}
-                      value={field.value || ""}
-                      onChange={(e) =>
-                        field.onChange(e.target.value ? Number(e.target.value) : undefined)
+              <FormField
+                control={form.control}
+                name="website"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Website</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="https://example.com"
+                        {...field}
+                        value={field.value || ""}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Phone</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="+1 (555) 000-0000"
+                        {...field}
+                        value={field.value || ""}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </CardContent>
+          </Card>
+
+          {/* Classification */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Classification</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <FormField
+                control={form.control}
+                name="type"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Account Type</FormLabel>
+                    <Select
+                      value={field.value || NO_SELECTION}
+                      onValueChange={(value) =>
+                        field.onChange(value === NO_SELECTION ? null : value)
                       }
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </CardContent>
-        </Card>
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value={NO_SELECTION}>Select type</SelectItem>
+                        {accountTypes.map((type) => (
+                          <SelectItem key={type.value} value={type.value}>
+                            {type.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-        {/* Address */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Address</CardTitle>
-          </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="street"
-              render={({ field }) => (
-                <FormItem className="md:col-span-2">
-                  <FormLabel>Street Address</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="123 Main St"
-                      {...field}
-                      value={field.value || ""}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              <FormField
+                control={form.control}
+                name="rating"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Rating</FormLabel>
+                    <Select
+                      value={field.value || NO_SELECTION}
+                      onValueChange={(value) =>
+                        field.onChange(value === NO_SELECTION ? null : value)
+                      }
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select rating" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value={NO_SELECTION}>Select rating</SelectItem>
+                        {accountRatings.map((rating) => (
+                          <SelectItem key={rating.value} value={rating.value}>
+                            {rating.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="city"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>City</FormLabel>
-                  <FormControl>
-                    <Input placeholder="San Francisco" {...field} value={field.value || ""} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              <FormField
+                control={form.control}
+                name="annualRevenue"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Annual Revenue ($)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        placeholder="1000000"
+                        {...field}
+                        value={field.value || ""}
+                        onChange={(e) =>
+                          field.onChange(e.target.value ? Number(e.target.value) : undefined)
+                        }
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="state"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>State / Province</FormLabel>
-                  <FormControl>
-                    <Input placeholder="California" {...field} value={field.value || ""} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              <FormField
+                control={form.control}
+                name="employeeCount"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Employees</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        placeholder="50"
+                        {...field}
+                        value={field.value || ""}
+                        onChange={(e) =>
+                          field.onChange(e.target.value ? Number(e.target.value) : undefined)
+                        }
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </CardContent>
+          </Card>
 
-            <FormField
-              control={form.control}
-              name="zip"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>ZIP / Postal Code</FormLabel>
-                  <FormControl>
-                    <Input placeholder="94105" {...field} value={field.value || ""} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+          {/* Address */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Address</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <FormField
+                control={form.control}
+                name="street"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Street Address</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="123 Main St"
+                        {...field}
+                        value={field.value || ""}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="country"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Country</FormLabel>
-                  <FormControl>
-                    <Input placeholder="United States" {...field} value={field.value || ""} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </CardContent>
-        </Card>
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="city"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>City</FormLabel>
+                      <FormControl>
+                        <Input placeholder="San Francisco" {...field} value={field.value || ""} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="state"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>State / Province</FormLabel>
+                      <FormControl>
+                        <Input placeholder="California" {...field} value={field.value || ""} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="zip"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>ZIP / Postal Code</FormLabel>
+                      <FormControl>
+                        <Input placeholder="94105" {...field} value={field.value || ""} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="country"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Country</FormLabel>
+                      <FormControl>
+                        <Input placeholder="United States" {...field} value={field.value || ""} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Assignment & Custom Fields */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Assignment & Additional Info</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <FormField
+                control={form.control}
+                name="assignedToId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Assigned To</FormLabel>
+                    <FormControl>
+                      <AssigneeSelector
+                        value={field.value}
+                        onChange={field.onChange}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="pt-4 border-t">
+                <CustomFieldsForm
+                  module="ACCOUNT"
+                  values={customFields}
+                  onChange={setCustomFields}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Actions */}
         <div className="flex items-center gap-4">

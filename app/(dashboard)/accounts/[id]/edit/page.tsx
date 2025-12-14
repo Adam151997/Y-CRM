@@ -30,6 +30,7 @@ export default async function EditAccountPage({ params }: EditAccountPageProps) 
     rating: account.rating,
     annualRevenue: account.annualRevenue ? Number(account.annualRevenue) : null,
     employeeCount: account.employeeCount,
+    assignedToId: account.assignedToId,
     address: account.address as {
       street?: string;
       city?: string;
@@ -46,7 +47,10 @@ export default async function EditAccountPage({ params }: EditAccountPageProps) 
         <p className="text-muted-foreground">Update account information</p>
       </div>
 
-      <AccountForm initialData={formData} />
+      <AccountForm 
+        initialData={formData} 
+        initialCustomFields={(account.customFields as Record<string, unknown>) || {}}
+      />
     </div>
   );
 }

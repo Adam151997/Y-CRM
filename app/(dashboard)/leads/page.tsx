@@ -14,11 +14,12 @@ interface LeadsPageProps {
     query?: string;
     sortBy?: string;
     sortOrder?: string;
+    owner?: string;
   }>;
 }
 
 export default async function LeadsPage({ searchParams }: LeadsPageProps) {
-  const { orgId } = await getAuthContext();
+  const { orgId, userId } = await getAuthContext();
   const params = await searchParams;
 
   const page = parseInt(params.page || "1");
@@ -30,6 +31,18 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
   const where: Record<string, unknown> = { orgId };
   if (params.status) where.status = params.status;
   if (params.source) where.source = params.source;
+  
+  // Owner filter
+  if (params.owner) {
+    if (params.owner === "_my") {
+      where.assignedToId = userId;
+    } else if (params.owner === "_unassigned") {
+      where.assignedToId = null;
+    } else {
+      where.assignedToId = params.owner;
+    }
+  }
+  
   if (params.query) {
     where.OR = [
       { firstName: { contains: params.query, mode: "insensitive" } },
@@ -77,6 +90,8 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
         currentStatus={params.status}
         currentSource={params.source}
         currentQuery={params.query}
+        currentOwner={params.owner}
+        currentUserId={userId}
       />
 
       {/* Table */}

@@ -40,6 +40,7 @@ export default async function EditOpportunityPage({ params }: EditOpportunityPag
     accountId: opportunity.accountId,
     stageId: opportunity.stageId,
     expectedCloseDate: opportunity.expectedCloseDate,
+    assignedToId: opportunity.assignedToId,
   };
 
   return (
@@ -49,7 +50,12 @@ export default async function EditOpportunityPage({ params }: EditOpportunityPag
         <p className="text-muted-foreground">Update opportunity details</p>
       </div>
 
-      <OpportunityForm accounts={accounts} stages={stages} initialData={formData} />
+      <OpportunityForm 
+        accounts={accounts} 
+        stages={stages} 
+        initialData={formData}
+        initialCustomFields={(opportunity.customFields as Record<string, unknown>) || {}}
+      />
     </div>
   );
 }

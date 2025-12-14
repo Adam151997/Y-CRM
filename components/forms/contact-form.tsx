@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -26,6 +27,8 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
+import { AssigneeSelector } from "./assignee-selector";
+import { CustomFieldsForm } from "./custom-fields-renderer";
 
 const contactFormSchema = z.object({
   firstName: z.string().min(1, "First name is required").max(100),
@@ -36,6 +39,7 @@ const contactFormSchema = z.object({
   department: z.string().max(200).optional(),
   accountId: z.string().optional(),
   isPrimary: z.boolean().default(false),
+  assignedToId: z.string().nullable().optional(),
 });
 
 type ContactFormValues = z.infer<typeof contactFormSchema>;
@@ -48,13 +52,17 @@ interface Account {
 interface ContactFormProps {
   accounts: Account[];
   initialData?: Partial<ContactFormValues> & { id?: string };
+  initialCustomFields?: Record<string, unknown>;
   mode: "create" | "edit";
 }
 
 const NONE_VALUE = "_none";
 
-export function ContactForm({ accounts, initialData, mode }: ContactFormProps) {
+export function ContactForm({ accounts, initialData, initialCustomFields, mode }: ContactFormProps) {
   const router = useRouter();
+  const [customFields, setCustomFields] = useState<Record<string, unknown>>(
+    initialCustomFields || {}
+  );
 
   const form = useForm<ContactFormValues>({
     resolver: zodResolver(contactFormSchema),
@@ -67,6 +75,7 @@ export function ContactForm({ accounts, initialData, mode }: ContactFormProps) {
       department: initialData?.department || "",
       accountId: initialData?.accountId || "",
       isPrimary: initialData?.isPrimary || false,
+      assignedToId: initialData?.assignedToId || null,
     },
   });
 
@@ -88,6 +97,8 @@ export function ContactForm({ accounts, initialData, mode }: ContactFormProps) {
         title: data.title || null,
         department: data.department || null,
         accountId: data.accountId && data.accountId !== NONE_VALUE ? data.accountId : null,
+        assignedToId: data.assignedToId || null,
+        customFields,
       };
 
       const response = await fetch(url, {
@@ -119,43 +130,43 @@ export function ContactForm({ accounts, initialData, mode }: ContactFormProps) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Contact Information</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-6">
-            {/* Name Row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="firstName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>First Name *</FormLabel>
-                    <FormControl>
-                      <Input placeholder="John" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="lastName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Last Name *</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Doe" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Contact Information</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Name Row */}
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="firstName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>First Name *</FormLabel>
+                      <FormControl>
+                        <Input placeholder="John" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="lastName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Last Name *</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Doe" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
-            {/* Contact Details */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Contact Details */}
               <FormField
                 control={form.control}
                 name="email"
@@ -186,10 +197,14 @@ export function ContactForm({ accounts, initialData, mode }: ContactFormProps) {
                   </FormItem>
                 )}
               />
-            </div>
+            </CardContent>
+          </Card>
 
-            {/* Job Details */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Job & Account</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <FormField
                 control={form.control}
                 name="title"
@@ -216,64 +231,100 @@ export function ContactForm({ accounts, initialData, mode }: ContactFormProps) {
                   </FormItem>
                 )}
               />
-            </div>
 
-            {/* Account */}
-            <FormField
-              control={form.control}
-              name="accountId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Account</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    value={field.value || NONE_VALUE}
-                  >
+              {/* Account */}
+              <FormField
+                control={form.control}
+                name="accountId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Account</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value || NONE_VALUE}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select an account" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value={NONE_VALUE}>No Account</SelectItem>
+                        {accounts.map((account) => (
+                          <SelectItem key={account.id} value={account.id}>
+                            {account.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Primary Contact */}
+              <FormField
+                control={form.control}
+                name="isPrimary"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                     <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select an account" />
-                      </SelectTrigger>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
                     </FormControl>
-                    <SelectContent>
-                      <SelectItem value={NONE_VALUE}>No Account</SelectItem>
-                      {accounts.map((account) => (
-                        <SelectItem key={account.id} value={account.id}>
-                          {account.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormDescription>
-                    Link this contact to a company account
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Primary Contact</FormLabel>
+                      <FormDescription>
+                        Mark as the primary contact for their account
+                      </FormDescription>
+                    </div>
+                  </FormItem>
+                )}
+              />
+            </CardContent>
+          </Card>
 
-            {/* Primary Contact */}
-            <FormField
-              control={form.control}
-              name="isPrimary"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                  <FormControl>
-                    <Checkbox
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                  <div className="space-y-1 leading-none">
-                    <FormLabel>Primary Contact</FormLabel>
-                    <FormDescription>
-                      Mark as the primary contact for their account
-                    </FormDescription>
-                  </div>
-                </FormItem>
-              )}
-            />
-          </CardContent>
-        </Card>
+          {/* Assignment */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Assignment</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <FormField
+                control={form.control}
+                name="assignedToId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Assigned To</FormLabel>
+                    <FormControl>
+                      <AssigneeSelector
+                        value={field.value}
+                        onChange={field.onChange}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </CardContent>
+          </Card>
+
+          {/* Custom Fields */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Additional Information</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CustomFieldsForm
+                module="CONTACT"
+                values={customFields}
+                onChange={setCustomFields}
+              />
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Actions */}
         <div className="flex items-center gap-4">
