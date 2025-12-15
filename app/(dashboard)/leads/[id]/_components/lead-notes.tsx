@@ -105,7 +105,7 @@ export function LeadNotes({ notes, leadId, orgId, userId }: LeadNotesProps) {
         const data = await response.json();
         uploaded.push({
           name: file.name,
-          url: data.url,
+          url: data.file.url,
           size: file.size,
           type: file.type,
         });

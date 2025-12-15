@@ -89,7 +89,7 @@ export function OpportunityNotes({ opportunityId, initialNotes }: OpportunityNot
         const response = await fetch("/api/upload", { method: "POST", body: formData });
         if (!response.ok) throw new Error("Upload failed");
         const data = await response.json();
-        uploaded.push({ name: file.name, url: data.url, size: file.size, type: file.type });
+        uploaded.push({ name: file.name, url: data.file.url, size: file.size, type: file.type });
       } catch (error) {
         toast.error(`Failed to upload ${file.name}`);
       }
