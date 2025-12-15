@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { RelationshipDisplay } from "@/components/forms/relationship-field-input";
 
 export interface CustomFieldDefinition {
   id: string;
@@ -578,8 +579,9 @@ export function CustomFieldsDisplay({
             <span className="text-sm font-medium text-right max-w-[60%]">
               {field.fieldType === "RELATIONSHIP" ? (
                 <RelationshipDisplay
-                  recordId={value as string}
                   relatedModule={field.relatedModule || ""}
+                  value={value as string}
+                  showLink={true}
                 />
               ) : (
                 formatValue(field, value)
@@ -617,74 +619,4 @@ function formatValue(field: CustomFieldDefinition, value: unknown): string {
   }
 }
 
-// =============================================================================
-// RELATIONSHIP DISPLAY COMPONENT
-// Shows linked record label instead of just UUID
-// =============================================================================
 
-interface RelationshipDisplayProps {
-  recordId: string;
-  relatedModule: string;
-}
-
-function RelationshipDisplay({ recordId, relatedModule }: RelationshipDisplayProps) {
-  const [label, setLabel] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    if (!recordId || !relatedModule) {
-      setIsLoading(false);
-      return;
-    }
-
-    const fetchLabel = async () => {
-      try {
-        const builtInModules = ["accounts", "contacts", "leads", "opportunities"];
-        const isBuiltIn = builtInModules.includes(relatedModule.toLowerCase());
-
-        let url: string;
-        if (isBuiltIn) {
-          url = `/api/${relatedModule.toLowerCase()}/${recordId}`;
-        } else {
-          url = `/api/modules/${relatedModule}/records/${recordId}`;
-        }
-
-        const response = await fetch(url);
-        if (response.ok) {
-          const data = await response.json();
-          const record = data.record || data;
-          
-          // Extract label
-          if (record.name) {
-            setLabel(record.name);
-          } else if (record.firstName && record.lastName) {
-            setLabel(`${record.firstName} ${record.lastName}`);
-          } else if (record.data) {
-            setLabel(record.data.name || record.data.title || recordId.substring(0, 8));
-          } else {
-            setLabel(recordId.substring(0, 8));
-          }
-        } else {
-          setLabel("(deleted)");
-        }
-      } catch (error) {
-        setLabel("(error)");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchLabel();
-  }, [recordId, relatedModule]);
-
-  if (isLoading) {
-    return <Skeleton className="h-4 w-20 inline-block" />;
-  }
-
-  return (
-    <span className="inline-flex items-center gap-1">
-      <Link2 className="h-3 w-3 text-muted-foreground" />
-      {label || "-"}
-    </span>
-  );
-}
