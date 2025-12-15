@@ -689,6 +689,9 @@ model Note {
 
   content         String   @db.Text
   
+  // Attachments as JSON array: [{ name, url, size, type }]
+  attachments     Json     @default("[]")
+  
   // Polymorphic relation (only one should be set)
   leadId          String?
   lead            Lead?    @relation(fields: [leadId], references: [id], onDelete: Cascade)

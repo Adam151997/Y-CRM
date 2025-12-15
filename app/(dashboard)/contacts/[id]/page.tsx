@@ -16,11 +16,12 @@ import {
   Calendar,
   Star,
   ExternalLink,
+  Activity,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ContactNotes } from "./_components/contact-notes";
 import { ContactTasks } from "./_components/contact-tasks";
-import { ContactActivity } from "./_components/contact-activity";
+import { RecordTimeline } from "@/components/shared/record-timeline";
 import { AssigneeDisplay } from "@/components/forms/assignee-selector";
 import { CustomFieldsDisplay } from "@/components/forms/custom-fields-renderer";
 
@@ -195,16 +196,25 @@ export default async function ContactPage({ params }: ContactPageProps) {
 
         {/* Right Column - Tabs */}
         <div className="lg:col-span-2">
-          <Tabs defaultValue="notes">
+          <Tabs defaultValue="timeline">
             <TabsList>
+              <TabsTrigger value="timeline" className="gap-2">
+                <Activity className="h-4 w-4" />
+                Timeline
+              </TabsTrigger>
               <TabsTrigger value="notes">
                 Notes ({contact.notes.length})
               </TabsTrigger>
               <TabsTrigger value="tasks">
                 Tasks ({contact.tasks.length})
               </TabsTrigger>
-              <TabsTrigger value="activity">Activity</TabsTrigger>
             </TabsList>
+            <TabsContent value="timeline" className="mt-4">
+              <RecordTimeline
+                activities={contact.activities}
+                emptyMessage="No activity yet for this contact"
+              />
+            </TabsContent>
             <TabsContent value="notes" className="mt-4">
               <ContactNotes
                 contactId={contact.id}
@@ -218,9 +228,6 @@ export default async function ContactPage({ params }: ContactPageProps) {
                 tasks={contact.tasks}
                 userId={userId}
               />
-            </TabsContent>
-            <TabsContent value="activity" className="mt-4">
-              <ContactActivity activities={contact.activities} />
             </TabsContent>
           </Tabs>
         </div>

@@ -16,7 +16,6 @@ import {
   User,
   MessageSquare,
   CheckSquare,
-  FileText,
   Activity,
 } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
@@ -57,9 +56,6 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
       activities: {
         orderBy: { performedAt: "desc" },
         take: 20,
-      },
-      documents: {
-        orderBy: { createdAt: "desc" },
       },
     },
   });
@@ -212,10 +208,10 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
             </CardContent>
           </Card>
 
-          {/* Custom Fields */}
+          {/* Additional Info */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Custom Fields</CardTitle>
+              <CardTitle className="text-base">Additional Info</CardTitle>
             </CardHeader>
             <CardContent>
               <CustomFieldsDisplay
@@ -245,10 +241,6 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
                 <CheckSquare className="h-4 w-4" />
                 Tasks ({pendingTasks.length})
               </TabsTrigger>
-              <TabsTrigger value="documents" className="gap-2">
-                <FileText className="h-4 w-4" />
-                Documents ({lead.documents.length})
-              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="timeline">
@@ -275,47 +267,6 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
                 orgId={orgId}
                 userId={userId}
               />
-            </TabsContent>
-
-            <TabsContent value="documents">
-              <Card>
-                <CardContent className="pt-6">
-                  {lead.documents.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <FileText className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                      <p>No documents yet</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {lead.documents.map((doc) => (
-                        <div
-                          key={doc.id}
-                          className="flex items-center justify-between p-3 rounded-lg border"
-                        >
-                          <div className="flex items-center gap-3">
-                            <FileText className="h-4 w-4 text-muted-foreground" />
-                            <div>
-                              <p className="font-medium text-sm">{doc.name}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {(doc.fileSize / 1024).toFixed(1)} KB
-                              </p>
-                            </div>
-                          </div>
-                          <Button variant="ghost" size="sm" asChild>
-                            <a
-                              href={doc.fileUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >
-                              View
-                            </a>
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
             </TabsContent>
           </Tabs>
         </div>

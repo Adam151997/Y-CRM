@@ -19,12 +19,16 @@ import { LeadsByStatus } from "./_components/leads-by-status";
 import { OpportunitiesByStage } from "./_components/opportunities-by-stage";
 import { RecentActivity } from "./_components/recent-activity";
 import { InvoiceOverview, InvoicesByStatus, MonthlyRevenue } from "./_components/invoice-analytics";
+import { PipelineFunnel } from "./_components/pipeline-funnel";
+import { PipelineValueByStage } from "./_components/pipeline-value-by-stage";
+import { SalesVelocity } from "./_components/sales-velocity";
+import { LeadConversionFunnel } from "./_components/lead-conversion-funnel";
 
 export default async function ReportsPage() {
   const { orgId } = await getAuthContext();
 
   // Fetch all data in parallel with optimized queries
-  const [counts, monthlyStats, pipelineStats, groupedData, stages, recentActivity, invoiceStats] = 
+  const [counts, monthlyStats, pipelineStats, groupedData, stages, recentActivity, invoiceStats, salesVelocityData] = 
     await Promise.all([
       getCounts(orgId),
       getMonthlyStats(orgId),
@@ -33,6 +37,7 @@ export default async function ReportsPage() {
       getStages(orgId),
       getRecentActivity(orgId),
       getInvoiceStats(orgId),
+      getSalesVelocityData(orgId),
     ]);
 
   // Calculate metrics
@@ -51,6 +56,32 @@ export default async function ReportsPage() {
   const winRate = (pipelineStats.wonCount + pipelineStats.lostCount) > 0
     ? (pipelineStats.wonCount / (pipelineStats.wonCount + pipelineStats.lostCount)) * 100
     : 0;
+
+  // Prepare funnel data for stages
+  const pipelineFunnelData = stages.map((stage) => {
+    const stageData = groupedData.opportunitiesByStage.find(
+      (s: { stageId: string }) => s.stageId === stage.id
+    );
+    return {
+      name: stage.name,
+      value: Number(stageData?._sum?.value || 0),
+      count: stageData?._count || 0,
+      color: stage.color || "#3b82f6",
+    };
+  });
+
+  // Prepare pipeline value by stage data
+  const pipelineValueData = stages.map((stage) => {
+    const stageData = groupedData.opportunitiesByStage.find(
+      (s: { stageId: string }) => s.stageId === stage.id
+    );
+    return {
+      name: stage.name,
+      value: Number(stageData?._sum?.value || 0),
+      count: stageData?._count || 0,
+      color: stage.color || "#3b82f6",
+    };
+  });
 
   return (
     <div className="space-y-6">
@@ -178,6 +209,10 @@ export default async function ReportsPage() {
             <BarChart3 className="h-4 w-4 mr-2" />
             Pipeline
           </TabsTrigger>
+          <TabsTrigger value="performance">
+            <TrendingUp className="h-4 w-4 mr-2" />
+            Performance
+          </TabsTrigger>
           <TabsTrigger value="leads">
             <Users className="h-4 w-4 mr-2" />
             Leads
@@ -194,6 +229,10 @@ export default async function ReportsPage() {
 
         <TabsContent value="pipeline" className="space-y-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <PipelineFunnel stages={pipelineFunnelData} />
+            <PipelineValueByStage data={pipelineValueData} />
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <SalesOverview
               openValue={pipelineStats.openValue}
               wonValue={pipelineStats.wonValue}
@@ -203,6 +242,18 @@ export default async function ReportsPage() {
               data={groupedData.opportunitiesByStage}
               stages={stages}
             />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="performance" className="space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <SalesVelocity
+              avgDealSize={salesVelocityData.avgDealSize}
+              avgSalesCycle={salesVelocityData.avgSalesCycle}
+              winRate={winRate}
+              dealsPerMonth={salesVelocityData.dealsPerMonth}
+            />
+            <LeadConversionFunnel data={groupedData.leadsByStatus.map((s: { status: string; _count: number }) => ({ status: s.status, count: s._count }))} />
           </div>
         </TabsContent>
 
@@ -457,5 +508,54 @@ const getInvoiceStats = cache(async (orgId: string) => {
     collectionRate,
     byStatus: transformedByStatus,
     monthlyData,
+  };
+});
+
+/**
+ * Get sales velocity data
+ */
+const getSalesVelocityData = cache(async (orgId: string) => {
+  const now = new Date();
+  const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, 1);
+
+  // Get won opportunities in the last 3 months for calculations
+  const wonOpportunities = await prisma.opportunity.findMany({
+    where: {
+      orgId,
+      closedWon: true,
+      actualCloseDate: { gte: threeMonthsAgo },
+    },
+    select: {
+      value: true,
+      createdAt: true,
+      actualCloseDate: true,
+    },
+  });
+
+  // Calculate average deal size
+  const avgDealSize = wonOpportunities.length > 0
+    ? wonOpportunities.reduce((sum, opp) => sum + Number(opp.value), 0) / wonOpportunities.length
+    : 0;
+
+  // Calculate average sales cycle (in days)
+  const salesCycles = wonOpportunities
+    .filter(opp => opp.actualCloseDate)
+    .map(opp => {
+      const created = new Date(opp.createdAt);
+      const closed = new Date(opp.actualCloseDate!);
+      return Math.floor((closed.getTime() - created.getTime()) / (1000 * 60 * 60 * 24));
+    });
+  
+  const avgSalesCycle = salesCycles.length > 0
+    ? salesCycles.reduce((sum, days) => sum + days, 0) / salesCycles.length
+    : 30; // Default to 30 days
+
+  // Calculate deals per month (average over 3 months)
+  const dealsPerMonth = wonOpportunities.length / 3;
+
+  return {
+    avgDealSize,
+    avgSalesCycle,
+    dealsPerMonth,
   };
 });

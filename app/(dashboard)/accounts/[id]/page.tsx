@@ -16,6 +16,7 @@ import {
   Target,
   DollarSign,
   TrendingUp,
+  Activity,
 } from "lucide-react";
 import { AccountContacts } from "./_components/account-contacts";
 import { AccountOpportunities } from "./_components/account-opportunities";
@@ -23,6 +24,7 @@ import { AccountNotes } from "./_components/account-notes";
 import { AccountTasks } from "./_components/account-tasks";
 import { AccountActions } from "./_components/account-actions";
 import { AccountRenewals } from "./_components/account-renewals";
+import { RecordTimeline } from "@/components/shared/record-timeline";
 import { AssigneeDisplay } from "@/components/forms/assignee-selector";
 import { CustomFieldsDisplay } from "@/components/forms/custom-fields-renderer";
 
@@ -84,8 +86,12 @@ export default async function AccountDetailPage({ params }: AccountDetailPagePro
         orderBy: { endDate: "asc" },
         take: 10,
       },
+      activities: {
+        orderBy: { performedAt: "desc" },
+        take: 20,
+      },
       _count: {
-        select: { contacts: true, opportunities: true, notes: true, tasks: true, renewals: true },
+        select: { contacts: true, opportunities: true, notes: true, tasks: true, renewals: true, activities: true },
       },
     },
   });
@@ -264,8 +270,12 @@ export default async function AccountDetailPage({ params }: AccountDetailPagePro
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="contacts" className="space-y-4">
+      <Tabs defaultValue="timeline" className="space-y-4">
         <TabsList>
+          <TabsTrigger value="timeline" className="gap-2">
+            <Activity className="h-4 w-4" />
+            Timeline
+          </TabsTrigger>
           <TabsTrigger value="contacts">
             Contacts ({account._count.contacts})
           </TabsTrigger>
@@ -282,6 +292,13 @@ export default async function AccountDetailPage({ params }: AccountDetailPagePro
             Tasks ({account._count.tasks})
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="timeline">
+          <RecordTimeline
+            activities={account.activities}
+            emptyMessage="No activity yet for this account"
+          />
+        </TabsContent>
 
         <TabsContent value="contacts">
           <AccountContacts contacts={account.contacts} accountId={account.id} />

@@ -4,12 +4,20 @@ import prisma from "@/lib/db";
 import { createAuditLog } from "@/lib/audit";
 import { z } from "zod";
 
+const attachmentSchema = z.object({
+  name: z.string(),
+  url: z.string().url(),
+  size: z.number(),
+  type: z.string(),
+});
+
 const createNoteSchema = z.object({
   content: z.string().min(1, "Note content is required").max(10000),
   leadId: z.string().uuid().optional().nullable(),
   contactId: z.string().uuid().optional().nullable(),
   accountId: z.string().uuid().optional().nullable(),
   opportunityId: z.string().uuid().optional().nullable(),
+  attachments: z.array(attachmentSchema).optional().default([]),
 });
 
 // POST /api/notes - Create a new note
@@ -46,6 +54,7 @@ export async function POST(request: NextRequest) {
       data: {
         orgId: auth.orgId,
         content: data.content,
+        attachments: data.attachments,
         leadId: data.leadId,
         contactId: data.contactId,
         accountId: data.accountId,
