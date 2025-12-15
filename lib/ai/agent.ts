@@ -74,8 +74,6 @@ import {
   listSlackChannelsTool,
   // Report Generation
   createReportTool,
-  // Assignment
-  assignRecordTool,
 } from "./tools";
 import { createAuditLog } from "@/lib/audit";
 import { createNotification, NotificationType } from "@/lib/notifications";
@@ -171,9 +169,6 @@ export function getCRMTools(orgId: string, userId: string) {
 
     // REPORT GENERATION
     createReport: createReportTool(orgId, userId),
-
-    // ASSIGNMENT
-    assignRecord: assignRecordTool(orgId, userId),
   };
 }
 
@@ -279,27 +274,23 @@ export function getFilteredTools(
       filtered.searchLeads = allTools.searchLeads;
       filtered.updateLead = allTools.updateLead;
       filtered.createTask = allTools.createTask; // Often create follow-up task
-      filtered.assignRecord = allTools.assignRecord; // For "create and assign to..."
       break;
       
     case "contact":
       filtered.createContact = allTools.createContact;
       filtered.searchContacts = allTools.searchContacts;
       filtered.searchAccounts = allTools.searchAccounts; // For linking
-      filtered.assignRecord = allTools.assignRecord; // For "create and assign to..."
       break;
       
     case "account":
       filtered.createAccount = allTools.createAccount;
       filtered.searchAccounts = allTools.searchAccounts;
-      filtered.assignRecord = allTools.assignRecord; // For "create and assign to..."
       break;
       
     case "opportunity":
       filtered.createOpportunity = allTools.createOpportunity;
       filtered.searchOpportunities = allTools.searchOpportunities;
       filtered.searchAccounts = allTools.searchAccounts; // Required for accountId
-      filtered.assignRecord = allTools.assignRecord; // For "create and assign to..."
       break;
       
     case "ticket":
@@ -651,7 +642,7 @@ export async function executeAgent(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       tools: tools as any,
       toolChoice: toolChoiceMode as "auto" | "required",
-      maxSteps: 5, // Allow multi-step execution for chained commands (e.g., "create lead and assign to Mike")
+      maxSteps: 1, // Single step to prevent duplicate executions
       onStepFinish: ({ toolCalls, toolResults: stepToolResults }) => {
         if (toolCalls && toolCalls.length > 0) {
           toolCalls.forEach((tc) => {

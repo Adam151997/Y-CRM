@@ -19,7 +19,6 @@ import {
 // Native integrations
 import { createGmailClient, createCalendarClient, hasGoogleConnection } from "@/lib/integrations/google";
 import { createSlackClient, hasSlackConnection } from "@/lib/integrations/slack";
-import { resolveUser } from "@/lib/user-resolver";
 
 /**
  * AI Tools for Y-CRM
@@ -3161,123 +3160,6 @@ function generateReportMarkdown(data: Record<string, unknown>): string {
 
   return lines.join("\n");
 }
-
-// =============================================================================
-// ASSIGNMENT TOOL
-// =============================================================================
-
-export const assignRecordTool = (orgId: string, userId: string) =>
-  tool({
-    description:
-      "Assign a lead, contact, account, or opportunity to a team member. Use this after creating a record if the user wants to assign it to someone. You must provide the recordId from a previous step.",
-    parameters: z.object({
-      recordType: z
-        .enum(["lead", "contact", "account", "opportunity"])
-        .describe("The type of record to assign"),
-      recordId: z
-        .string()
-        .describe("The UUID of the record (from a previous create tool output)"),
-      assigneeName: z
-        .string()
-        .describe(
-          "The name or email of the person to assign to (e.g., 'John', 'me', 'sarah@company.com')"
-        ),
-    }),
-    execute: async ({ recordType, recordId, assigneeName }) => {
-      console.log("[Tool:assignRecord] Executing with:", {
-        recordType,
-        recordId,
-        assigneeName,
-      });
-
-      try {
-        // 1. Resolve User
-        const targetUser = await resolveUser(orgId, assigneeName, userId);
-
-        if (!targetUser) {
-          return {
-            success: false,
-            message: `❌ Could not find a user named "${assigneeName}" in this organization.`,
-          };
-        }
-
-        // 2. Update Database based on record type
-        let updatedRecord;
-        switch (recordType) {
-          case "lead":
-            updatedRecord = await prisma.lead.update({
-              where: { id: recordId, orgId },
-              data: { assignedToId: targetUser.id },
-              select: { id: true, firstName: true, lastName: true },
-            });
-            break;
-          case "contact":
-            updatedRecord = await prisma.contact.update({
-              where: { id: recordId, orgId },
-              data: { assignedToId: targetUser.id },
-              select: { id: true, firstName: true, lastName: true },
-            });
-            break;
-          case "account":
-            updatedRecord = await prisma.account.update({
-              where: { id: recordId, orgId },
-              data: { assignedToId: targetUser.id },
-              select: { id: true, name: true },
-            });
-            break;
-          case "opportunity":
-            updatedRecord = await prisma.opportunity.update({
-              where: { id: recordId, orgId },
-              data: { assignedToId: targetUser.id },
-              select: { id: true, name: true },
-            });
-            break;
-        }
-
-        // 3. Create Audit Log
-        await createAuditLog({
-          orgId,
-          action: "UPDATE",
-          module: recordType.toUpperCase() as "LEAD" | "CONTACT" | "ACCOUNT" | "OPPORTUNITY",
-          recordId,
-          actorType: "AI_AGENT",
-          actorId: userId,
-          metadata: {
-            source: "ai_assistant",
-            action: "assignment",
-            assignedTo: targetUser.id,
-            assignedToName: targetUser.name,
-          },
-        });
-
-        // 4. Get record name for response
-        const recordName =
-          recordType === "account" || recordType === "opportunity"
-            ? (updatedRecord as { name: string }).name
-            : `${(updatedRecord as { firstName: string; lastName: string }).firstName} ${(updatedRecord as { firstName: string; lastName: string }).lastName}`;
-
-        console.log("[Tool:assignRecord] Success:", {
-          recordType,
-          recordId,
-          assignedTo: targetUser.name,
-        });
-
-        return {
-          success: true,
-          message: `✅ Assigned ${recordType} "${recordName}" to ${targetUser.name}.`,
-          recordId,
-          assignedToId: targetUser.id,
-          assignedToName: targetUser.name,
-        };
-      } catch (error) {
-        console.error("[Tool:assignRecord] Error:", error);
-        return {
-          success: false,
-          message: `❌ Error: Record ${recordId} not found or could not be updated.`,
-        };
-      }
-    },
-  });
 
 // =============================================================================
 // HELPER FUNCTIONS
