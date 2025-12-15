@@ -61,6 +61,26 @@ export const createLeadTool = (orgId: string, userId: string) =>
       console.log("[Tool:createLead] OrgId:", orgId);
       console.log("[Tool:createLead] UserId:", userId);
       try {
+        // Check for duplicate lead created in last 60 seconds
+        const recentDuplicate = await prisma.lead.findFirst({
+          where: {
+            orgId,
+            firstName: { equals: params.firstName, mode: "insensitive" },
+            lastName: { equals: params.lastName, mode: "insensitive" },
+            createdAt: { gte: new Date(Date.now() - 60000) },
+          },
+        });
+
+        if (recentDuplicate) {
+          console.log("[Tool:createLead] Duplicate detected, returning existing lead:", recentDuplicate.id);
+          return {
+            success: true,
+            leadId: recentDuplicate.id,
+            alreadyExisted: true,
+            message: `Lead "${recentDuplicate.firstName} ${recentDuplicate.lastName}" already exists (ID: ${recentDuplicate.id}). No duplicate created.`,
+          };
+        }
+
         // Resolve assignee if provided
         let assignedToId: string | undefined;
         let assignedToName: string | undefined;

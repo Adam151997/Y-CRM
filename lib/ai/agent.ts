@@ -273,7 +273,7 @@ export function getFilteredTools(
       filtered.createLead = allTools.createLead;
       filtered.searchLeads = allTools.searchLeads;
       filtered.updateLead = allTools.updateLead;
-      filtered.createTask = allTools.createTask; // Often create follow-up task
+      // Removed createTask - only add if explicitly requested
       break;
       
     case "contact":
@@ -604,7 +604,7 @@ export async function executeAgent(
   const toolsCalled: string[] = [];
   const toolResults: Record<string, unknown>[] = [];
   const executedCallHashes = new Set<string>(); // Track executed tool+args to prevent duplicates
-  const modelName = "gemini-2.5-pro";
+  const modelName = "gemini-3-pro-preview";
 
   if (!isAIConfigured()) {
     return {
@@ -642,7 +642,7 @@ export async function executeAgent(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       tools: tools as any,
       toolChoice: toolChoiceMode as "auto" | "required",
-      maxSteps: 3, // Allow multi-step for entity resolution (e.g., searchAccounts → createTicket)
+      maxSteps: 2, // Allow 2 steps for entity resolution (e.g., searchAccounts → createTicket)
       onStepFinish: ({ toolCalls, toolResults: stepToolResults }) => {
         if (toolCalls && toolCalls.length > 0) {
           toolCalls.forEach((tc) => {
