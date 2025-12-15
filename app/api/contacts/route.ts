@@ -4,6 +4,7 @@ import prisma from "@/lib/db";
 import { Prisma } from "@prisma/client";
 import { createAuditLog } from "@/lib/audit";
 import { createNotification } from "@/lib/notifications";
+import { createActivity } from "@/lib/activity";
 import { createContactSchema } from "@/lib/validation/schemas";
 import { validateCustomFields } from "@/lib/validation/custom-fields";
 import { z } from "zod";
@@ -202,6 +203,18 @@ export async function POST(request: NextRequest) {
       message: contact.account ? `Account: ${contact.account.name}` : undefined,
       entityType: "CONTACT",
       entityId: contact.id,
+    });
+
+    // Create activity for timeline
+    await createActivity({
+      orgId: auth.orgId,
+      type: "CONTACT_CREATED",
+      subject: `Contact created: ${contact.firstName} ${contact.lastName}`,
+      description: contact.account ? `Account: ${contact.account.name}` : null,
+      contactId: contact.id,
+      accountId: contact.accountId,
+      performedById: auth.userId,
+      performedByType: "USER",
     });
 
     return NextResponse.json(contact, { status: 201 });

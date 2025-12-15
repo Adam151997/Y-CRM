@@ -4,6 +4,7 @@ import prisma from "@/lib/db";
 import { Prisma } from "@prisma/client";
 import { createAuditLog } from "@/lib/audit";
 import { createNotification } from "@/lib/notifications";
+import { createActivity } from "@/lib/activity";
 import { createOpportunitySchema } from "@/lib/validation/schemas";
 import { validateCustomFields } from "@/lib/validation/custom-fields";
 import { z } from "zod";
@@ -228,6 +229,17 @@ export async function POST(request: NextRequest) {
       message: `Value: ${formattedValue} | Account: ${opportunity.account.name}`,
       entityType: "OPPORTUNITY",
       entityId: opportunity.id,
+    });
+
+    // Create activity for timeline
+    await createActivity({
+      orgId: auth.orgId,
+      type: "OPPORTUNITY_CREATED",
+      subject: `Opportunity created: ${opportunity.name}`,
+      description: `Value: ${formattedValue} | Account: ${opportunity.account.name}`,
+      accountId: opportunity.accountId,
+      performedById: auth.userId,
+      performedByType: "USER",
     });
 
     return NextResponse.json(opportunity, { status: 201 });

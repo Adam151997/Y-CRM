@@ -4,6 +4,7 @@ import prisma from "@/lib/db";
 import { Prisma } from "@prisma/client";
 import { createAuditLog } from "@/lib/audit";
 import { createNotification } from "@/lib/notifications";
+import { createActivity } from "@/lib/activity";
 import { createLeadSchema, leadFilterSchema } from "@/lib/validation/schemas";
 import { validateCustomFields } from "@/lib/validation/custom-fields";
 import { checkRoutePermission } from "@/lib/api-permissions";
@@ -218,6 +219,17 @@ export async function POST(request: NextRequest) {
       message: lead.company ? `Company: ${lead.company}` : undefined,
       entityType: "LEAD",
       entityId: lead.id,
+    });
+
+    // Create activity for timeline
+    await createActivity({
+      orgId: auth.orgId,
+      type: "LEAD_CREATED",
+      subject: `Lead created: ${lead.firstName} ${lead.lastName}`,
+      description: lead.company ? `Company: ${lead.company}` : null,
+      leadId: lead.id,
+      performedById: auth.userId,
+      performedByType: "USER",
     });
 
     return NextResponse.json(lead, { status: 201 });

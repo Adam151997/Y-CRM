@@ -13,6 +13,11 @@ import {
   PlayCircle,
   RefreshCw,
   AlertTriangle,
+  UserPlus,
+  Building2,
+  Target,
+  Trophy,
+  XCircle,
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -45,6 +50,13 @@ const activityIcons: Record<string, React.ComponentType<{ className?: string }>>
   PLAYBOOK_STARTED: PlayCircle,
   PLAYBOOK_COMPLETED: CheckCircle,
   RENEWAL_UPDATED: RefreshCw,
+  LEAD_CREATED: UserPlus,
+  LEAD_CONVERTED: Trophy,
+  CONTACT_CREATED: UserPlus,
+  ACCOUNT_CREATED: Building2,
+  OPPORTUNITY_CREATED: Target,
+  OPPORTUNITY_WON: Trophy,
+  OPPORTUNITY_LOST: XCircle,
 };
 
 const activityColors: Record<string, string> = {
@@ -60,6 +72,13 @@ const activityColors: Record<string, string> = {
   PLAYBOOK_STARTED: "text-indigo-500 bg-indigo-500/10 border-indigo-500/20",
   PLAYBOOK_COMPLETED: "text-teal-500 bg-teal-500/10 border-teal-500/20",
   RENEWAL_UPDATED: "text-cyan-500 bg-cyan-500/10 border-cyan-500/20",
+  LEAD_CREATED: "text-blue-500 bg-blue-500/10 border-blue-500/20",
+  LEAD_CONVERTED: "text-green-500 bg-green-500/10 border-green-500/20",
+  CONTACT_CREATED: "text-indigo-500 bg-indigo-500/10 border-indigo-500/20",
+  ACCOUNT_CREATED: "text-purple-500 bg-purple-500/10 border-purple-500/20",
+  OPPORTUNITY_CREATED: "text-amber-500 bg-amber-500/10 border-amber-500/20",
+  OPPORTUNITY_WON: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20",
+  OPPORTUNITY_LOST: "text-red-500 bg-red-500/10 border-red-500/20",
 };
 
 export function RecordTimeline({ activities, emptyMessage = "No activity yet" }: RecordTimelineProps) {

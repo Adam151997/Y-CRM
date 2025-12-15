@@ -3,6 +3,7 @@ import { getApiAuthContext } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { createAuditLog } from "@/lib/audit";
 import { createNotification } from "@/lib/notifications";
+import { createTaskCompletedActivity } from "@/lib/activity";
 import { updateTaskSchema } from "@/lib/validation/schemas";
 
 interface RouteParams {
@@ -119,6 +120,17 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         title: `Task completed: ${updatedTask.title}`,
         entityType: "TASK",
         entityId: updatedTask.id,
+      });
+
+      // Create activity for timeline
+      await createTaskCompletedActivity({
+        orgId: auth.orgId,
+        taskTitle: updatedTask.title,
+        leadId: updatedTask.leadId,
+        contactId: updatedTask.contactId,
+        accountId: updatedTask.accountId,
+        performedById: auth.userId,
+        performedByType: "USER",
       });
     }
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getApiAuthContext } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { createAuditLog } from "@/lib/audit";
+import { createNoteActivity } from "@/lib/activity";
 import { z } from "zod";
 
 const attachmentSchema = z.object({
@@ -73,6 +74,17 @@ export async function POST(request: NextRequest) {
       actorType: "USER",
       actorId: auth.userId,
       newState: note as unknown as Record<string, unknown>,
+    });
+
+    // Create activity for timeline
+    await createNoteActivity({
+      orgId: auth.orgId,
+      noteContent: data.content,
+      leadId: data.leadId,
+      contactId: data.contactId,
+      accountId: data.accountId,
+      performedById: auth.userId,
+      performedByType: "USER",
     });
 
     return NextResponse.json(note, { status: 201 });

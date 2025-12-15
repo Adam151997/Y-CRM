@@ -4,6 +4,7 @@ import prisma from "@/lib/db";
 import { Prisma } from "@prisma/client";
 import { createAuditLog } from "@/lib/audit";
 import { createNotification } from "@/lib/notifications";
+import { createActivity } from "@/lib/activity";
 import { createAccountSchema } from "@/lib/validation/schemas";
 import { validateCustomFields } from "@/lib/validation/custom-fields";
 import { z } from "zod";
@@ -175,6 +176,17 @@ export async function POST(request: NextRequest) {
       message: account.industry ? `Industry: ${account.industry}` : undefined,
       entityType: "ACCOUNT",
       entityId: account.id,
+    });
+
+    // Create activity for timeline
+    await createActivity({
+      orgId: auth.orgId,
+      type: "ACCOUNT_CREATED",
+      subject: `Account created: ${account.name}`,
+      description: account.industry ? `Industry: ${account.industry}` : null,
+      accountId: account.id,
+      performedById: auth.userId,
+      performedByType: "USER",
     });
 
     return NextResponse.json(account, { status: 201 });

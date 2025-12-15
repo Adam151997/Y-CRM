@@ -4,6 +4,7 @@ import prisma from "@/lib/db";
 import { Prisma } from "@prisma/client";
 import { createAuditLog } from "@/lib/audit";
 import { createNotification } from "@/lib/notifications";
+import { createActivity } from "@/lib/activity";
 import { updateOpportunitySchema, closeOpportunitySchema } from "@/lib/validation/schemas";
 import { validateCustomFields } from "@/lib/validation/custom-fields";
 import { cleanupOrphanedRelationships } from "@/lib/relationships";
@@ -163,6 +164,19 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         message: `Value: ${formattedValue} | Account: ${updatedOpportunity.account.name}`,
         entityType: "OPPORTUNITY",
         entityId: updatedOpportunity.id,
+      });
+
+      // Create activity for timeline
+      await createActivity({
+        orgId: auth.orgId,
+        type: closeData.closedWon ? "OPPORTUNITY_WON" : "OPPORTUNITY_LOST",
+        subject: closeData.closedWon 
+          ? `🎉 Opportunity won: ${updatedOpportunity.name}`
+          : `Opportunity lost: ${updatedOpportunity.name}`,
+        description: `Value: ${formattedValue} | Account: ${updatedOpportunity.account.name}${closeData.lostReason ? ` | Reason: ${closeData.lostReason}` : ""}`,
+        accountId: updatedOpportunity.accountId,
+        performedById: auth.userId,
+        performedByType: "USER",
       });
 
       return NextResponse.json(updatedOpportunity);
