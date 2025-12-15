@@ -19,6 +19,7 @@ import {
 // Native integrations
 import { createGmailClient, createCalendarClient, hasGoogleConnection } from "@/lib/integrations/google";
 import { createSlackClient, hasSlackConnection } from "@/lib/integrations/slack";
+import { resolveUser } from "@/lib/user-resolver";
 
 /**
  * AI Tools for Y-CRM
@@ -31,7 +32,7 @@ import { createSlackClient, hasSlackConnection } from "@/lib/integrations/slack"
 
 export const createLeadTool = (orgId: string, userId: string) =>
   tool({
-    description: "Create a new lead in the CRM. Use this when the user wants to add a new lead or prospect.",
+    description: "Create a new lead in the CRM. Use this when the user wants to add a new lead or prospect. Can optionally assign to a team member.",
     parameters: z.object({
       firstName: z.string().describe("Lead's first name (required)"),
       lastName: z.string().describe("Lead's last name (required)"),
@@ -52,6 +53,7 @@ export const createLeadTool = (orgId: string, userId: string) =>
         ])
         .optional()
         .describe("Lead source"),
+      assignTo: z.string().optional().describe("Assign to team member by name, email, or 'me' (e.g., 'Mike', 'sarah@company.com', 'me')"),
     }),
     execute: async (params) => {
       console.log("[Tool:createLead] ===================");
@@ -59,11 +61,27 @@ export const createLeadTool = (orgId: string, userId: string) =>
       console.log("[Tool:createLead] OrgId:", orgId);
       console.log("[Tool:createLead] UserId:", userId);
       try {
+        // Resolve assignee if provided
+        let assignedToId: string | undefined;
+        let assignedToName: string | undefined;
+        if (params.assignTo) {
+          const resolved = await resolveUser(orgId, params.assignTo, userId);
+          if (resolved) {
+            assignedToId = resolved.id;
+            assignedToName = resolved.name;
+            console.log("[Tool:createLead] Resolved assignee:", assignedToName);
+          } else {
+            console.log("[Tool:createLead] Could not resolve assignee:", params.assignTo);
+          }
+        }
+
+        const { assignTo, ...leadData } = params;
         const lead = await prisma.lead.create({
           data: {
             orgId,
-            ...params,
+            ...leadData,
             status: "NEW",
+            assignedToId,
           },
         });
 
@@ -95,10 +113,13 @@ export const createLeadTool = (orgId: string, userId: string) =>
         
         revalidateLeadCaches();
         
+        const assignmentMsg = assignedToName ? ` Assigned to ${assignedToName}.` : "";
         return {
           success: true,
           leadId: lead.id,
-          message: `Created lead "${lead.firstName} ${lead.lastName}"${lead.company ? ` at ${lead.company}` : ""} (ID: ${lead.id}). Use this leadId for follow-up tasks or notes.`,
+          assignedToId,
+          assignedToName,
+          message: `Created lead "${lead.firstName} ${lead.lastName}"${lead.company ? ` at ${lead.company}` : ""} (ID: ${lead.id}).${assignmentMsg}`,
         };
       } catch (error) {
         console.error("[Tool:createLead] Error:", error);
@@ -235,7 +256,7 @@ export const updateLeadTool = (orgId: string, userId: string) =>
 
 export const createContactTool = (orgId: string, userId: string) =>
   tool({
-    description: "Create a new contact in the CRM",
+    description: "Create a new contact in the CRM. Can optionally assign to a team member.",
     parameters: z.object({
       firstName: z.string().describe("Contact's first name (required)"),
       lastName: z.string().describe("Contact's last name (required)"),
@@ -244,6 +265,7 @@ export const createContactTool = (orgId: string, userId: string) =>
       title: z.string().optional().describe("Job title"),
       department: z.string().optional().describe("Department"),
       accountId: z.string().uuid().optional().describe("Associated account ID"),
+      assignTo: z.string().optional().describe("Assign to team member by name, email, or 'me'"),
     }),
     execute: async (params) => {
       console.log("[Tool:createContact] Executing:", params);
@@ -257,8 +279,20 @@ export const createContactTool = (orgId: string, userId: string) =>
           }
         }
 
+        // Resolve assignee if provided
+        let assignedToId: string | undefined;
+        let assignedToName: string | undefined;
+        if (params.assignTo) {
+          const resolved = await resolveUser(orgId, params.assignTo, userId);
+          if (resolved) {
+            assignedToId = resolved.id;
+            assignedToName = resolved.name;
+          }
+        }
+
+        const { assignTo, ...contactData } = params;
         const contact = await prisma.contact.create({
-          data: { orgId, ...params },
+          data: { orgId, ...contactData, assignedToId },
         });
 
         await createAuditLog({
@@ -274,10 +308,13 @@ export const createContactTool = (orgId: string, userId: string) =>
 
         revalidateContactCaches();
         
+        const assignmentMsg = assignedToName ? ` Assigned to ${assignedToName}.` : "";
         return {
           success: true,
           contactId: contact.id,
-          message: `Created contact "${contact.firstName} ${contact.lastName}" (ID: ${contact.id}).`,
+          assignedToId,
+          assignedToName,
+          message: `Created contact "${contact.firstName} ${contact.lastName}" (ID: ${contact.id}).${assignmentMsg}`,
         };
       } catch (error) {
         console.error("[Tool:createContact] Error:", error);
@@ -338,7 +375,7 @@ export const searchContactsTool = (orgId: string) =>
 
 export const createAccountTool = (orgId: string, userId: string) =>
   tool({
-    description: "Create a new account (company/organization) in the CRM",
+    description: "Create a new account (company/organization) in the CRM. Can optionally assign to a team member.",
     parameters: z.object({
       name: z.string().describe("Company name (required)"),
       industry: z.string().optional().describe("Industry"),
@@ -346,12 +383,25 @@ export const createAccountTool = (orgId: string, userId: string) =>
       phone: z.string().optional().describe("Phone number"),
       type: z.enum(["PROSPECT", "CUSTOMER", "PARTNER", "VENDOR"]).optional(),
       rating: z.enum(["HOT", "WARM", "COLD"]).optional(),
+      assignTo: z.string().optional().describe("Assign to team member by name, email, or 'me'"),
     }),
     execute: async (params) => {
       console.log("[Tool:createAccount] Executing:", params);
       try {
+        // Resolve assignee if provided
+        let assignedToId: string | undefined;
+        let assignedToName: string | undefined;
+        if (params.assignTo) {
+          const resolved = await resolveUser(orgId, params.assignTo, userId);
+          if (resolved) {
+            assignedToId = resolved.id;
+            assignedToName = resolved.name;
+          }
+        }
+
+        const { assignTo, ...accountData } = params;
         const account = await prisma.account.create({
-          data: { orgId, ...params },
+          data: { orgId, ...accountData, assignedToId },
         });
 
         await createAuditLog({
@@ -367,10 +417,13 @@ export const createAccountTool = (orgId: string, userId: string) =>
 
         revalidateAccountCaches();
         
+        const assignmentMsg = assignedToName ? ` Assigned to ${assignedToName}.` : "";
         return {
           success: true,
           accountId: account.id,
-          message: `Created account "${account.name}" (ID: ${account.id}).`,
+          assignedToId,
+          assignedToName,
+          message: `Created account "${account.name}" (ID: ${account.id}).${assignmentMsg}`,
         };
       } catch (error) {
         console.error("[Tool:createAccount] Error:", error);
@@ -592,7 +645,7 @@ export const searchTasksTool = (orgId: string) =>
 
 export const createOpportunityTool = (orgId: string, userId: string) =>
   tool({
-    description: "Create a new sales opportunity. Requires an existing account.",
+    description: "Create a new sales opportunity. Requires an existing account. Can optionally assign to a team member.",
     parameters: z.object({
       name: z.string().describe("Opportunity name (required)"),
       value: z.number().positive().describe("Deal value in dollars (required)"),
@@ -600,6 +653,7 @@ export const createOpportunityTool = (orgId: string, userId: string) =>
       stageId: z.string().uuid().optional().describe("Pipeline stage ID"),
       expectedCloseDate: z.string().optional().describe("Expected close date"),
       probability: z.number().min(0).max(100).optional().describe("Win probability %"),
+      assignTo: z.string().optional().describe("Assign to team member by name, email, or 'me'"),
     }),
     execute: async (params) => {
       console.log("[Tool:createOpportunity] Executing:", params);
@@ -623,6 +677,17 @@ export const createOpportunityTool = (orgId: string, userId: string) =>
           stageId = defaultStage.id;
         }
 
+        // Resolve assignee if provided
+        let assignedToId: string | undefined;
+        let assignedToName: string | undefined;
+        if (params.assignTo) {
+          const resolved = await resolveUser(orgId, params.assignTo, userId);
+          if (resolved) {
+            assignedToId = resolved.id;
+            assignedToName = resolved.name;
+          }
+        }
+
         const opportunity = await prisma.opportunity.create({
           data: {
             orgId,
@@ -632,6 +697,7 @@ export const createOpportunityTool = (orgId: string, userId: string) =>
             stageId,
             expectedCloseDate: params.expectedCloseDate ? new Date(params.expectedCloseDate) : null,
             probability: params.probability || 50,
+            assignedToId,
           },
           include: {
             account: { select: { name: true } },
@@ -652,10 +718,13 @@ export const createOpportunityTool = (orgId: string, userId: string) =>
 
         revalidateOpportunityCaches();
         
+        const assignmentMsg = assignedToName ? ` Assigned to ${assignedToName}.` : "";
         return {
           success: true,
           opportunityId: opportunity.id,
-          message: `Created opportunity "${opportunity.name}" worth $${params.value.toLocaleString()} with ${opportunity.account.name} (ID: ${opportunity.id}).`,
+          assignedToId,
+          assignedToName,
+          message: `Created opportunity "${opportunity.name}" worth ${params.value.toLocaleString()} with ${opportunity.account.name} (ID: ${opportunity.id}).${assignmentMsg}`,
         };
       } catch (error) {
         console.error("[Tool:createOpportunity] Error:", error);

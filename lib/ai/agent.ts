@@ -642,7 +642,7 @@ export async function executeAgent(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       tools: tools as any,
       toolChoice: toolChoiceMode as "auto" | "required",
-      maxSteps: 1, // Single step to prevent duplicate executions
+      maxSteps: 3, // Allow multi-step for entity resolution (e.g., searchAccounts → createTicket)
       onStepFinish: ({ toolCalls, toolResults: stepToolResults }) => {
         if (toolCalls && toolCalls.length > 0) {
           toolCalls.forEach((tc) => {
