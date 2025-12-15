@@ -62,10 +62,17 @@ export default async function ReportsPage() {
     const stageData = groupedData.opportunitiesByStage.find(
       (s: { stageId: string }) => s.stageId === stage.id
     );
+    // Extract count - _count can be a number or an object
+    let count = 0;
+    if (stageData?._count) {
+      count = typeof stageData._count === 'number' 
+        ? stageData._count 
+        : (stageData._count as { _all?: number })?._all ?? 0;
+    }
     return {
       name: stage.name,
       value: Number(stageData?._sum?.value || 0),
-      count: stageData?._count || 0,
+      count,
       color: stage.color || "#3b82f6",
     };
   });
@@ -75,10 +82,17 @@ export default async function ReportsPage() {
     const stageData = groupedData.opportunitiesByStage.find(
       (s: { stageId: string }) => s.stageId === stage.id
     );
+    // Extract count - _count can be a number or an object
+    let count = 0;
+    if (stageData?._count) {
+      count = typeof stageData._count === 'number' 
+        ? stageData._count 
+        : (stageData._count as { _all?: number })?._all ?? 0;
+    }
     return {
       name: stage.name,
       value: Number(stageData?._sum?.value || 0),
-      count: stageData?._count || 0,
+      count,
       color: stage.color || "#3b82f6",
     };
   });
@@ -253,7 +267,10 @@ export default async function ReportsPage() {
               winRate={winRate}
               dealsPerMonth={salesVelocityData.dealsPerMonth}
             />
-            <LeadConversionFunnel data={groupedData.leadsByStatus.map((s: { status: string; _count: number }) => ({ status: s.status, count: s._count }))} />
+            <LeadConversionFunnel data={groupedData.leadsByStatus.map((s: { status: string; _count: unknown }) => {
+              const count = typeof s._count === 'number' ? s._count : 0;
+              return { status: s.status, count };
+            })} />
           </div>
         </TabsContent>
 
