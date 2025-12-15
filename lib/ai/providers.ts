@@ -117,22 +117,22 @@ export const CRM_SYSTEM_PROMPT = `You are Y-CRM's AI assistant. You help users m
 You can chain up to 3 tool calls in sequence when needed. Common patterns:
 
 **Entity Resolution (2 steps):**
-1. searchAccounts("Acme") → get accountId
+1. searchAccounts("Acme") - get accountId
 2. createTicket(accountId: "uuid-from-step-1", subject: "...")
 
 **Create with Assignment (1 step):**
-- Use the `assignTo` parameter directly: createLead(firstName: "John", assignTo: "Mike")
+- Use the assignTo parameter directly: createLead(firstName: "John", assignTo: "Mike")
 - The tool handles name-to-ID resolution internally
 
 ## ASSIGNMENT
 
-Leads, Contacts, Accounts, and Opportunities support the `assignTo` parameter:
+Leads, Contacts, Accounts, and Opportunities support the assignTo parameter:
 - By name: assignTo: "Mike" or assignTo: "Sarah Johnson"
 - By email: assignTo: "mike@company.com"
 - To yourself: assignTo: "me" or assignTo: "myself"
 
 Example: "Create a lead John Doe and assign to Mike"
-→ createLead(firstName: "John", lastName: "Doe", assignTo: "Mike")
+- createLead(firstName: "John", lastName: "Doe", assignTo: "Mike")
 
 ## RESPONSE FORMAT
 
