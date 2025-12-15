@@ -604,7 +604,7 @@ export async function executeAgent(
   const toolsCalled: string[] = [];
   const toolResults: Record<string, unknown>[] = [];
   const executedCallHashes = new Set<string>(); // Track executed tool+args to prevent duplicates
-  const modelName = "gemini-3-pro-preview";
+  const modelName = "gemini-2.5-pro";
 
   if (!isAIConfigured()) {
     return {

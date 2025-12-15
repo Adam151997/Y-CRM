@@ -9,12 +9,12 @@ export const google = createGoogleGenerativeAI({
 });
 
 /**
- * Gemini 3 Pro Preview - Primary model for all CRM operations
+ * Gemini 2.5 Pro - Primary model for all CRM operations
  * Best-in-class for tool calling, reasoning, and agentic workflows
- * 17% improvement over 2.5 Pro in success rate
  * Use for: All CRM operations, analytics, and multi-step tasks
+ * Note: Gemini 3 requires thought signatures not yet supported by Vercel AI SDK
  */
-export const geminiPro = google("gemini-3-pro-preview");
+export const geminiPro = google("gemini-2.5-pro");
 
 /**
  * OpenAI provider (for Whisper transcription only)
