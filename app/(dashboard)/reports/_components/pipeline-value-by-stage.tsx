@@ -79,10 +79,7 @@ export function PipelineValueByStage({ data }: PipelineValueByStageProps) {
                   border: "1px solid hsl(var(--border))",
                   borderRadius: "8px",
                 }}
-                formatter={(value: number, name: string, props: { payload: { count: number } }) => [
-                  `${formatCurrency(value)} (${props.payload.count} deals)`,
-                  "Value",
-                ]}
+                formatter={(value: number) => [formatCurrency(value), "Value"]}
               />
               <Bar dataKey="value" radius={[4, 4, 0, 0]}>
                 {data.map((entry, index) => (
