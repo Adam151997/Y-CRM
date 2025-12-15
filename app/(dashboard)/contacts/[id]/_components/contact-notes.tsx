@@ -29,7 +29,7 @@ interface Attachment {
 interface Note {
   id: string;
   content: string;
-  attachments?: Attachment[];
+  attachments?: unknown; // JsonValue from Prisma
   createdById: string;
   createdByType: string;
   createdAt: Date;
