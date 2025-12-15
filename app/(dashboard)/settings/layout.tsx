@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { User, Building, Layers, Plug, Box, Database, History, Palette, Users, Shield } from "lucide-react";
+import { User, Building, Layers, Plug, Box, Database, History, Palette, Users, Shield, Bot } from "lucide-react";
 
 const settingsNav = [
   {
@@ -41,6 +41,12 @@ const settingsNav = [
     href: "/settings/integrations",
     icon: Plug,
     description: "Connect external apps",
+  },
+  {
+    title: "AI Tools",
+    href: "/settings/ai-tools",
+    icon: Bot,
+    description: "Manage AI & MCP integrations",
   },
   {
     title: "Custom Modules",
