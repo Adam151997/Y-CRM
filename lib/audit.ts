@@ -41,7 +41,8 @@ export type AuditModule =
   | "FORM_SUBMISSION"
   // System
   | "SYSTEM"
-  | "AUTH";
+  | "AUTH"
+  | "MCP_INTEGRATION";
 
 export type ActorType = "USER" | "AI_AGENT" | "SYSTEM" | "API";
 
