@@ -932,11 +932,12 @@ export const getDashboardStatsTool = (orgId: string) =>
 
 export const createTicketTool = (orgId: string, userId: string) =>
   tool({
-    description: "Create a new support ticket in the Customer Success workspace",
+    description: "Create a new support ticket in the Customer Success workspace. You can provide either accountId (UUID) or accountName (the tool will search for the account).",
     parameters: z.object({
       subject: z.string().describe("Ticket subject (required)"),
       description: z.string().optional().describe("Ticket description"),
-      accountId: z.string().uuid().describe("Account ID (required)"),
+      accountId: z.string().uuid().optional().describe("Account ID (UUID) - use if you already have it"),
+      accountName: z.string().optional().describe("Account name to search for - use if you don't have the accountId"),
       contactId: z.string().uuid().optional().describe("Contact ID"),
       priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]).default("MEDIUM"),
       category: z.enum(["BUG", "BILLING", "FEATURE_REQUEST", "QUESTION", "GENERAL"]).optional(),
@@ -944,8 +945,37 @@ export const createTicketTool = (orgId: string, userId: string) =>
     execute: async (params) => {
       console.log("[Tool:createTicket] Executing:", params);
       try {
+        // Resolve accountId from accountName if needed
+        let resolvedAccountId = params.accountId;
+        
+        if (!resolvedAccountId && params.accountName) {
+          const account = await prisma.account.findFirst({
+            where: { 
+              orgId, 
+              name: { contains: params.accountName, mode: "insensitive" } 
+            },
+          });
+          if (account) {
+            resolvedAccountId = account.id;
+            console.log("[Tool:createTicket] Resolved account:", account.name, "->", account.id);
+          } else {
+            return { 
+              success: false, 
+              message: `Account "${params.accountName}" not found. Please create the account first or check the spelling.` 
+            };
+          }
+        }
+
+        if (!resolvedAccountId) {
+          return { 
+            success: false, 
+            message: "Either accountId or accountName is required to create a ticket." 
+          };
+        }
+
+        // Verify account exists
         const account = await prisma.account.findFirst({
-          where: { id: params.accountId, orgId },
+          where: { id: resolvedAccountId, orgId },
         });
         if (!account) {
           return { success: false, message: "Account not found" };
@@ -956,7 +986,7 @@ export const createTicketTool = (orgId: string, userId: string) =>
             orgId,
             subject: params.subject,
             description: params.description,
-            accountId: params.accountId,
+            accountId: resolvedAccountId,
             contactId: params.contactId,
             priority: params.priority,
             category: params.category,
@@ -983,7 +1013,7 @@ export const createTicketTool = (orgId: string, userId: string) =>
           success: true,
           ticketId: ticket.id,
           ticketNumber: ticket.ticketNumber,
-          message: `Created ticket #${ticket.ticketNumber}: "${ticket.subject}" (ID: ${ticket.id})`,
+          message: `Created ticket #${ticket.ticketNumber}: "${ticket.subject}" for ${account.name} (ID: ${ticket.id})`,
         };
       } catch (error) {
         console.error("[Tool:createTicket] Error:", error);

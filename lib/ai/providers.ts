@@ -9,11 +9,12 @@ export const google = createGoogleGenerativeAI({
 });
 
 /**
- * Gemini 2.5 Pro - Primary model for all CRM operations
+ * Gemini 3 Pro Preview - Primary model for all CRM operations
  * Best-in-class for tool calling, reasoning, and agentic workflows
+ * 17% improvement over 2.5 Pro in success rate
  * Use for: All CRM operations, analytics, and multi-step tasks
  */
-export const geminiPro = google("gemini-2.5-pro");
+export const geminiPro = google("gemini-3-pro-preview");
 
 /**
  * OpenAI provider (for Whisper transcription only)
