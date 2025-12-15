@@ -2642,6 +2642,526 @@ export const getUpcomingRenewalsTool = (orgId: string) =>
   });
 
 // =============================================================================
+// REPORT GENERATION TOOL
+// =============================================================================
+
+export const createReportTool = (orgId: string, userId: string) =>
+  tool({
+    description: "Generate a comprehensive CRM report and save it as a document. Can create reports for specific workspaces (sales, cs, marketing) or across all workspaces. Reports include key metrics, trends, and insights.",
+    parameters: z.object({
+      title: z.string().describe("Report title (e.g., 'Q4 Sales Performance Report')"),
+      workspace: z.enum(["sales", "cs", "marketing", "all"]).default("all").describe("Workspace to report on"),
+      reportType: z.enum([
+        "summary",      // High-level overview
+        "pipeline",     // Sales pipeline analysis
+        "performance",  // Team/individual performance
+        "health",       // Customer health analysis
+        "renewals",     // Renewal forecast
+        "campaigns",    // Marketing campaign performance
+        "custom",       // Custom report with specific sections
+      ]).default("summary"),
+      dateRange: z.enum(["today", "week", "month", "quarter", "year", "all"]).default("month"),
+      sections: z.array(z.string()).optional().describe("Specific sections to include (for custom reports)"),
+      includeCharts: z.boolean().default(true).describe("Include chart data for visualization"),
+      accountId: z.string().uuid().optional().describe("Focus report on specific account"),
+    }),
+    execute: async ({ title, workspace, reportType, dateRange, sections, includeCharts, accountId }) => {
+      console.log("[Tool:createReport] Executing:", { title, workspace, reportType, dateRange });
+      try {
+        const now = new Date();
+        let startDate: Date | null = null;
+        
+        // Calculate date range
+        switch (dateRange) {
+          case "today":
+            startDate = new Date(now.setHours(0, 0, 0, 0));
+            break;
+          case "week":
+            startDate = new Date(now.setDate(now.getDate() - 7));
+            break;
+          case "month":
+            startDate = new Date(now.setMonth(now.getMonth() - 1));
+            break;
+          case "quarter":
+            startDate = new Date(now.setMonth(now.getMonth() - 3));
+            break;
+          case "year":
+            startDate = new Date(now.setFullYear(now.getFullYear() - 1));
+            break;
+        }
+
+        const dateFilter = startDate ? { gte: startDate } : undefined;
+        const reportData: Record<string, unknown> = {
+          title,
+          generatedAt: new Date().toISOString(),
+          workspace,
+          reportType,
+          dateRange,
+        };
+
+        // =====================================================================
+        // SALES WORKSPACE DATA
+        // =====================================================================
+        if (workspace === "all" || workspace === "sales") {
+          // Lead metrics
+          const [totalLeads, newLeads, convertedLeads, leadsByStatus, leadsBySource] = await Promise.all([
+            prisma.lead.count({ where: { orgId } }),
+            prisma.lead.count({ where: { orgId, createdAt: dateFilter } }),
+            prisma.lead.count({ where: { orgId, status: "CONVERTED", convertedAt: dateFilter } }),
+            prisma.lead.groupBy({
+              by: ["status"],
+              where: { orgId },
+              _count: true,
+            }),
+            prisma.lead.groupBy({
+              by: ["source"],
+              where: { orgId, source: { not: null } },
+              _count: true,
+            }),
+          ]);
+
+          // Contact & Account metrics
+          const [totalContacts, totalAccounts, newContacts, newAccounts] = await Promise.all([
+            prisma.contact.count({ where: { orgId } }),
+            prisma.account.count({ where: { orgId } }),
+            prisma.contact.count({ where: { orgId, createdAt: dateFilter } }),
+            prisma.account.count({ where: { orgId, createdAt: dateFilter } }),
+          ]);
+
+          // Opportunity metrics
+          const [totalOpportunities, openOpportunities, wonOpportunities, lostOpportunities, pipelineValue, wonValue] = await Promise.all([
+            prisma.opportunity.count({ where: { orgId } }),
+            prisma.opportunity.count({ where: { orgId, closedWon: null } }),
+            prisma.opportunity.count({ where: { orgId, closedWon: true, actualCloseDate: dateFilter } }),
+            prisma.opportunity.count({ where: { orgId, closedWon: false, actualCloseDate: dateFilter } }),
+            prisma.opportunity.aggregate({
+              where: { orgId, closedWon: null },
+              _sum: { value: true },
+            }),
+            prisma.opportunity.aggregate({
+              where: { orgId, closedWon: true, actualCloseDate: dateFilter },
+              _sum: { value: true },
+            }),
+          ]);
+
+          // Pipeline by stage
+          const opportunitiesByStage = await prisma.opportunity.groupBy({
+            by: ["stageId"],
+            where: { orgId, closedWon: null },
+            _count: true,
+            _sum: { value: true },
+          });
+
+          const stages = await prisma.pipelineStage.findMany({
+            where: { orgId, module: "OPPORTUNITY" },
+            orderBy: { order: "asc" },
+          });
+
+          const pipelineByStage = stages.map(stage => {
+            const stageData = opportunitiesByStage.find(o => o.stageId === stage.id);
+            return {
+              stage: stage.name,
+              count: stageData?._count || 0,
+              value: Number(stageData?._sum?.value || 0),
+            };
+          });
+
+          // Calculate conversion rate
+          const conversionRate = totalLeads > 0 ? ((convertedLeads / totalLeads) * 100).toFixed(1) : 0;
+          const winRate = (wonOpportunities + lostOpportunities) > 0 
+            ? ((wonOpportunities / (wonOpportunities + lostOpportunities)) * 100).toFixed(1) 
+            : 0;
+
+          reportData.sales = {
+            summary: {
+              totalLeads,
+              newLeads,
+              convertedLeads,
+              conversionRate: `${conversionRate}%`,
+              totalContacts,
+              newContacts,
+              totalAccounts,
+              newAccounts,
+              totalOpportunities,
+              openOpportunities,
+              wonOpportunities,
+              lostOpportunities,
+              winRate: `${winRate}%`,
+              pipelineValue: Number(pipelineValue._sum.value || 0),
+              wonValue: Number(wonValue._sum.value || 0),
+            },
+            leadsByStatus: leadsByStatus.map(l => ({ status: l.status, count: l._count })),
+            leadsBySource: leadsBySource.map(l => ({ source: l.source || "Unknown", count: l._count })),
+            pipelineByStage,
+          };
+        }
+
+        // =====================================================================
+        // CUSTOMER SUCCESS WORKSPACE DATA
+        // =====================================================================
+        if (workspace === "all" || workspace === "cs") {
+          // Ticket metrics
+          const [totalTickets, openTickets, resolvedTickets, ticketsByStatus, ticketsByPriority] = await Promise.all([
+            prisma.ticket.count({ where: { orgId } }),
+            prisma.ticket.count({ where: { orgId, status: { notIn: ["RESOLVED", "CLOSED"] } } }),
+            prisma.ticket.count({ where: { orgId, status: { in: ["RESOLVED", "CLOSED"] }, resolvedAt: dateFilter } }),
+            prisma.ticket.groupBy({
+              by: ["status"],
+              where: { orgId },
+              _count: true,
+            }),
+            prisma.ticket.groupBy({
+              by: ["priority"],
+              where: { orgId, status: { notIn: ["RESOLVED", "CLOSED"] } },
+              _count: true,
+            }),
+          ]);
+
+          // Health score metrics
+          const [totalHealthScores, atRiskAccounts, healthByRiskLevel, avgHealthScore] = await Promise.all([
+            prisma.accountHealth.count({ where: { orgId } }),
+            prisma.accountHealth.count({ where: { orgId, isAtRisk: true } }),
+            prisma.accountHealth.groupBy({
+              by: ["riskLevel"],
+              where: { orgId },
+              _count: true,
+            }),
+            prisma.accountHealth.aggregate({
+              where: { orgId },
+              _avg: { score: true },
+            }),
+          ]);
+
+          // Renewal metrics
+          const futureDate = new Date();
+          futureDate.setDate(futureDate.getDate() + 90);
+
+          const [totalRenewals, upcomingRenewals, renewedThisPeriod, churnedThisPeriod, renewalValue] = await Promise.all([
+            prisma.renewal.count({ where: { orgId } }),
+            prisma.renewal.count({
+              where: {
+                orgId,
+                endDate: { gte: new Date(), lte: futureDate },
+                status: { in: ["UPCOMING", "IN_PROGRESS"] },
+              },
+            }),
+            prisma.renewal.count({ where: { orgId, status: "RENEWED", updatedAt: dateFilter } }),
+            prisma.renewal.count({ where: { orgId, status: "CHURNED", updatedAt: dateFilter } }),
+            prisma.renewal.aggregate({
+              where: {
+                orgId,
+                endDate: { gte: new Date(), lte: futureDate },
+                status: { in: ["UPCOMING", "IN_PROGRESS"] },
+              },
+              _sum: { contractValue: true },
+            }),
+          ]);
+
+          // Average CSAT
+          const avgCSAT = await prisma.ticket.aggregate({
+            where: { orgId, satisfactionScore: { not: null } },
+            _avg: { satisfactionScore: true },
+          });
+
+          reportData.cs = {
+            summary: {
+              totalTickets,
+              openTickets,
+              resolvedTickets,
+              avgCSAT: avgCSAT._avg.satisfactionScore?.toFixed(1) || "N/A",
+              totalAccountsWithHealth: totalHealthScores,
+              atRiskAccounts,
+              avgHealthScore: avgHealthScore._avg.score?.toFixed(0) || "N/A",
+              upcomingRenewals,
+              renewedThisPeriod,
+              churnedThisPeriod,
+              upcomingRenewalValue: Number(renewalValue._sum.contractValue || 0),
+            },
+            ticketsByStatus: ticketsByStatus.map(t => ({ status: t.status, count: t._count })),
+            ticketsByPriority: ticketsByPriority.map(t => ({ priority: t.priority, count: t._count })),
+            healthByRiskLevel: healthByRiskLevel.map(h => ({ riskLevel: h.riskLevel, count: h._count })),
+          };
+        }
+
+        // =====================================================================
+        // MARKETING WORKSPACE DATA
+        // =====================================================================
+        if (workspace === "all" || workspace === "marketing") {
+          // Campaign metrics
+          const [totalCampaigns, activeCampaigns, completedCampaigns, campaignsByType, campaignsByStatus] = await Promise.all([
+            prisma.campaign.count({ where: { orgId } }),
+            prisma.campaign.count({ where: { orgId, status: "ACTIVE" } }),
+            prisma.campaign.count({ where: { orgId, status: "COMPLETED", completedAt: dateFilter } }),
+            prisma.campaign.groupBy({
+              by: ["type"],
+              where: { orgId },
+              _count: true,
+            }),
+            prisma.campaign.groupBy({
+              by: ["status"],
+              where: { orgId },
+              _count: true,
+            }),
+          ]);
+
+          // Segment metrics
+          const [totalSegments, activeSegments, totalSegmentMembers] = await Promise.all([
+            prisma.segment.count({ where: { orgId } }),
+            prisma.segment.count({ where: { orgId, isActive: true } }),
+            prisma.segment.aggregate({
+              where: { orgId, isActive: true },
+              _sum: { memberCount: true },
+            }),
+          ]);
+
+          // Form metrics
+          const [totalForms, activeForms, totalSubmissions, formStats] = await Promise.all([
+            prisma.form.count({ where: { orgId } }),
+            prisma.form.count({ where: { orgId, isActive: true } }),
+            prisma.formSubmission.count({ where: { orgId, createdAt: dateFilter } }),
+            prisma.form.aggregate({
+              where: { orgId },
+              _sum: { views: true, submissions: true },
+            }),
+          ]);
+
+          const overallConversionRate = formStats._sum.views && formStats._sum.views > 0
+            ? (((formStats._sum.submissions || 0) / formStats._sum.views) * 100).toFixed(1)
+            : 0;
+
+          reportData.marketing = {
+            summary: {
+              totalCampaigns,
+              activeCampaigns,
+              completedCampaigns,
+              totalSegments,
+              activeSegments,
+              totalSegmentMembers: totalSegmentMembers._sum.memberCount || 0,
+              totalForms,
+              activeForms,
+              totalFormViews: formStats._sum.views || 0,
+              totalFormSubmissions: formStats._sum.submissions || 0,
+              formConversionRate: `${overallConversionRate}%`,
+              newSubmissions: totalSubmissions,
+            },
+            campaignsByType: campaignsByType.map(c => ({ type: c.type, count: c._count })),
+            campaignsByStatus: campaignsByStatus.map(c => ({ status: c.status, count: c._count })),
+          };
+        }
+
+        // =====================================================================
+        // TASK METRICS (SHARED)
+        // =====================================================================
+        const [totalTasks, pendingTasks, completedTasks, tasksByWorkspace] = await Promise.all([
+          prisma.task.count({ where: { orgId } }),
+          prisma.task.count({ where: { orgId, status: { in: ["PENDING", "IN_PROGRESS"] } } }),
+          prisma.task.count({ where: { orgId, status: "COMPLETED", completedAt: dateFilter } }),
+          prisma.task.groupBy({
+            by: ["workspace"],
+            where: { orgId, status: { in: ["PENDING", "IN_PROGRESS"] } },
+            _count: true,
+          }),
+        ]);
+
+        reportData.tasks = {
+          totalTasks,
+          pendingTasks,
+          completedTasks,
+          tasksByWorkspace: tasksByWorkspace.map(t => ({ workspace: t.workspace, count: t._count })),
+        };
+
+        // =====================================================================
+        // GENERATE REPORT CONTENT
+        // =====================================================================
+        const reportContent = generateReportMarkdown(reportData);
+
+        // Save as document
+        const document = await prisma.document.create({
+          data: {
+            orgId,
+            name: `${title}.md`,
+            type: "OTHER",
+            fileUrl: "", // Will be updated if we implement file storage
+            fileKey: `reports/${Date.now()}-${title.toLowerCase().replace(/\s+/g, "-")}.md`,
+            fileSize: Buffer.byteLength(reportContent, "utf8"),
+            mimeType: "text/markdown",
+            uploadedById: userId,
+          },
+        });
+
+        // Store report content in metadata (or could use file storage)
+        // For now, we'll return it directly and store a reference
+
+        await createAuditLog({
+          orgId,
+          action: "CREATE",
+          module: "DOCUMENT",
+          recordId: document.id,
+          actorType: "AI_AGENT",
+          actorId: userId,
+          metadata: { source: "ai_assistant", reportType, workspace },
+        });
+
+        return {
+          success: true,
+          documentId: document.id,
+          title,
+          message: `Generated "${title}" report covering ${workspace === "all" ? "all workspaces" : workspace}`,
+          reportData,
+          reportContent,
+        };
+      } catch (error) {
+        console.error("[Tool:createReport] Error:", error);
+        return { success: false, message: error instanceof Error ? error.message : "Unknown error" };
+      }
+    },
+  });
+
+/**
+ * Generate markdown report content from data
+ */
+function generateReportMarkdown(data: Record<string, unknown>): string {
+  const lines: string[] = [];
+  const title = data.title as string;
+  const generatedAt = new Date(data.generatedAt as string).toLocaleString();
+  const workspace = data.workspace as string;
+  const dateRange = data.dateRange as string;
+
+  lines.push(`# ${title}`);
+  lines.push("");
+  lines.push(`**Generated:** ${generatedAt}`);
+  lines.push(`**Scope:** ${workspace === "all" ? "All Workspaces" : workspace.toUpperCase()}`);
+  lines.push(`**Period:** ${dateRange}`);
+  lines.push("");
+  lines.push("---");
+  lines.push("");
+
+  // Sales Section
+  const sales = data.sales as Record<string, unknown> | undefined;
+  if (sales) {
+    const summary = sales.summary as Record<string, unknown>;
+    lines.push("## Sales Performance");
+    lines.push("");
+    lines.push("### Key Metrics");
+    lines.push("");
+    lines.push(`| Metric | Value |`);
+    lines.push(`|--------|-------|`);
+    lines.push(`| Total Leads | ${summary.totalLeads} |`);
+    lines.push(`| New Leads | ${summary.newLeads} |`);
+    lines.push(`| Converted Leads | ${summary.convertedLeads} |`);
+    lines.push(`| Conversion Rate | ${summary.conversionRate} |`);
+    lines.push(`| Total Contacts | ${summary.totalContacts} |`);
+    lines.push(`| Total Accounts | ${summary.totalAccounts} |`);
+    lines.push(`| Open Opportunities | ${summary.openOpportunities} |`);
+    lines.push(`| Won Opportunities | ${summary.wonOpportunities} |`);
+    lines.push(`| Win Rate | ${summary.winRate} |`);
+    lines.push(`| Pipeline Value | ${Number(summary.pipelineValue).toLocaleString()} |`);
+    lines.push(`| Won Value | ${Number(summary.wonValue).toLocaleString()} |`);
+    lines.push("");
+
+    const pipelineByStage = sales.pipelineByStage as { stage: string; count: number; value: number }[];
+    if (pipelineByStage?.length > 0) {
+      lines.push("### Pipeline by Stage");
+      lines.push("");
+      lines.push(`| Stage | Deals | Value |`);
+      lines.push(`|-------|-------|-------|`);
+      pipelineByStage.forEach(s => {
+        lines.push(`| ${s.stage} | ${s.count} | ${s.value.toLocaleString()} |`);
+      });
+      lines.push("");
+    }
+  }
+
+  // CS Section
+  const cs = data.cs as Record<string, unknown> | undefined;
+  if (cs) {
+    const summary = cs.summary as Record<string, unknown>;
+    lines.push("## Customer Success");
+    lines.push("");
+    lines.push("### Key Metrics");
+    lines.push("");
+    lines.push(`| Metric | Value |`);
+    lines.push(`|--------|-------|`);
+    lines.push(`| Total Tickets | ${summary.totalTickets} |`);
+    lines.push(`| Open Tickets | ${summary.openTickets} |`);
+    lines.push(`| Resolved Tickets | ${summary.resolvedTickets} |`);
+    lines.push(`| Average CSAT | ${summary.avgCSAT} |`);
+    lines.push(`| At-Risk Accounts | ${summary.atRiskAccounts} |`);
+    lines.push(`| Average Health Score | ${summary.avgHealthScore} |`);
+    lines.push(`| Upcoming Renewals | ${summary.upcomingRenewals} |`);
+    lines.push(`| Upcoming Renewal Value | ${Number(summary.upcomingRenewalValue).toLocaleString()} |`);
+    lines.push(`| Renewed This Period | ${summary.renewedThisPeriod} |`);
+    lines.push(`| Churned This Period | ${summary.churnedThisPeriod} |`);
+    lines.push("");
+
+    const healthByRiskLevel = cs.healthByRiskLevel as { riskLevel: string; count: number }[];
+    if (healthByRiskLevel?.length > 0) {
+      lines.push("### Accounts by Risk Level");
+      lines.push("");
+      lines.push(`| Risk Level | Count |`);
+      lines.push(`|------------|-------|`);
+      healthByRiskLevel.forEach(h => {
+        lines.push(`| ${h.riskLevel} | ${h.count} |`);
+      });
+      lines.push("");
+    }
+  }
+
+  // Marketing Section
+  const marketing = data.marketing as Record<string, unknown> | undefined;
+  if (marketing) {
+    const summary = marketing.summary as Record<string, unknown>;
+    lines.push("## Marketing");
+    lines.push("");
+    lines.push("### Key Metrics");
+    lines.push("");
+    lines.push(`| Metric | Value |`);
+    lines.push(`|--------|-------|`);
+    lines.push(`| Total Campaigns | ${summary.totalCampaigns} |`);
+    lines.push(`| Active Campaigns | ${summary.activeCampaigns} |`);
+    lines.push(`| Completed Campaigns | ${summary.completedCampaigns} |`);
+    lines.push(`| Active Segments | ${summary.activeSegments} |`);
+    lines.push(`| Total Segment Members | ${summary.totalSegmentMembers} |`);
+    lines.push(`| Active Forms | ${summary.activeForms} |`);
+    lines.push(`| Form Views | ${summary.totalFormViews} |`);
+    lines.push(`| Form Submissions | ${summary.totalFormSubmissions} |`);
+    lines.push(`| Form Conversion Rate | ${summary.formConversionRate} |`);
+    lines.push("");
+
+    const campaignsByType = marketing.campaignsByType as { type: string; count: number }[];
+    if (campaignsByType?.length > 0) {
+      lines.push("### Campaigns by Type");
+      lines.push("");
+      lines.push(`| Type | Count |`);
+      lines.push(`|------|-------|`);
+      campaignsByType.forEach(c => {
+        lines.push(`| ${c.type} | ${c.count} |`);
+      });
+      lines.push("");
+    }
+  }
+
+  // Tasks Section
+  const tasks = data.tasks as Record<string, unknown> | undefined;
+  if (tasks) {
+    lines.push("## Tasks Overview");
+    lines.push("");
+    lines.push(`| Metric | Value |`);
+    lines.push(`|--------|-------|`);
+    lines.push(`| Total Tasks | ${tasks.totalTasks} |`);
+    lines.push(`| Pending Tasks | ${tasks.pendingTasks} |`);
+    lines.push(`| Completed Tasks | ${tasks.completedTasks} |`);
+    lines.push("");
+  }
+
+  lines.push("---");
+  lines.push("");
+  lines.push("*Report generated by Y-CRM AI Assistant*");
+
+  return lines.join("\n");
+}
+
+// =============================================================================
 // HELPER FUNCTIONS
 // =============================================================================
 

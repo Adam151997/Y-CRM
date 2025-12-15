@@ -72,6 +72,8 @@ import {
   getTodayEventsTool,
   sendSlackMessageTool,
   listSlackChannelsTool,
+  // Report Generation
+  createReportTool,
 } from "./tools";
 import { createAuditLog } from "@/lib/audit";
 import { createNotification, NotificationType } from "@/lib/notifications";
@@ -96,7 +98,7 @@ export interface AgentResult {
 type PrimaryAction = 
   | "task" | "lead" | "contact" | "account" | "opportunity" 
   | "ticket" | "note" | "campaign" | "segment" | "form" | "renewal"
-  | "search" | "stats" | "email" | "calendar" | "slack" | null;
+  | "search" | "stats" | "email" | "calendar" | "slack" | "report" | null;
 
 /**
  * Get all available tools for the CRM agent
@@ -164,6 +166,9 @@ export function getCRMTools(orgId: string, userId: string) {
     getTodayEvents: getTodayEventsTool(orgId),
     sendSlackMessage: sendSlackMessageTool(orgId),
     listSlackChannels: listSlackChannelsTool(orgId),
+
+    // REPORT GENERATION
+    createReport: createReportTool(orgId, userId),
   };
 }
 
@@ -216,6 +221,10 @@ function detectPrimaryAction(message: string): PrimaryAction {
   
   // Search patterns
   if (lower.match(/\b(search|find|show|list|get)\s/)) return "search";
+  
+  // Report patterns
+  if (lower.match(/\b(generate|create|build|make)\s+(a\s+)?(report|analysis)/)) return "report";
+  if (lower.match(/\breport\s+(on|for|about)/)) return "report";
   
   // Stats patterns
   if (lower.match(/\b(dashboard|stats|statistics|overview|summary)/)) return "stats";
@@ -360,6 +369,11 @@ export function getFilteredTools(
       filtered.listSlackChannels = allTools.listSlackChannels;
       break;
       
+    case "report":
+      filtered.createReport = allTools.createReport;
+      filtered.getDashboardStats = allTools.getDashboardStats;
+      break;
+      
     default:
       // Default set for unknown intents
       filtered.getDashboardStats = allTools.getDashboardStats;
@@ -392,7 +406,7 @@ function detectToolRequiredIntent(message: string): boolean {
     "lead", "contact", "account", "task", "opportunity",
     "ticket", "note", "campaign", "segment", "form",
     "playbook", "email", "event", "message", "renewal", "contract",
-    "dashboard", "stats", "statistics", "report",
+    "dashboard", "stats", "statistics", "report", "analysis",
     // Native integrations
     "gmail", "slack", "calendar", "google",
   ];
@@ -567,6 +581,8 @@ function buildResponseFromToolResults(
       responses.push("Retrieved dashboard statistics.");
     } else if (result.count !== undefined && primaryAction === "search") {
       responses.push(`Found ${result.count} results.`);
+    } else if (result.documentId && result.reportContent && primaryAction === "report") {
+      responses.push(`Generated report (Document ID: ${result.documentId})`);
     }
   }
   

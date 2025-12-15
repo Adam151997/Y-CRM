@@ -1205,3 +1205,54 @@ model Notification {
   @@index([orgId, userId, createdAt])
   @@index([userId, isRead])
 }
+
+// =============================================================================
+// MCP INTEGRATIONS (External MCP Server Connections)
+// =============================================================================
+
+model MCPIntegration {
+  id              String   @id @default(uuid())
+  orgId           String
+  
+  // Server identification
+  name            String   // Display name: "GitHub MCP", "Notion MCP"
+  description     String?
+  
+  // Connection configuration
+  transportType   String   @default("SSE") // SSE, STDIO
+  
+  // For SSE transport
+  serverUrl       String?  // https://mcp-server.example.com/sse
+  
+  // For STDIO transport
+  command         String?  // e.g., "npx", "node"
+  args            Json?    // e.g., ["-y", "@modelcontextprotocol/server-github"]
+  env             Json?    // Environment variables (encrypted in production)
+  
+  // Authentication
+  authType        String?  // NONE, API_KEY, BEARER, CUSTOM_HEADER
+  authConfig      Json?    // { apiKey, headerName, headerValue } - encrypted
+  
+  // Connection state
+  status          String   @default("DISCONNECTED") // DISCONNECTED, CONNECTING, CONNECTED, ERROR
+  lastConnectedAt DateTime?
+  lastError       String?
+  
+  // Server capabilities (populated after connection)
+  capabilities    Json?    // { tools: true, resources: true, prompts: true }
+  toolCount       Int      @default(0)
+  
+  // Settings
+  isEnabled       Boolean  @default(true)
+  autoConnect     Boolean  @default(true) // Auto-connect on startup
+  
+  createdById     String
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([orgId, name])
+  @@index([orgId])
+  @@index([orgId, isEnabled])
+  @@index([orgId, status])
+}
