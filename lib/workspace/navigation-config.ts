@@ -15,6 +15,7 @@ import {
   UsersRound,
   FileInput,
   FileText,
+  RefreshCw,
   LucideIcon,
 } from "lucide-react";
 import { WorkspaceType } from "./workspace-context";
@@ -57,6 +58,7 @@ const csNavigation: NavSection[] = [
       { name: "AI Assistant", href: "/cs/assistant", icon: Sparkles, highlight: true },
       { name: "Tickets", href: "/cs/tickets", icon: Ticket },
       { name: "Health Scores", href: "/cs/health", icon: HeartPulse },
+      { name: "Renewals", href: "/cs/renewals", icon: RefreshCw },
       { name: "Accounts", href: "/cs/accounts", icon: Building2 },
       { name: "Playbooks", href: "/cs/playbooks", icon: BookOpen },
       { name: "Tasks", href: "/cs/tasks", icon: CheckSquare },
