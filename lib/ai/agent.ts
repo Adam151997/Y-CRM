@@ -100,6 +100,7 @@ export interface AgentResult {
   toolResults: Record<string, unknown>[];
   modelUsed: string;
   error?: string;
+  errorCode?: string; // SCHEMA_COMPLEXITY, RATE_LIMIT, AUTH_ERROR, TIMEOUT, etc.
 }
 
 // Primary action types
@@ -781,6 +782,28 @@ export async function executeAgent(
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    
+    // Detect Gemini schema complexity errors and provide user-friendly message
+    let userFriendlyResponse: string;
+    let errorCode: string | undefined;
+    
+    if (errorMessage.includes("too many states for serving") || 
+        errorMessage.includes("schema produces a constraint")) {
+      userFriendlyResponse = "I couldn't process that request due to its complexity. Please try a simpler request or break it into smaller steps.";
+      errorCode = "SCHEMA_COMPLEXITY";
+      console.error("[Agent] Schema complexity error - tools may need simplification");
+    } else if (errorMessage.includes("rate limit") || errorMessage.includes("quota")) {
+      userFriendlyResponse = "I'm currently experiencing high demand. Please try again in a moment.";
+      errorCode = "RATE_LIMIT";
+    } else if (errorMessage.includes("API key") || errorMessage.includes("authentication")) {
+      userFriendlyResponse = "There's a configuration issue with the AI service. Please contact support.";
+      errorCode = "AUTH_ERROR";
+    } else if (errorMessage.includes("timeout") || errorMessage.includes("DEADLINE_EXCEEDED")) {
+      userFriendlyResponse = "The request took too long to process. Please try a simpler request.";
+      errorCode = "TIMEOUT";
+    } else {
+      userFriendlyResponse = "I encountered an issue processing your request. Please try again or rephrase your request.";
+    }
 
     await createAuditLog({
       orgId,
@@ -793,17 +816,19 @@ export async function executeAgent(
         model: modelName,
         primaryAction,
         error: errorMessage,
+        errorCode,
         toolsCalled,
       },
     }).catch(() => {});
 
     return {
       success: false,
-      response: `I encountered an error: ${errorMessage}. Please try again.`,
+      response: userFriendlyResponse,
       toolsCalled,
       toolResults,
       modelUsed: modelName,
       error: errorMessage,
+      errorCode,
     };
   }
 }

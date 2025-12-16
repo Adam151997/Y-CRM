@@ -36,23 +36,11 @@ export const createLeadTool = (orgId: string, userId: string) =>
     parameters: z.object({
       firstName: z.string().describe("Lead's first name (required)"),
       lastName: z.string().describe("Lead's last name (required)"),
-      email: z.string().email().optional().describe("Lead's email address"),
+      email: z.string().optional().describe("Lead's email address"),
       phone: z.string().optional().describe("Lead's phone number"),
       company: z.string().optional().describe("Company name"),
       title: z.string().optional().describe("Job title"),
-      source: z
-        .enum([
-          "REFERRAL",
-          "WEBSITE",
-          "COLD_CALL",
-          "LINKEDIN",
-          "TRADE_SHOW",
-          "ADVERTISEMENT",
-          "EMAIL_CAMPAIGN",
-          "OTHER",
-        ])
-        .optional()
-        .describe("Lead source"),
+      source: z.string().optional().describe("Lead source: REFERRAL, WEBSITE, COLD_CALL, LINKEDIN, TRADE_SHOW, ADVERTISEMENT, EMAIL_CAMPAIGN, or OTHER"),
       assignTo: z.string().optional().describe("Assign to team member by name, email, or 'me' (e.g., 'Mike', 'sarah@company.com', 'me')"),
     }),
     execute: async (params) => {
@@ -156,13 +144,10 @@ export const searchLeadsTool = (orgId: string) =>
     description: "Search for leads in the CRM. Use this to find existing leads by name, email, company, or status.",
     parameters: z.object({
       query: z.string().optional().describe("Search term to match against name, email, or company"),
-      status: z
-        .enum(["NEW", "CONTACTED", "QUALIFIED", "CONVERTED", "LOST"])
-        .optional()
-        .describe("Filter by lead status"),
-      limit: z.number().min(1).max(20).default(5).describe("Maximum number of results to return"),
+      status: z.string().optional().describe("Filter by lead status: NEW, CONTACTED, QUALIFIED, CONVERTED, or LOST"),
+      limit: z.number().optional().describe("Maximum number of results to return (1-20, default 5)"),
     }),
-    execute: async ({ query, status, limit }) => {
+    execute: async ({ query, status, limit = 5 }) => {
       console.log("[Tool:searchLeads] Executing with:", { query, status, limit });
       try {
         const where: Record<string, unknown> = { orgId };
@@ -220,14 +205,14 @@ export const updateLeadTool = (orgId: string, userId: string) =>
   tool({
     description: "Update an existing lead's information",
     parameters: z.object({
-      leadId: z.string().uuid().describe("The lead ID to update"),
+      leadId: z.string().describe("The lead ID (UUID) to update"),
       firstName: z.string().optional(),
       lastName: z.string().optional(),
-      email: z.string().email().optional(),
+      email: z.string().optional(),
       phone: z.string().optional(),
       company: z.string().optional(),
       title: z.string().optional(),
-      status: z.enum(["NEW", "CONTACTED", "QUALIFIED", "CONVERTED", "LOST"]).optional(),
+      status: z.string().optional().describe("Lead status: NEW, CONTACTED, QUALIFIED, CONVERTED, or LOST"),
     }),
     execute: async ({ leadId, ...updates }) => {
       console.log("[Tool:updateLead] Executing:", leadId, updates);
@@ -280,11 +265,11 @@ export const createContactTool = (orgId: string, userId: string) =>
     parameters: z.object({
       firstName: z.string().describe("Contact's first name (required)"),
       lastName: z.string().describe("Contact's last name (required)"),
-      email: z.string().email().optional().describe("Contact's email"),
+      email: z.string().optional().describe("Contact's email"),
       phone: z.string().optional().describe("Contact's phone"),
       title: z.string().optional().describe("Job title"),
       department: z.string().optional().describe("Department"),
-      accountId: z.string().uuid().optional().describe("Associated account ID"),
+      accountId: z.string().optional().describe("Associated account ID (UUID)"),
       assignTo: z.string().optional().describe("Assign to team member by name, email, or 'me'"),
     }),
     execute: async (params) => {
@@ -368,10 +353,10 @@ export const searchContactsTool = (orgId: string) =>
     description: "Search for contacts",
     parameters: z.object({
       query: z.string().optional().describe("Search term"),
-      accountId: z.string().uuid().optional().describe("Filter by account"),
-      limit: z.number().min(1).max(20).default(5),
+      accountId: z.string().optional().describe("Filter by account ID (UUID)"),
+      limit: z.number().optional().describe("Maximum results (1-20, default 5)"),
     }),
-    execute: async ({ query, accountId, limit }) => {
+    execute: async ({ query, accountId, limit = 5 }) => {
       console.log("[Tool:searchContacts] Executing:", { query, accountId, limit });
       try {
         const where: Record<string, unknown> = { orgId };
@@ -419,10 +404,10 @@ export const createAccountTool = (orgId: string, userId: string) =>
     parameters: z.object({
       name: z.string().describe("Company name (required)"),
       industry: z.string().optional().describe("Industry"),
-      website: z.string().url().optional().describe("Website URL"),
+      website: z.string().optional().describe("Website URL"),
       phone: z.string().optional().describe("Phone number"),
-      type: z.enum(["PROSPECT", "CUSTOMER", "PARTNER", "VENDOR"]).optional(),
-      rating: z.enum(["HOT", "WARM", "COLD"]).optional(),
+      type: z.string().optional().describe("Account type: PROSPECT, CUSTOMER, PARTNER, or VENDOR"),
+      rating: z.string().optional().describe("Account rating: HOT, WARM, or COLD"),
       assignTo: z.string().optional().describe("Assign to team member by name, email, or 'me'"),
     }),
     execute: async (params) => {
@@ -460,7 +445,16 @@ export const createAccountTool = (orgId: string, userId: string) =>
 
         const { assignTo, ...accountData } = params;
         const account = await prisma.account.create({
-          data: { orgId, ...accountData, assignedToId },
+          data: { 
+            orgId, 
+            name: accountData.name,
+            industry: accountData.industry,
+            website: accountData.website,
+            phone: accountData.phone,
+            type: accountData.type as "PROSPECT" | "CUSTOMER" | "PARTNER" | "VENDOR" | undefined,
+            rating: accountData.rating as "HOT" | "WARM" | "COLD" | undefined,
+            assignedToId 
+          },
         });
 
         await createAuditLog({
@@ -496,10 +490,10 @@ export const searchAccountsTool = (orgId: string) =>
     description: "Search for accounts/companies",
     parameters: z.object({
       query: z.string().optional().describe("Search term"),
-      type: z.enum(["PROSPECT", "CUSTOMER", "PARTNER", "VENDOR"]).optional(),
-      limit: z.number().min(1).max(20).default(5),
+      type: z.string().optional().describe("Filter by type: PROSPECT, CUSTOMER, PARTNER, or VENDOR"),
+      limit: z.number().optional().describe("Maximum results (1-20, default 5)"),
     }),
-    execute: async ({ query, type, limit }) => {
+    execute: async ({ query, type, limit = 5 }) => {
       console.log("[Tool:searchAccounts] Executing:", { query, type, limit });
       try {
         const where: Record<string, unknown> = { orgId };
@@ -543,18 +537,18 @@ export const searchAccountsTool = (orgId: string) =>
 
 export const createTaskTool = (orgId: string, userId: string) =>
   tool({
-    description: "Create a new task. Can be linked to a lead, contact, account, or opportunity. Supports workspace context (sales, cs, marketing).",
+    description: "Create a new task. Can be linked to a lead, contact, account, or opportunity.",
     parameters: z.object({
       title: z.string().describe("Task title (required)"),
       description: z.string().optional().describe("Task description"),
       dueDate: z.string().optional().describe("Due date (e.g., 'tomorrow', 'next week', or ISO date)"),
-      priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]).default("MEDIUM"),
-      taskType: z.enum(["CALL", "EMAIL", "MEETING", "FOLLOW_UP", "ONBOARDING", "RENEWAL", "OTHER"]).optional(),
-      workspace: z.enum(["sales", "cs", "marketing"]).default("sales").describe("Workspace context"),
-      leadId: z.string().uuid().optional().describe("Related lead ID"),
-      contactId: z.string().uuid().optional().describe("Related contact ID"),
-      accountId: z.string().uuid().optional().describe("Related account ID"),
-      opportunityId: z.string().uuid().optional().describe("Related opportunity ID"),
+      priority: z.string().optional().describe("Priority: LOW, MEDIUM (default), HIGH, or URGENT"),
+      taskType: z.string().optional().describe("Task type: CALL, EMAIL, MEETING, FOLLOW_UP, ONBOARDING, RENEWAL, or OTHER"),
+      workspace: z.string().optional().describe("Workspace: sales (default), cs, or marketing"),
+      leadId: z.string().optional().describe("Related lead ID (UUID)"),
+      contactId: z.string().optional().describe("Related contact ID (UUID)"),
+      accountId: z.string().optional().describe("Related account ID (UUID)"),
+      opportunityId: z.string().optional().describe("Related opportunity ID (UUID)"),
     }),
     execute: async (params) => {
       console.log("[Tool:createTask] Executing:", params);
@@ -592,9 +586,9 @@ export const createTaskTool = (orgId: string, userId: string) =>
             title: params.title,
             description: params.description,
             dueDate,
-            priority: params.priority,
-            taskType: params.taskType,
-            workspace: params.workspace,
+            priority: (params.priority as "LOW" | "MEDIUM" | "HIGH" | "URGENT") || "MEDIUM",
+            taskType: params.taskType as "CALL" | "EMAIL" | "MEETING" | "FOLLOW_UP" | "ONBOARDING" | "RENEWAL" | "OTHER" | undefined,
+            workspace: (params.workspace as "sales" | "cs" | "marketing") || "sales",
             leadId: params.leadId,
             contactId: params.contactId,
             accountId: params.accountId,
@@ -634,7 +628,7 @@ export const completeTaskTool = (orgId: string, userId: string) =>
   tool({
     description: "Mark a task as completed",
     parameters: z.object({
-      taskId: z.string().uuid().describe("The task ID to complete"),
+      taskId: z.string().describe("The task ID (UUID) to complete"),
     }),
     execute: async ({ taskId }) => {
       console.log("[Tool:completeTask] Executing:", taskId);
@@ -679,12 +673,12 @@ export const searchTasksTool = (orgId: string) =>
     description: "Search for tasks across all workspaces",
     parameters: z.object({
       query: z.string().optional().describe("Search term"),
-      status: z.enum(["PENDING", "IN_PROGRESS", "COMPLETED", "CANCELLED"]).optional(),
-      priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]).optional(),
-      workspace: z.enum(["sales", "cs", "marketing"]).optional().describe("Filter by workspace"),
-      limit: z.number().min(1).max(20).default(5),
+      status: z.string().optional().describe("Filter by status: PENDING, IN_PROGRESS, COMPLETED, or CANCELLED"),
+      priority: z.string().optional().describe("Filter by priority: LOW, MEDIUM, HIGH, or URGENT"),
+      workspace: z.string().optional().describe("Filter by workspace: sales, cs, or marketing"),
+      limit: z.number().optional().describe("Maximum results (1-20, default 5)"),
     }),
-    execute: async ({ query, status, priority, workspace, limit }) => {
+    execute: async ({ query, status, priority, workspace, limit = 5 }) => {
       console.log("[Tool:searchTasks] Executing:", { query, status, priority, workspace, limit });
       try {
         const where: Record<string, unknown> = { orgId };
@@ -729,11 +723,11 @@ export const createOpportunityTool = (orgId: string, userId: string) =>
     description: "Create a new sales opportunity. Requires an existing account. Can optionally assign to a team member.",
     parameters: z.object({
       name: z.string().describe("Opportunity name (required)"),
-      value: z.number().positive().describe("Deal value in dollars (required)"),
-      accountId: z.string().uuid().describe("Associated account ID (required)"),
-      stageId: z.string().uuid().optional().describe("Pipeline stage ID"),
-      expectedCloseDate: z.string().optional().describe("Expected close date"),
-      probability: z.number().min(0).max(100).optional().describe("Win probability %"),
+      value: z.number().describe("Deal value in dollars (required, must be positive)"),
+      accountId: z.string().describe("Associated account ID (UUID, required)"),
+      stageId: z.string().optional().describe("Pipeline stage ID (UUID)"),
+      expectedCloseDate: z.string().optional().describe("Expected close date (ISO format)"),
+      probability: z.number().optional().describe("Win probability % (0-100)"),
       assignTo: z.string().optional().describe("Assign to team member by name, email, or 'me'"),
     }),
     execute: async (params) => {
@@ -839,12 +833,12 @@ export const searchOpportunitiesTool = (orgId: string) =>
     description: "Search for sales opportunities",
     parameters: z.object({
       query: z.string().optional().describe("Search term"),
-      accountId: z.string().uuid().optional().describe("Filter by account"),
+      accountId: z.string().optional().describe("Filter by account ID (UUID)"),
       minValue: z.number().optional().describe("Minimum deal value"),
       maxValue: z.number().optional().describe("Maximum deal value"),
-      limit: z.number().min(1).max(20).default(5),
+      limit: z.number().optional().describe("Maximum results (1-20, default 5)"),
     }),
-    execute: async ({ query, accountId, minValue, maxValue, limit }) => {
+    execute: async ({ query, accountId, minValue, maxValue, limit = 5 }) => {
       console.log("[Tool:searchOpportunities] Executing:", { query, accountId, minValue, maxValue, limit });
       try {
         const where: Record<string, unknown> = { orgId, closedWon: null };
@@ -897,10 +891,10 @@ export const createNoteTool = (orgId: string, userId: string) =>
     description: "Add a note to a lead, contact, account, or opportunity",
     parameters: z.object({
       content: z.string().describe("Note content"),
-      leadId: z.string().uuid().optional(),
-      contactId: z.string().uuid().optional(),
-      accountId: z.string().uuid().optional(),
-      opportunityId: z.string().uuid().optional(),
+      leadId: z.string().optional().describe("Lead ID (UUID)"),
+      contactId: z.string().optional().describe("Contact ID (UUID)"),
+      accountId: z.string().optional().describe("Account ID (UUID)"),
+      opportunityId: z.string().optional().describe("Opportunity ID (UUID)"),
     }),
     execute: async (params) => {
       console.log("[Tool:createNote] Executing:", params);
@@ -965,9 +959,9 @@ export const getDashboardStatsTool = (orgId: string) =>
   tool({
     description: "Get CRM dashboard statistics including leads, contacts, accounts, tickets, and pipeline value",
     parameters: z.object({
-      workspace: z.enum(["sales", "cs", "marketing", "all"]).default("all").describe("Get stats for specific workspace"),
+      workspace: z.string().optional().describe("Get stats for specific workspace: sales, cs, marketing, or all (default)"),
     }),
-    execute: async ({ workspace }) => {
+    execute: async ({ workspace = "all" }) => {
       console.log("[Tool:getDashboardStats] Executing for workspace:", workspace);
       try {
         const stats: Record<string, unknown> = {};
@@ -1044,11 +1038,11 @@ export const createTicketTool = (orgId: string, userId: string) =>
     parameters: z.object({
       subject: z.string().describe("Ticket subject (required)"),
       description: z.string().optional().describe("Ticket description"),
-      accountId: z.string().uuid().optional().describe("Account ID (UUID) - use if you already have it"),
+      accountId: z.string().optional().describe("Account ID (UUID) - use if you already have it"),
       accountName: z.string().optional().describe("Account name to search for - use if you don't have the accountId"),
-      contactId: z.string().uuid().optional().describe("Contact ID"),
-      priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]).default("MEDIUM"),
-      category: z.enum(["BUG", "BILLING", "FEATURE_REQUEST", "QUESTION", "GENERAL"]).optional(),
+      contactId: z.string().optional().describe("Contact ID (UUID)"),
+      priority: z.string().optional().describe("Priority: LOW, MEDIUM (default), HIGH, or URGENT"),
+      category: z.string().optional().describe("Category: BUG, BILLING, FEATURE_REQUEST, QUESTION, or GENERAL"),
     }),
     execute: async (params) => {
       console.log("[Tool:createTicket] Executing:", params);
@@ -1119,8 +1113,8 @@ export const createTicketTool = (orgId: string, userId: string) =>
             description: params.description,
             accountId: resolvedAccountId,
             contactId: params.contactId,
-            priority: params.priority,
-            category: params.category,
+            priority: (params.priority as "LOW" | "MEDIUM" | "HIGH" | "URGENT") || "MEDIUM",
+            category: params.category as "BUG" | "BILLING" | "FEATURE_REQUEST" | "QUESTION" | "GENERAL" | undefined,
             status: "NEW",
             createdById: userId,
             createdByType: "AI_AGENT",
@@ -1158,12 +1152,12 @@ export const searchTicketsTool = (orgId: string) =>
     description: "Search for support tickets",
     parameters: z.object({
       query: z.string().optional().describe("Search term for subject"),
-      status: z.enum(["NEW", "OPEN", "PENDING", "RESOLVED", "CLOSED"]).optional(),
-      priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]).optional(),
-      accountId: z.string().uuid().optional().describe("Filter by account"),
-      limit: z.number().min(1).max(20).default(10),
+      status: z.string().optional().describe("Filter by status: NEW, OPEN, PENDING, RESOLVED, or CLOSED"),
+      priority: z.string().optional().describe("Filter by priority: LOW, MEDIUM, HIGH, or URGENT"),
+      accountId: z.string().optional().describe("Filter by account ID (UUID)"),
+      limit: z.number().optional().describe("Maximum results (1-20, default 10)"),
     }),
-    execute: async ({ query, status, priority, accountId, limit }) => {
+    execute: async ({ query, status, priority, accountId, limit = 10 }) => {
       console.log("[Tool:searchTickets] Executing:", { query, status, priority, accountId, limit });
       try {
         const where: Record<string, unknown> = { orgId };
@@ -1207,9 +1201,9 @@ export const updateTicketTool = (orgId: string, userId: string) =>
   tool({
     description: "Update a ticket's status, priority, or assignment",
     parameters: z.object({
-      ticketId: z.string().uuid().describe("Ticket ID to update"),
-      status: z.enum(["NEW", "OPEN", "PENDING", "RESOLVED", "CLOSED"]).optional(),
-      priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]).optional(),
+      ticketId: z.string().describe("Ticket ID (UUID) to update"),
+      status: z.string().optional().describe("New status: NEW, OPEN, PENDING, RESOLVED, or CLOSED"),
+      priority: z.string().optional().describe("New priority: LOW, MEDIUM, HIGH, or URGENT"),
       assignedToId: z.string().optional().describe("Assign to user ID"),
       resolution: z.string().optional().describe("Resolution notes (for resolved/closed)"),
     }),
@@ -1263,11 +1257,11 @@ export const addTicketMessageTool = (orgId: string, userId: string) =>
   tool({
     description: "Add a message or reply to a ticket",
     parameters: z.object({
-      ticketId: z.string().uuid().describe("Ticket ID"),
+      ticketId: z.string().describe("Ticket ID (UUID)"),
       content: z.string().describe("Message content"),
-      isInternal: z.boolean().default(false).describe("Internal note (not visible to customer)"),
+      isInternal: z.boolean().optional().describe("Internal note not visible to customer (default: false)"),
     }),
-    execute: async ({ ticketId, content, isInternal }) => {
+    execute: async ({ ticketId, content, isInternal = false }) => {
       console.log("[Tool:addTicketMessage] Executing:", { ticketId, isInternal });
       try {
         const ticket = await prisma.ticket.findFirst({
@@ -1318,7 +1312,7 @@ export const getHealthScoreTool = (orgId: string) =>
   tool({
     description: "Get the health score for an account",
     parameters: z.object({
-      accountId: z.string().uuid().describe("Account ID"),
+      accountId: z.string().describe("Account ID (UUID)"),
     }),
     execute: async ({ accountId }) => {
       console.log("[Tool:getHealthScore] Executing:", accountId);
@@ -1367,10 +1361,10 @@ export const searchAtRiskAccountsTool = (orgId: string) =>
   tool({
     description: "Find accounts that are at risk based on health scores",
     parameters: z.object({
-      riskLevel: z.enum(["HIGH", "CRITICAL"]).optional().describe("Filter by risk level"),
-      limit: z.number().min(1).max(20).default(10),
+      riskLevel: z.string().optional().describe("Filter by risk level: HIGH or CRITICAL"),
+      limit: z.number().optional().describe("Maximum results (1-20, default 10)"),
     }),
-    execute: async ({ riskLevel, limit }) => {
+    execute: async ({ riskLevel, limit = 10 }) => {
       console.log("[Tool:searchAtRiskAccounts] Executing:", { riskLevel, limit });
       try {
         const where: Record<string, unknown> = { orgId, isAtRisk: true };
@@ -1416,11 +1410,11 @@ export const searchPlaybooksTool = (orgId: string) =>
     description: "Search for customer success playbooks",
     parameters: z.object({
       query: z.string().optional().describe("Search term"),
-      trigger: z.enum(["MANUAL", "NEW_CUSTOMER", "RENEWAL_APPROACHING", "HEALTH_DROP", "TICKET_ESCALATION"]).optional(),
-      isActive: z.boolean().default(true),
-      limit: z.number().min(1).max(20).default(10),
+      trigger: z.string().optional().describe("Filter by trigger: MANUAL, NEW_CUSTOMER, RENEWAL_APPROACHING, HEALTH_DROP, or TICKET_ESCALATION"),
+      isActive: z.boolean().optional().describe("Filter by active status (default: true)"),
+      limit: z.number().optional().describe("Maximum results (1-20, default 10)"),
     }),
-    execute: async ({ query, trigger, isActive, limit }) => {
+    execute: async ({ query, trigger, isActive = true, limit = 10 }) => {
       console.log("[Tool:searchPlaybooks] Executing:", { query, trigger, isActive, limit });
       try {
         const where: Record<string, unknown> = { orgId, isActive };
@@ -1458,8 +1452,8 @@ export const runPlaybookTool = (orgId: string, userId: string) =>
   tool({
     description: "Start running a playbook for an account",
     parameters: z.object({
-      playbookId: z.string().uuid().describe("Playbook ID to run"),
-      accountId: z.string().uuid().describe("Account to run playbook for"),
+      playbookId: z.string().describe("Playbook ID (UUID) to run"),
+      accountId: z.string().describe("Account ID (UUID) to run playbook for"),
     }),
     execute: async ({ playbookId, accountId }) => {
       console.log("[Tool:runPlaybook] Executing:", { playbookId, accountId });
@@ -1526,8 +1520,8 @@ export const createCampaignTool = (orgId: string, userId: string) =>
     parameters: z.object({
       name: z.string().describe("Campaign name (required)"),
       description: z.string().optional(),
-      type: z.enum(["EMAIL", "SOCIAL", "EVENT", "WEBINAR", "SMS", "ADS"]).describe("Campaign type"),
-      segmentId: z.string().uuid().optional().describe("Target segment ID"),
+      type: z.string().describe("Campaign type: EMAIL, SOCIAL, EVENT, WEBINAR, SMS, or ADS"),
+      segmentId: z.string().optional().describe("Target segment ID (UUID)"),
       subject: z.string().optional().describe("Email subject or headline"),
       scheduledAt: z.string().optional().describe("Schedule time (ISO format)"),
     }),
@@ -1567,7 +1561,7 @@ export const createCampaignTool = (orgId: string, userId: string) =>
             orgId,
             name: params.name,
             description: params.description,
-            type: params.type,
+            type: params.type as "EMAIL" | "SOCIAL" | "EVENT" | "WEBINAR" | "SMS" | "ADS",
             segmentId: params.segmentId,
             subject: params.subject,
             scheduledAt: params.scheduledAt ? new Date(params.scheduledAt) : null,
@@ -1606,11 +1600,11 @@ export const searchCampaignsTool = (orgId: string) =>
     description: "Search for marketing campaigns",
     parameters: z.object({
       query: z.string().optional().describe("Search term"),
-      status: z.enum(["DRAFT", "SCHEDULED", "ACTIVE", "PAUSED", "COMPLETED", "CANCELLED"]).optional(),
-      type: z.enum(["EMAIL", "SOCIAL", "EVENT", "WEBINAR", "SMS", "ADS"]).optional(),
-      limit: z.number().min(1).max(20).default(10),
+      status: z.string().optional().describe("Filter by status: DRAFT, SCHEDULED, ACTIVE, PAUSED, COMPLETED, or CANCELLED"),
+      type: z.string().optional().describe("Filter by type: EMAIL, SOCIAL, EVENT, WEBINAR, SMS, or ADS"),
+      limit: z.number().optional().describe("Maximum results (1-20, default 10)"),
     }),
-    execute: async ({ query, status, type, limit }) => {
+    execute: async ({ query, status, type, limit = 10 }) => {
       console.log("[Tool:searchCampaigns] Executing:", { query, status, type, limit });
       try {
         const where: Record<string, unknown> = { orgId };
@@ -1655,17 +1649,13 @@ export const searchCampaignsTool = (orgId: string) =>
 
 export const createSegmentTool = (orgId: string, userId: string) =>
   tool({
-    description: "Create a new audience segment for marketing",
+    description: "Create a new audience segment for marketing. For rules, provide a JSON string like: [{\"field\":\"industry\",\"operator\":\"equals\",\"value\":\"Tech\"}]",
     parameters: z.object({
       name: z.string().describe("Segment name (required)"),
       description: z.string().optional(),
-      type: z.enum(["DYNAMIC", "STATIC"]).default("DYNAMIC"),
-      rules: z.array(z.object({
-        field: z.string().describe("Field to filter on (e.g., 'industry', 'status')"),
-        operator: z.enum(["equals", "not_equals", "contains", "not_contains", "greater_than", "less_than"]),
-        value: z.string().describe("Value to compare"),
-      })).optional().describe("Rules for dynamic segments"),
-      ruleLogic: z.enum(["AND", "OR"]).default("AND"),
+      type: z.string().optional().describe("Segment type: DYNAMIC or STATIC (default: DYNAMIC)"),
+      rulesJson: z.string().optional().describe("JSON string of rules array, e.g. [{\"field\":\"industry\",\"operator\":\"equals\",\"value\":\"Tech\"}]. Operators: equals, not_equals, contains, not_contains, greater_than, less_than"),
+      ruleLogic: z.string().optional().describe("Rule logic: AND or OR (default: AND)"),
     }),
     execute: async (params) => {
       console.log("[Tool:createSegment] Executing:", params);
@@ -1689,14 +1679,24 @@ export const createSegmentTool = (orgId: string, userId: string) =>
           };
         }
 
+        // Parse rules from JSON string if provided
+        let rules: unknown[] = [];
+        if (params.rulesJson) {
+          try {
+            rules = JSON.parse(params.rulesJson);
+          } catch {
+            return { success: false, message: "Invalid rulesJson format. Expected JSON array." };
+          }
+        }
+
         const segment = await prisma.segment.create({
           data: {
             orgId,
             name: params.name,
             description: params.description,
-            type: params.type,
-            rules: params.rules || [],
-            ruleLogic: params.ruleLogic,
+            type: (params.type as "DYNAMIC" | "STATIC") || "DYNAMIC",
+            rules,
+            ruleLogic: (params.ruleLogic as "AND" | "OR") || "AND",
             createdById: userId,
           },
         });
@@ -1731,10 +1731,10 @@ export const searchSegmentsTool = (orgId: string) =>
     description: "Search for audience segments",
     parameters: z.object({
       query: z.string().optional().describe("Search term"),
-      isActive: z.boolean().optional(),
-      limit: z.number().min(1).max(20).default(10),
+      isActive: z.boolean().optional().describe("Filter by active status"),
+      limit: z.number().optional().describe("Maximum results (1-20, default 10)"),
     }),
-    execute: async ({ query, isActive, limit }) => {
+    execute: async ({ query, isActive, limit = 10 }) => {
       console.log("[Tool:searchSegments] Executing:", { query, isActive, limit });
       try {
         const where: Record<string, unknown> = { orgId };
@@ -1773,20 +1773,12 @@ export const searchSegmentsTool = (orgId: string) =>
 
 export const createFormTool = (orgId: string, userId: string) =>
   tool({
-    description: "Create a new lead capture form",
+    description: "Create a new lead capture form. Default fields are Name and Email. Use fieldsJson to customize.",
     parameters: z.object({
       name: z.string().describe("Form name (required)"),
       description: z.string().optional(),
-      fields: z.array(z.object({
-        type: z.enum(["text", "email", "phone", "textarea", "select", "checkbox", "number", "date"]),
-        label: z.string(),
-        required: z.boolean().default(false),
-        placeholder: z.string().optional(),
-      })).default([
-        { type: "text", label: "Full Name", required: true },
-        { type: "email", label: "Email", required: true },
-      ]),
-      createLead: z.boolean().default(true).describe("Automatically create lead from submissions"),
+      fieldsJson: z.string().optional().describe("JSON string of fields array, e.g. [{\"type\":\"text\",\"label\":\"Name\",\"required\":true},{\"type\":\"email\",\"label\":\"Email\",\"required\":true}]. Types: text, email, phone, textarea, select, checkbox, number, date"),
+      createLead: z.boolean().optional().describe("Automatically create lead from submissions (default: true)"),
     }),
     execute: async (params) => {
       console.log("[Tool:createForm] Executing:", params);
@@ -1821,13 +1813,26 @@ export const createFormTool = (orgId: string, userId: string) =>
         
         const finalSlug = existing ? `${slug}-${Date.now()}` : slug;
 
+        // Parse fields from JSON string if provided, otherwise use defaults
+        let fields: { type: string; label: string; required?: boolean; placeholder?: string }[] = [
+          { type: "text", label: "Full Name", required: true },
+          { type: "email", label: "Email", required: true },
+        ];
+        if (params.fieldsJson) {
+          try {
+            fields = JSON.parse(params.fieldsJson);
+          } catch {
+            return { success: false, message: "Invalid fieldsJson format. Expected JSON array." };
+          }
+        }
+
         const form = await prisma.form.create({
           data: {
             orgId,
             name: params.name,
             description: params.description,
-            fields: params.fields.map((f, i) => ({ id: `field-${i}`, ...f })),
-            createLead: params.createLead,
+            fields: fields.map((f, i) => ({ id: `field-${i}`, ...f })),
+            createLead: params.createLead ?? true,
             slug: finalSlug,
             isActive: true,
             createdById: userId,
@@ -1865,10 +1870,10 @@ export const searchFormsTool = (orgId: string) =>
     description: "Search for lead capture forms",
     parameters: z.object({
       query: z.string().optional().describe("Search term"),
-      isActive: z.boolean().optional(),
-      limit: z.number().min(1).max(20).default(10),
+      isActive: z.boolean().optional().describe("Filter by active status"),
+      limit: z.number().optional().describe("Maximum results (1-20, default 10)"),
     }),
-    execute: async ({ query, isActive, limit }) => {
+    execute: async ({ query, isActive, limit = 10 }) => {
       console.log("[Tool:searchForms] Executing:", { query, isActive, limit });
       try {
         const where: Record<string, unknown> = { orgId };
