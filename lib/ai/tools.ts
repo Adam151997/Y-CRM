@@ -290,6 +290,26 @@ export const createContactTool = (orgId: string, userId: string) =>
     execute: async (params) => {
       console.log("[Tool:createContact] Executing:", params);
       try {
+        // Check for duplicate contact created in last 60 seconds
+        const recentDuplicate = await prisma.contact.findFirst({
+          where: {
+            orgId,
+            firstName: { equals: params.firstName, mode: "insensitive" },
+            lastName: { equals: params.lastName, mode: "insensitive" },
+            createdAt: { gte: new Date(Date.now() - 60000) },
+          },
+        });
+
+        if (recentDuplicate) {
+          console.log("[Tool:createContact] Duplicate detected:", recentDuplicate.id);
+          return {
+            success: true,
+            contactId: recentDuplicate.id,
+            alreadyExisted: true,
+            message: `Contact "${recentDuplicate.firstName} ${recentDuplicate.lastName}" already exists (ID: ${recentDuplicate.id}). No duplicate created.`,
+          };
+        }
+
         if (params.accountId) {
           const account = await prisma.account.findFirst({
             where: { id: params.accountId, orgId },
@@ -408,6 +428,25 @@ export const createAccountTool = (orgId: string, userId: string) =>
     execute: async (params) => {
       console.log("[Tool:createAccount] Executing:", params);
       try {
+        // Check for duplicate account created in last 60 seconds
+        const recentDuplicate = await prisma.account.findFirst({
+          where: {
+            orgId,
+            name: { equals: params.name, mode: "insensitive" },
+            createdAt: { gte: new Date(Date.now() - 60000) },
+          },
+        });
+
+        if (recentDuplicate) {
+          console.log("[Tool:createAccount] Duplicate detected:", recentDuplicate.id);
+          return {
+            success: true,
+            accountId: recentDuplicate.id,
+            alreadyExisted: true,
+            message: `Account "${recentDuplicate.name}" already exists (ID: ${recentDuplicate.id}). No duplicate created.`,
+          };
+        }
+
         // Resolve assignee if provided
         let assignedToId: string | undefined;
         let assignedToName: string | undefined;
@@ -520,6 +559,28 @@ export const createTaskTool = (orgId: string, userId: string) =>
     execute: async (params) => {
       console.log("[Tool:createTask] Executing:", params);
       try {
+        // Check for duplicate task created in last 60 seconds
+        const recentDuplicate = await prisma.task.findFirst({
+          where: {
+            orgId,
+            title: { equals: params.title, mode: "insensitive" },
+            leadId: params.leadId || undefined,
+            contactId: params.contactId || undefined,
+            accountId: params.accountId || undefined,
+            createdAt: { gte: new Date(Date.now() - 60000) },
+          },
+        });
+
+        if (recentDuplicate) {
+          console.log("[Tool:createTask] Duplicate detected:", recentDuplicate.id);
+          return {
+            success: true,
+            taskId: recentDuplicate.id,
+            alreadyExisted: true,
+            message: `Task "${recentDuplicate.title}" already exists (ID: ${recentDuplicate.id}). No duplicate created.`,
+          };
+        }
+
         let dueDate: Date | null = null;
         if (params.dueDate) {
           dueDate = parseNaturalDate(params.dueDate) || new Date(params.dueDate);
@@ -678,6 +739,26 @@ export const createOpportunityTool = (orgId: string, userId: string) =>
     execute: async (params) => {
       console.log("[Tool:createOpportunity] Executing:", params);
       try {
+        // Check for duplicate opportunity created in last 60 seconds
+        const recentDuplicate = await prisma.opportunity.findFirst({
+          where: {
+            orgId,
+            name: { equals: params.name, mode: "insensitive" },
+            accountId: params.accountId,
+            createdAt: { gte: new Date(Date.now() - 60000) },
+          },
+        });
+
+        if (recentDuplicate) {
+          console.log("[Tool:createOpportunity] Duplicate detected:", recentDuplicate.id);
+          return {
+            success: true,
+            opportunityId: recentDuplicate.id,
+            alreadyExisted: true,
+            message: `Opportunity "${recentDuplicate.name}" already exists (ID: ${recentDuplicate.id}). No duplicate created.`,
+          };
+        }
+
         const account = await prisma.account.findFirst({
           where: { id: params.accountId, orgId },
         });
@@ -825,7 +906,34 @@ export const createNoteTool = (orgId: string, userId: string) =>
       console.log("[Tool:createNote] Executing:", params);
       try {
         if (!params.leadId && !params.contactId && !params.accountId && !params.opportunityId) {
-          return { success: false, message: "Must specify a record to attach the note to" };
+          return { 
+            success: false, 
+            errorCode: "VALIDATION",
+            message: "Must specify a record to attach the note to" 
+          };
+        }
+
+        // Check for duplicate note created in last 60 seconds
+        const recentDuplicate = await prisma.note.findFirst({
+          where: {
+            orgId,
+            content: { equals: params.content, mode: "insensitive" },
+            leadId: params.leadId || undefined,
+            contactId: params.contactId || undefined,
+            accountId: params.accountId || undefined,
+            opportunityId: params.opportunityId || undefined,
+            createdAt: { gte: new Date(Date.now() - 60000) },
+          },
+        });
+
+        if (recentDuplicate) {
+          console.log("[Tool:createNote] Duplicate detected:", recentDuplicate.id);
+          return {
+            success: true,
+            noteId: recentDuplicate.id,
+            alreadyExisted: true,
+            message: `Note already exists (ID: ${recentDuplicate.id}). No duplicate created.`,
+          };
         }
 
         const note = await prisma.note.create({
@@ -960,7 +1068,8 @@ export const createTicketTool = (orgId: string, userId: string) =>
             console.log("[Tool:createTicket] Resolved account:", account.name, "->", account.id);
           } else {
             return { 
-              success: false, 
+              success: false,
+              errorCode: "NOT_FOUND",
               message: `Account "${params.accountName}" not found. Please create the account first or check the spelling.` 
             };
           }
@@ -968,8 +1077,30 @@ export const createTicketTool = (orgId: string, userId: string) =>
 
         if (!resolvedAccountId) {
           return { 
-            success: false, 
+            success: false,
+            errorCode: "VALIDATION",
             message: "Either accountId or accountName is required to create a ticket." 
+          };
+        }
+
+        // Check for duplicate ticket created in last 60 seconds
+        const recentDuplicate = await prisma.ticket.findFirst({
+          where: {
+            orgId,
+            subject: { equals: params.subject, mode: "insensitive" },
+            accountId: resolvedAccountId,
+            createdAt: { gte: new Date(Date.now() - 60000) },
+          },
+        });
+
+        if (recentDuplicate) {
+          console.log("[Tool:createTicket] Duplicate detected:", recentDuplicate.id);
+          return {
+            success: true,
+            ticketId: recentDuplicate.id,
+            ticketNumber: recentDuplicate.ticketNumber,
+            alreadyExisted: true,
+            message: `Ticket #${recentDuplicate.ticketNumber}: "${recentDuplicate.subject}" already exists (ID: ${recentDuplicate.id}). No duplicate created.`,
           };
         }
 
@@ -1403,6 +1534,25 @@ export const createCampaignTool = (orgId: string, userId: string) =>
     execute: async (params) => {
       console.log("[Tool:createCampaign] Executing:", params);
       try {
+        // Check for duplicate campaign created in last 60 seconds
+        const recentDuplicate = await prisma.campaign.findFirst({
+          where: {
+            orgId,
+            name: { equals: params.name, mode: "insensitive" },
+            createdAt: { gte: new Date(Date.now() - 60000) },
+          },
+        });
+
+        if (recentDuplicate) {
+          console.log("[Tool:createCampaign] Duplicate detected:", recentDuplicate.id);
+          return {
+            success: true,
+            campaignId: recentDuplicate.id,
+            alreadyExisted: true,
+            message: `Campaign "${recentDuplicate.name}" already exists (ID: ${recentDuplicate.id}). No duplicate created.`,
+          };
+        }
+
         if (params.segmentId) {
           const segment = await prisma.segment.findFirst({
             where: { id: params.segmentId, orgId },
@@ -1520,6 +1670,25 @@ export const createSegmentTool = (orgId: string, userId: string) =>
     execute: async (params) => {
       console.log("[Tool:createSegment] Executing:", params);
       try {
+        // Check for duplicate segment created in last 60 seconds
+        const recentDuplicate = await prisma.segment.findFirst({
+          where: {
+            orgId,
+            name: { equals: params.name, mode: "insensitive" },
+            createdAt: { gte: new Date(Date.now() - 60000) },
+          },
+        });
+
+        if (recentDuplicate) {
+          console.log("[Tool:createSegment] Duplicate detected:", recentDuplicate.id);
+          return {
+            success: true,
+            segmentId: recentDuplicate.id,
+            alreadyExisted: true,
+            message: `Segment "${recentDuplicate.name}" already exists (ID: ${recentDuplicate.id}). No duplicate created.`,
+          };
+        }
+
         const segment = await prisma.segment.create({
           data: {
             orgId,
@@ -1622,6 +1791,26 @@ export const createFormTool = (orgId: string, userId: string) =>
     execute: async (params) => {
       console.log("[Tool:createForm] Executing:", params);
       try {
+        // Check for duplicate form created in last 60 seconds
+        const recentDuplicate = await prisma.form.findFirst({
+          where: {
+            orgId,
+            name: { equals: params.name, mode: "insensitive" },
+            createdAt: { gte: new Date(Date.now() - 60000) },
+          },
+        });
+
+        if (recentDuplicate) {
+          console.log("[Tool:createForm] Duplicate detected:", recentDuplicate.id);
+          return {
+            success: true,
+            formId: recentDuplicate.id,
+            slug: recentDuplicate.slug,
+            alreadyExisted: true,
+            message: `Form "${recentDuplicate.name}" already exists (ID: ${recentDuplicate.id}). No duplicate created.`,
+          };
+        }
+
         // Generate slug from name
         const slug = params.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
         
@@ -2540,6 +2729,26 @@ export const createRenewalTool = (orgId: string, userId: string) =>
     execute: async (params) => {
       console.log("[Tool:createRenewal] Executing:", params);
       try {
+        // Check for duplicate renewal created in last 60 seconds
+        const recentDuplicate = await prisma.renewal.findFirst({
+          where: {
+            orgId,
+            accountId: params.accountId,
+            contractName: params.contractName ? { equals: params.contractName, mode: "insensitive" } : undefined,
+            createdAt: { gte: new Date(Date.now() - 60000) },
+          },
+        });
+
+        if (recentDuplicate) {
+          console.log("[Tool:createRenewal] Duplicate detected:", recentDuplicate.id);
+          return {
+            success: true,
+            renewalId: recentDuplicate.id,
+            alreadyExisted: true,
+            message: `Renewal already exists (ID: ${recentDuplicate.id}). No duplicate created.`,
+          };
+        }
+
         const account = await prisma.account.findFirst({
           where: { id: params.accountId, orgId },
         });

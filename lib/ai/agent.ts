@@ -5,6 +5,13 @@ import {
   isAIConfigured,
 } from "./providers";
 import {
+  getConversationContext,
+  saveConversationContext,
+  extractEntityFromToolResult,
+  buildContextSummary,
+  ToolCallRecord,
+} from "@/lib/conversation-memory";
+import {
   // Lead tools
   createLeadTool,
   searchLeadsTool,
@@ -82,6 +89,7 @@ export interface AgentContext {
   orgId: string;
   userId: string;
   requestId?: string;
+  sessionId?: string; // For conversation memory
   workspace?: "sales" | "cs" | "marketing";
 }
 
@@ -600,7 +608,7 @@ export async function executeAgent(
   messages: CoreMessage[],
   context: AgentContext
 ): Promise<AgentResult> {
-  const { orgId, userId, requestId } = context;
+  const { orgId, userId, requestId, sessionId, workspace } = context;
   const toolsCalled: string[] = [];
   const toolResults: Record<string, unknown>[] = [];
   const executedCallHashes = new Set<string>(); // Track executed tool+args to prevent duplicates
@@ -626,6 +634,27 @@ export async function executeAgent(
   const primaryAction = detectPrimaryAction(userContent);
   const requiresToolExecution = detectToolRequiredIntent(userContent);
 
+  // Load conversation context from Redis if sessionId provided
+  let conversationContext: Awaited<ReturnType<typeof getConversationContext>> = null;
+  let contextSummary = "";
+  
+  if (sessionId) {
+    try {
+      conversationContext = await getConversationContext(orgId, sessionId);
+      if (conversationContext) {
+        contextSummary = buildContextSummary(conversationContext);
+        console.log(`[Agent] Loaded conversation context: ${conversationContext.metadata.messageCount} previous messages`);
+      }
+    } catch (error) {
+      console.error("[Agent] Error loading conversation context:", error);
+    }
+  }
+
+  // Build enhanced system prompt with conversation context
+  const enhancedSystemPrompt = contextSummary 
+    ? `${CRM_SYSTEM_PROMPT}\n\n## CONVERSATION CONTEXT\n${contextSummary}`
+    : CRM_SYSTEM_PROMPT;
+
   try {
     // Get filtered tools based on primary action
     const tools = requiresToolExecution && primaryAction
@@ -637,7 +666,7 @@ export async function executeAgent(
 
     const result = await generateText({
       model: geminiPro,
-      system: CRM_SYSTEM_PROMPT,
+      system: enhancedSystemPrompt,
       messages,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       tools: tools as any,
@@ -680,6 +709,48 @@ export async function executeAgent(
     let response = result.text;
     if (!response || response.trim() === "") {
       response = buildResponseFromToolResults(primaryAction, toolResults);
+    }
+
+    // Save conversation context to Redis
+    if (sessionId) {
+      try {
+        // Save the user message and assistant response
+        const newMessages: CoreMessage[] = [
+          { role: "user", content: userContent },
+          { role: "assistant", content: response },
+        ];
+
+        // Extract entities from tool results
+        for (const tr of toolResults) {
+          for (const toolName of toolsCalled) {
+            const entity = extractEntityFromToolResult(toolName, tr);
+            if (entity) {
+              await saveConversationContext(orgId, sessionId, userId, { entity });
+            }
+          }
+        }
+
+        // Save messages and tool calls
+        const toolCallRecords: ToolCallRecord[] = toolsCalled.map((name, idx) => ({
+          name,
+          args: {},
+          result: toolResults[idx] || {},
+          timestamp: Date.now(),
+        }));
+
+        for (const tc of toolCallRecords) {
+          await saveConversationContext(orgId, sessionId, userId, { toolCall: tc });
+        }
+
+        await saveConversationContext(orgId, sessionId, userId, {
+          messages: newMessages,
+          workspace: workspace || (primaryAction === "ticket" ? "cs" : primaryAction === "campaign" ? "marketing" : "sales"),
+        });
+
+        console.log(`[Agent] Saved conversation context for session ${sessionId}`);
+      } catch (error) {
+        console.error("[Agent] Error saving conversation context:", error);
+      }
     }
 
     // Create notifications for successful actions

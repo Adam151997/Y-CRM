@@ -45,8 +45,9 @@ export async function POST(request: NextRequest) {
 
     // Parse request body
     const body = await request.json();
-    const { messages: rawMessages } = body as { 
-      messages: CoreMessage[]; 
+    const { messages: rawMessages, sessionId } = body as { 
+      messages: CoreMessage[];
+      sessionId?: string;
     };
 
     if (!rawMessages || !Array.isArray(rawMessages)) {
@@ -92,6 +93,7 @@ export async function POST(request: NextRequest) {
       orgId: auth.orgId,
       userId: auth.userId,
       requestId,
+      sessionId, // Pass sessionId for conversation memory
     });
 
     console.log("[AI Chat] Agent result:", {
