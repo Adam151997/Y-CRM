@@ -1695,7 +1695,7 @@ export const createSegmentTool = (orgId: string, userId: string) =>
             name: params.name,
             description: params.description,
             type: (params.type as "DYNAMIC" | "STATIC") || "DYNAMIC",
-            rules,
+            rules: rules as import("@prisma/client").Prisma.InputJsonValue,
             ruleLogic: (params.ruleLogic as "AND" | "OR") || "AND",
             createdById: userId,
           },
