@@ -14,11 +14,18 @@ const stepSchema = z.object({
   assigneeType: z.string(),
 });
 
+// Schema for trigger configuration
+const triggerConfigSchema = z.object({
+  daysBeforeRenewal: z.number().min(1).max(365).optional(),
+  healthScoreThreshold: z.number().min(0).max(100).optional(),
+}).optional();
+
 // Schema for creating a playbook
 const playbookSchema = z.object({
   name: z.string().min(1).max(100),
   description: z.string().optional(),
   trigger: z.enum(["MANUAL", "NEW_CUSTOMER", "RENEWAL_APPROACHING", "HEALTH_DROP", "TICKET_ESCALATION"]),
+  triggerConfig: triggerConfigSchema,
   steps: z.array(stepSchema).min(1),
   isActive: z.boolean().optional().default(true),
 });
@@ -94,6 +101,7 @@ export async function POST(request: Request) {
         name: data.name,
         description: data.description,
         trigger: data.trigger,
+        triggerConfig: data.triggerConfig || {},
         steps: data.steps,
         isActive: data.isActive,
         createdById: userId,

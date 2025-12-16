@@ -26,7 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, Plus, Trash2, GripVertical } from "lucide-react";
+import { Loader2, Plus, Trash2, GripVertical, Info } from "lucide-react";
 
 const stepSchema = z.object({
   order: z.number(),
@@ -41,18 +41,21 @@ const playbookSchema = z.object({
   name: z.string().min(1, "Name is required").max(100),
   description: z.string().optional(),
   trigger: z.enum(["MANUAL", "NEW_CUSTOMER", "RENEWAL_APPROACHING", "HEALTH_DROP", "TICKET_ESCALATION"]),
+  triggerConfig: z.object({
+    daysBeforeRenewal: z.number().min(1).max(365).optional(),
+    healthScoreThreshold: z.number().min(0).max(100).optional(),
+  }).optional(),
   steps: z.array(stepSchema).min(1, "At least one step is required"),
 });
 
 type PlaybookFormValues = z.infer<typeof playbookSchema>;
-type StepFormValues = z.infer<typeof stepSchema>;
 
 const triggerOptions = [
-  { value: "MANUAL", label: "Manual Start", description: "Start manually for any account" },
-  { value: "NEW_CUSTOMER", label: "New Customer", description: "Auto-start when account becomes a customer" },
-  { value: "RENEWAL_APPROACHING", label: "Renewal Approaching", description: "Auto-start before renewal date" },
-  { value: "HEALTH_DROP", label: "Health Score Drop", description: "Auto-start when health score drops" },
-  { value: "TICKET_ESCALATION", label: "Ticket Escalation", description: "Auto-start on ticket escalation" },
+  { value: "MANUAL", label: "Manual Start", description: "Start manually for any account", hasConfig: false },
+  { value: "NEW_CUSTOMER", label: "New Customer", description: "Auto-start when account type becomes CUSTOMER", hasConfig: false },
+  { value: "RENEWAL_APPROACHING", label: "Renewal Approaching", description: "Auto-start X days before renewal end date", hasConfig: true, configField: "daysBeforeRenewal" },
+  { value: "HEALTH_DROP", label: "Health Score Drop", description: "Auto-start when health score drops below threshold", hasConfig: true, configField: "healthScoreThreshold" },
+  { value: "TICKET_ESCALATION", label: "Ticket Escalation", description: "Auto-start when ticket priority becomes URGENT", hasConfig: false },
 ];
 
 const taskTypes = [
@@ -81,6 +84,10 @@ export function NewPlaybookForm() {
       name: "",
       description: "",
       trigger: "MANUAL",
+      triggerConfig: {
+        daysBeforeRenewal: 90,
+        healthScoreThreshold: 40,
+      },
       steps: [
         {
           order: 1,
@@ -95,6 +102,8 @@ export function NewPlaybookForm() {
   });
 
   const steps = form.watch("steps");
+  const selectedTrigger = form.watch("trigger");
+  const triggerOption = triggerOptions.find(t => t.value === selectedTrigger);
 
   const addStep = () => {
     const currentSteps = form.getValues("steps");
@@ -116,7 +125,6 @@ export function NewPlaybookForm() {
     const currentSteps = form.getValues("steps");
     if (currentSteps.length > 1) {
       const newSteps = currentSteps.filter((_, i) => i !== index);
-      // Reorder steps
       newSteps.forEach((step, i) => {
         step.order = i + 1;
       });
@@ -127,10 +135,21 @@ export function NewPlaybookForm() {
   const onSubmit = async (data: PlaybookFormValues) => {
     setIsSubmitting(true);
     try {
+      // Only include relevant trigger config
+      let triggerConfig = {};
+      if (data.trigger === "RENEWAL_APPROACHING") {
+        triggerConfig = { daysBeforeRenewal: data.triggerConfig?.daysBeforeRenewal || 90 };
+      } else if (data.trigger === "HEALTH_DROP") {
+        triggerConfig = { healthScoreThreshold: data.triggerConfig?.healthScoreThreshold || 40 };
+      }
+
       const response = await fetch("/api/cs/playbooks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          ...data,
+          triggerConfig,
+        }),
       });
 
       if (!response.ok) {
@@ -184,17 +203,88 @@ export function NewPlaybookForm() {
                       <SelectItem key={option.value} value={option.value}>
                         <div>
                           <p>{option.label}</p>
-                          <p className="text-xs text-muted-foreground">{option.description}</p>
                         </div>
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                <FormDescription>{triggerOption?.description}</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
           />
         </div>
+
+        {/* Trigger Configuration */}
+        {selectedTrigger === "RENEWAL_APPROACHING" && (
+          <Card className="bg-muted/50">
+            <CardContent className="pt-4">
+              <div className="flex items-start gap-3">
+                <Info className="h-5 w-5 text-blue-500 mt-0.5" />
+                <div className="flex-1">
+                  <p className="font-medium text-sm mb-2">Trigger Configuration</p>
+                  <FormField
+                    control={form.control}
+                    name="triggerConfig.daysBeforeRenewal"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Days Before Renewal</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min={1}
+                            max={365}
+                            {...field}
+                            onChange={(e) => field.onChange(parseInt(e.target.value) || 90)}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Playbook will start this many days before the renewal end date
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {selectedTrigger === "HEALTH_DROP" && (
+          <Card className="bg-muted/50">
+            <CardContent className="pt-4">
+              <div className="flex items-start gap-3">
+                <Info className="h-5 w-5 text-blue-500 mt-0.5" />
+                <div className="flex-1">
+                  <p className="font-medium text-sm mb-2">Trigger Configuration</p>
+                  <FormField
+                    control={form.control}
+                    name="triggerConfig.healthScoreThreshold"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Health Score Threshold</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min={0}
+                            max={100}
+                            {...field}
+                            onChange={(e) => field.onChange(parseInt(e.target.value) || 40)}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Playbook will start when health score drops below this value
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <FormField
           control={form.control}

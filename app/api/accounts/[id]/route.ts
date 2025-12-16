@@ -6,6 +6,7 @@ import { createAuditLog } from "@/lib/audit";
 import { updateAccountSchema } from "@/lib/validation/schemas";
 import { validateCustomFields } from "@/lib/validation/custom-fields";
 import { cleanupOrphanedRelationships } from "@/lib/relationships";
+import { triggerNewCustomerPlaybooks } from "@/lib/playbook-triggers";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -156,11 +157,24 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       } as Prisma.InputJsonValue;
     }
 
+    // Check if type is changing to CUSTOMER (for trigger)
+    const isBecomingCustomer = 
+      data.type === "CUSTOMER" && 
+      existingAccount.type !== "CUSTOMER";
+
     // Update account
     const updatedAccount = await prisma.account.update({
       where: { id },
       data: updateData,
     });
+
+    // Trigger NEW_CUSTOMER playbooks if applicable
+    if (isBecomingCustomer) {
+      // Run in background, don't block the response
+      triggerNewCustomerPlaybooks(auth.orgId, id).catch((error) => {
+        console.error("Failed to trigger NEW_CUSTOMER playbooks:", error);
+      });
+    }
 
     // Audit log
     await createAuditLog({

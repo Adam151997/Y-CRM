@@ -3,6 +3,7 @@ import { getApiAuthContext } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { createAuditLog } from "@/lib/audit";
 import { z } from "zod";
+import { triggerTicketEscalationPlaybooks } from "@/lib/playbook-triggers";
 
 const updateTicketSchema = z.object({
   subject: z.string().min(1).max(200).optional(),
@@ -85,6 +86,11 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     const data = validationResult.data;
 
+    // Check if ticket is being escalated to URGENT
+    const isEscalatingToUrgent = 
+      data.priority === "URGENT" && 
+      existing.priority !== "URGENT";
+
     // Build update data
     const updateData: Record<string, unknown> = {};
 
@@ -111,6 +117,14 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       },
     });
 
+    // Trigger TICKET_ESCALATION playbooks if applicable
+    if (isEscalatingToUrgent) {
+      // Run in background, don't block the response
+      triggerTicketEscalationPlaybooks(auth.orgId, existing.accountId, id).catch((error) => {
+        console.error("Failed to trigger TICKET_ESCALATION playbooks:", error);
+      });
+    }
+
     // Create activity for status changes
     if (data.status && data.status !== existing.status) {
       await prisma.activity.create({
@@ -118,6 +132,23 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
           orgId: auth.orgId,
           type: data.status === "RESOLVED" ? "TICKET_RESOLVED" : "TICKET_CREATED",
           subject: `Ticket #${ticket.ticketNumber} ${data.status.toLowerCase()}`,
+          description: ticket.subject,
+          workspace: "cs",
+          accountId: ticket.accountId,
+          contactId: ticket.contactId,
+          performedById: auth.userId,
+          performedByType: "USER",
+        },
+      });
+    }
+
+    // Create activity for escalation
+    if (isEscalatingToUrgent) {
+      await prisma.activity.create({
+        data: {
+          orgId: auth.orgId,
+          type: "TICKET_CREATED",
+          subject: `Ticket #${ticket.ticketNumber} escalated to URGENT`,
           description: ticket.subject,
           workspace: "cs",
           accountId: ticket.accountId,

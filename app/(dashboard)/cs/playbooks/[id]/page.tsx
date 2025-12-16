@@ -4,21 +4,17 @@ import { notFound } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import Link from "next/link";
 import { 
   ArrowLeft, 
   Play,
-  Pause,
-  Edit,
-  Trash2,
-  Calendar,
   CheckCircle,
-  Circle,
-  Clock,
+  Calendar,
   Building2,
+  Zap,
+  Settings,
 } from "lucide-react";
-import { format, formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow } from "date-fns";
 import { RunPlaybookButton } from "./_components/run-playbook-button";
 import { PlaybookActions } from "./_components/playbook-actions";
 
@@ -35,12 +31,25 @@ interface PlaybookStep {
   assigneeType: string;
 }
 
+interface TriggerConfig {
+  daysBeforeRenewal?: number;
+  healthScoreThreshold?: number;
+}
+
 const triggerLabels: Record<string, string> = {
   MANUAL: "Manual Start",
   NEW_CUSTOMER: "New Customer",
   RENEWAL_APPROACHING: "Renewal Approaching",
   HEALTH_DROP: "Health Score Drop",
   TICKET_ESCALATION: "Ticket Escalation",
+};
+
+const triggerDescriptions: Record<string, string> = {
+  MANUAL: "Start manually for any account",
+  NEW_CUSTOMER: "Starts when account type becomes CUSTOMER",
+  RENEWAL_APPROACHING: "Starts before renewal end date",
+  HEALTH_DROP: "Starts when health score drops below threshold",
+  TICKET_ESCALATION: "Starts when ticket priority becomes URGENT",
 };
 
 const taskTypeLabels: Record<string, string> = {
@@ -79,6 +88,7 @@ export default async function PlaybookDetailPage({ params }: PageProps) {
   }
 
   const steps = (playbook.steps as unknown as PlaybookStep[]) || [];
+  const triggerConfig = (playbook.triggerConfig as TriggerConfig) || {};
   
   // Get account names for runs
   const accountIds = playbook.runs.map(r => r.accountId);
@@ -91,6 +101,19 @@ export default async function PlaybookDetailPage({ params }: PageProps) {
   // Stats
   const activeRuns = playbook.runs.filter(r => r.status === "IN_PROGRESS").length;
   const completedRuns = playbook.runs.filter(r => r.status === "COMPLETED").length;
+
+  // Format trigger config display
+  const getTriggerConfigDisplay = () => {
+    if (playbook.trigger === "RENEWAL_APPROACHING" && triggerConfig.daysBeforeRenewal) {
+      return `${triggerConfig.daysBeforeRenewal} days before renewal`;
+    }
+    if (playbook.trigger === "HEALTH_DROP" && triggerConfig.healthScoreThreshold) {
+      return `When score drops below ${triggerConfig.healthScoreThreshold}`;
+    }
+    return null;
+  };
+
+  const triggerConfigDisplay = getTriggerConfigDisplay();
 
   return (
     <div className="space-y-6">
@@ -115,8 +138,6 @@ export default async function PlaybookDetailPage({ params }: PageProps) {
             <p className="text-muted-foreground">{playbook.description}</p>
           )}
           <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
-            <span>Trigger: {triggerLabels[playbook.trigger] || playbook.trigger}</span>
-            <span>•</span>
             <span>{steps.length} steps</span>
             <span>•</span>
             <span>Created {formatDistanceToNow(new Date(playbook.createdAt), { addSuffix: true })}</span>
@@ -127,6 +148,36 @@ export default async function PlaybookDetailPage({ params }: PageProps) {
           <PlaybookActions playbook={playbook} />
         </div>
       </div>
+
+      {/* Trigger Info Card */}
+      <Card className="bg-muted/30">
+        <CardContent className="pt-6">
+          <div className="flex items-start gap-4">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <Zap className="h-5 w-5 text-primary" />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                <h3 className="font-medium">Trigger: {triggerLabels[playbook.trigger]}</h3>
+                {playbook.trigger !== "MANUAL" && (
+                  <Badge variant="outline" className="text-xs">
+                    Automatic
+                  </Badge>
+                )}
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {triggerDescriptions[playbook.trigger]}
+              </p>
+              {triggerConfigDisplay && (
+                <div className="flex items-center gap-2 mt-2">
+                  <Settings className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">{triggerConfigDisplay}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Stats */}
       <div className="grid gap-4 md:grid-cols-3">
@@ -229,7 +280,12 @@ export default async function PlaybookDetailPage({ params }: PageProps) {
               <div className="text-center py-8 text-muted-foreground">
                 <Play className="h-8 w-8 mx-auto mb-2 opacity-50" />
                 <p>No runs yet</p>
-                <p className="text-sm">Start this playbook for an account</p>
+                <p className="text-sm">
+                  {playbook.trigger === "MANUAL" 
+                    ? "Start this playbook for an account" 
+                    : "Runs will appear when triggered automatically"
+                  }
+                </p>
               </div>
             ) : (
               <div className="space-y-4">

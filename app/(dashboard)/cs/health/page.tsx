@@ -1,7 +1,6 @@
 import { getAuthContext } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -26,9 +25,9 @@ import {
   Minus,
   AlertTriangle,
   CheckCircle,
-  RefreshCw,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { RecalculateAllButton } from "./_components/recalculate-all-button";
 
 interface PageProps {
   searchParams: Promise<{
@@ -77,6 +76,11 @@ export default async function HealthScoresPage({ searchParams }: PageProps) {
     },
   });
 
+  // Get total accounts for comparison
+  const totalAccounts = await prisma.account.count({ where: { orgId } });
+  const accountsWithHealth = healthScores.length;
+  const accountsWithoutHealth = totalAccounts - accountsWithHealth;
+
   // Calculate summary stats
   const summary = {
     total: healthScores.length,
@@ -99,10 +103,7 @@ export default async function HealthScoresPage({ searchParams }: PageProps) {
             Monitor customer health and identify at-risk accounts
           </p>
         </div>
-        <Button variant="outline">
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Recalculate All
-        </Button>
+        <RecalculateAllButton accountsWithoutHealth={accountsWithoutHealth} />
       </div>
 
       {/* Summary Cards */}
@@ -164,7 +165,14 @@ export default async function HealthScoresPage({ searchParams }: PageProps) {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle>Account Health</CardTitle>
-              <CardDescription>{summary.total} accounts tracked</CardDescription>
+              <CardDescription>
+                {summary.total} of {totalAccounts} accounts tracked
+                {accountsWithoutHealth > 0 && (
+                  <span className="text-orange-600 ml-2">
+                    ({accountsWithoutHealth} need calculation)
+                  </span>
+                )}
+              </CardDescription>
             </div>
             <form>
               <Select name="riskLevel" defaultValue={riskLevelFilter || "_all"}>
@@ -187,8 +195,8 @@ export default async function HealthScoresPage({ searchParams }: PageProps) {
             <div className="text-center py-12">
               <HeartPulse className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <h3 className="font-medium mb-1">No health scores yet</h3>
-              <p className="text-sm text-muted-foreground">
-                Health scores will appear as accounts are tracked
+              <p className="text-sm text-muted-foreground mb-4">
+                Click "Recalculate All" to generate health scores for your accounts
               </p>
             </div>
           ) : (
@@ -214,7 +222,7 @@ export default async function HealthScoresPage({ searchParams }: PageProps) {
                     <TableRow key={health.id}>
                       <TableCell>
                         <Link
-                          href={`/cs/accounts/${health.account.id}`}
+                          href={`/cs/health/${health.account.id}`}
                           className="font-medium hover:underline"
                         >
                           {health.account.name}
@@ -273,7 +281,7 @@ export default async function HealthScoresPage({ searchParams }: PageProps) {
                         )}
                       </TableCell>
                       <TableCell className="text-muted-foreground text-sm">
-                        {formatDistanceToNow(new Date(health.updatedAt), { addSuffix: true })}
+                        {formatDistanceToNow(new Date(health.calculatedAt), { addSuffix: true })}
                       </TableCell>
                     </TableRow>
                   );

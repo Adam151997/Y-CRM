@@ -19,8 +19,10 @@ import {
   Users,
   Calendar,
   RefreshCw,
+  DollarSign,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
+import { CalculateHealthButton } from "../_components/calculate-health-button";
 
 interface PageProps {
   params: Promise<{ accountId: string }>;
@@ -152,6 +154,7 @@ export default async function AccountHealthDetailPage({ params }: PageProps) {
           </p>
         </div>
         <div className="flex gap-2">
+          <CalculateHealthButton accountId={account.id} variant="outline" />
           <Button variant="outline" asChild>
             <Link href={`/cs/accounts/${account.id}`}>
               View Account
@@ -216,7 +219,7 @@ export default async function AccountHealthDetailPage({ params }: PageProps) {
               title="Engagement" 
               score={health.engagementScore} 
               icon={TrendingUp}
-              description="Login frequency & feature usage"
+              description="Activity frequency & notes"
             />
             <ScoreCard 
               title="Support" 
@@ -228,19 +231,19 @@ export default async function AccountHealthDetailPage({ params }: PageProps) {
               title="Relationship" 
               score={health.relationshipScore} 
               icon={Users}
-              description="Contact frequency & meetings"
+              description="Contact frequency & tasks"
             />
             <ScoreCard 
               title="Financial" 
               score={health.financialScore} 
-              icon={TrendingUp}
-              description="Payment history & expansion"
+              icon={DollarSign}
+              description="Renewals & invoice health"
             />
             <ScoreCard 
               title="Adoption" 
               score={health.adoptionScore} 
               icon={CheckCircle}
-              description="Feature adoption depth"
+              description="Feature adoption (baseline)"
             />
           </div>
 
@@ -260,7 +263,7 @@ export default async function AccountHealthDetailPage({ params }: PageProps) {
                   <span className="text-sm font-medium">
                     {health.lastLoginAt 
                       ? formatDistanceToNow(new Date(health.lastLoginAt), { addSuffix: true })
-                      : "Never"
+                      : "N/A"
                     }
                   </span>
                 </div>
@@ -386,7 +389,7 @@ export default async function AccountHealthDetailPage({ params }: PageProps) {
             <p className="text-muted-foreground mb-4">
               Health score has not been calculated for this account yet.
             </p>
-            <Button>Calculate Health Score</Button>
+            <CalculateHealthButton accountId={account.id} />
           </CardContent>
         </Card>
       )}
