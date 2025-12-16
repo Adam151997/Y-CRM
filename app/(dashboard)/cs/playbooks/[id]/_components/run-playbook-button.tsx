@@ -44,10 +44,10 @@ export function RunPlaybookButton({ playbookId, playbookName }: RunPlaybookButto
   useEffect(() => {
     if (open) {
       setIsLoading(true);
-      fetch("/api/accounts")
+      fetch("/api/accounts?limit=100")
         .then((res) => res.json())
         .then((data) => {
-          setAccounts(data.accounts || []);
+          setAccounts(data.data || []);
         })
         .catch((error) => {
           console.error("Failed to fetch accounts:", error);
