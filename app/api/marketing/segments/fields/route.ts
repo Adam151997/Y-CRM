@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthContext } from "@/lib/auth";
 import { getFieldsForEntity, TargetEntity } from "@/lib/marketing/segment-calculator";
 
+// Force dynamic rendering - this route uses headers for auth
+export const dynamic = 'force-dynamic';
+
 // GET /api/marketing/segments/fields?targetEntity=CONTACT|LEAD
 export async function GET(request: NextRequest) {
   try {
