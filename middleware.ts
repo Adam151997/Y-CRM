@@ -6,7 +6,9 @@ const isPublicRoute = createRouteMatcher([
   "/sign-up(.*)",
   "/api/webhooks(.*)",
   "/api/mcp(.*)", // MCP endpoints use API key auth
+  "/api/public(.*)", // Public API endpoints (forms, etc.)
   "/select-org(.*)", // Organization selection page
+  "/f(.*)", // Public form pages
 ]);
 
 export default clerkMiddleware(async (auth, request) => {

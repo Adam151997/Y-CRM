@@ -8,14 +8,11 @@ import { Separator } from "@/components/ui/separator";
 import Link from "next/link";
 import { 
   ArrowLeft, 
-  Edit, 
   ExternalLink,
   FileInput,
   Eye,
   Send,
-  Copy,
-  Power,
-  PowerOff,
+  Code,
 } from "lucide-react";
 import { format } from "date-fns";
 import { FormActions } from "./_components/form-actions";
@@ -266,10 +263,9 @@ export default async function FormDetailPage({ params }: PageProps) {
                   </a>
                 </Button>
               )}
-              <Button variant="outline" className="w-full justify-start">
-                <Copy className="h-4 w-4 mr-2" />
-                Copy Embed Code
-              </Button>
+              <p className="text-xs text-muted-foreground text-center pt-2">
+                Use the menu above for embed code and more options
+              </p>
             </CardContent>
           </Card>
         </div>
