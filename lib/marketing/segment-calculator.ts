@@ -94,28 +94,28 @@ function buildOperatorCondition(
 ): Record<string, unknown> | string | number | boolean | null {
   switch (operator) {
     case "equals":
-      return value;
+      return value ?? null;
 
     case "not_equals":
-      return { not: value };
+      return { not: value ?? null };
 
     case "contains":
-      return { contains: String(value), mode: "insensitive" };
+      return { contains: String(value ?? ""), mode: "insensitive" };
 
     case "not_contains":
-      return { not: { contains: String(value), mode: "insensitive" } };
+      return { not: { contains: String(value ?? ""), mode: "insensitive" } };
 
     case "starts_with":
-      return { startsWith: String(value), mode: "insensitive" };
+      return { startsWith: String(value ?? ""), mode: "insensitive" };
 
     case "ends_with":
-      return { endsWith: String(value), mode: "insensitive" };
+      return { endsWith: String(value ?? ""), mode: "insensitive" };
 
     case "greater_than":
-      return { gt: value };
+      return { gt: value ?? 0 };
 
     case "less_than":
-      return { lt: value };
+      return { lt: value ?? 0 };
 
     case "is_empty":
       return { in: [null, ""] };
