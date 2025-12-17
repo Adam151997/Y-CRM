@@ -8,16 +8,16 @@ import { Separator } from "@/components/ui/separator";
 import Link from "next/link";
 import { 
   ArrowLeft, 
-  Edit, 
-  Trash2,
   Users,
+  UserPlus,
   Zap,
   Megaphone,
   Filter,
-  RefreshCw,
 } from "lucide-react";
 import { format } from "date-fns";
 import { SegmentActions } from "./_components/segment-actions";
+import { RecalculateButton } from "./_components/recalculate-button";
+import { SegmentMembersList } from "./_components/segment-members-list";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -32,6 +32,8 @@ const operatorLabels: Record<string, string> = {
   ends_with: "ends with",
   is_empty: "is empty",
   is_not_empty: "is not empty",
+  greater_than: "is greater than",
+  less_than: "is less than",
 };
 
 export default async function SegmentDetailPage({ params }: PageProps) {
@@ -46,8 +48,15 @@ export default async function SegmentDetailPage({ params }: PageProps) {
         orderBy: { createdAt: "desc" },
         take: 10,
       },
+      members: {
+        take: 20,
+        orderBy: { addedAt: "desc" },
+        include: {
+          // We'll fetch related data in a separate component
+        },
+      },
       _count: {
-        select: { campaigns: true },
+        select: { campaigns: true, members: true },
       },
     },
   });
@@ -57,6 +66,7 @@ export default async function SegmentDetailPage({ params }: PageProps) {
   }
 
   const rules = segment.rules as Array<{ field: string; operator: string; value?: string }> | null;
+  const isLeadSegment = segment.targetEntity === "LEAD";
 
   return (
     <div className="space-y-6">
@@ -74,6 +84,8 @@ export default async function SegmentDetailPage({ params }: PageProps) {
           <div className={`p-3 rounded-lg ${segment.type === "DYNAMIC" ? "bg-purple-100" : "bg-blue-100"}`}>
             {segment.type === "DYNAMIC" ? (
               <Zap className="h-6 w-6 text-purple-600" />
+            ) : isLeadSegment ? (
+              <UserPlus className="h-6 w-6 text-blue-600" />
             ) : (
               <Users className="h-6 w-6 text-blue-600" />
             )}
@@ -85,6 +97,13 @@ export default async function SegmentDetailPage({ params }: PageProps) {
                 {segment.isActive ? "Active" : "Inactive"}
               </Badge>
               <Badge variant="outline">{segment.type}</Badge>
+              <Badge variant={isLeadSegment ? "secondary" : "outline"}>
+                {isLeadSegment ? (
+                  <><UserPlus className="h-3 w-3 mr-1" /> Leads</>
+                ) : (
+                  <><Users className="h-3 w-3 mr-1" /> Contacts</>
+                )}
+              </Badge>
             </div>
             {segment.description && (
               <p className="text-muted-foreground mt-1">{segment.description}</p>
@@ -95,7 +114,7 @@ export default async function SegmentDetailPage({ params }: PageProps) {
       </div>
 
       {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Members</CardDescription>
@@ -108,6 +127,18 @@ export default async function SegmentDetailPage({ params }: PageProps) {
               </p>
             )}
           </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription>Target Entity</CardDescription>
+            <CardTitle className="text-3xl flex items-center gap-2">
+              {isLeadSegment ? (
+                <><UserPlus className="h-6 w-6" /> Leads</>
+              ) : (
+                <><Users className="h-6 w-6" /> Contacts</>
+              )}
+            </CardTitle>
+          </CardHeader>
         </Card>
         <Card>
           <CardHeader className="pb-2">
@@ -160,7 +191,7 @@ export default async function SegmentDetailPage({ params }: PageProps) {
                           {operatorLabels[rule.operator] || rule.operator}
                         </span>
                         {rule.value && (
-                          <span className="font-medium">"{rule.value}"</span>
+                          <span className="font-medium">&quot;{rule.value}&quot;</span>
                         )}
                       </div>
                     ))}
@@ -173,6 +204,13 @@ export default async function SegmentDetailPage({ params }: PageProps) {
               </CardContent>
             </Card>
           )}
+
+          {/* Members List */}
+          <SegmentMembersList 
+            segmentId={segment.id} 
+            targetEntity={segment.targetEntity as "CONTACT" | "LEAD"}
+            memberCount={segment.memberCount}
+          />
 
           {/* Campaigns */}
           <Card>
@@ -233,6 +271,17 @@ export default async function SegmentDetailPage({ params }: PageProps) {
               </div>
               <Separator />
               <div>
+                <span className="text-sm text-muted-foreground">Target Entity</span>
+                <p className="font-medium flex items-center gap-2">
+                  {isLeadSegment ? (
+                    <><UserPlus className="h-4 w-4" /> Leads</>
+                  ) : (
+                    <><Users className="h-4 w-4" /> Contacts</>
+                  )}
+                </p>
+              </div>
+              <Separator />
+              <div>
                 <span className="text-sm text-muted-foreground">Status</span>
                 <p className="font-medium">{segment.isActive ? "Active" : "Inactive"}</p>
               </div>
@@ -259,10 +308,7 @@ export default async function SegmentDetailPage({ params }: PageProps) {
               <CardTitle>Quick Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              <Button variant="outline" className="w-full justify-start">
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Recalculate Members
-              </Button>
+              <RecalculateButton segmentId={segment.id} />
               <Button variant="outline" className="w-full justify-start" asChild>
                 <Link href={`/marketing/campaigns/new?segmentId=${segment.id}`}>
                   <Megaphone className="h-4 w-4 mr-2" />

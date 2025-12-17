@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Plus, UsersRound, Users, Zap, Filter } from "lucide-react";
+import { Plus, UsersRound, Users, UserPlus, Zap, Filter } from "lucide-react";
 import { format } from "date-fns";
 
 interface PageProps {
@@ -142,7 +142,9 @@ export default async function SegmentsPage({ searchParams }: PageProps) {
                     <div className="flex items-center gap-4">
                       <div className={`p-2 rounded-lg ${segment.type === "DYNAMIC" ? "bg-purple-100" : "bg-blue-100"}`}>
                         {segment.type === "DYNAMIC" ? (
-                          <Zap className={`h-5 w-5 ${segment.type === "DYNAMIC" ? "text-purple-600" : "text-blue-600"}`} />
+                          <Zap className="h-5 w-5 text-purple-600" />
+                        ) : segment.targetEntity === "LEAD" ? (
+                          <UserPlus className="h-5 w-5 text-blue-600" />
                         ) : (
                           <Users className="h-5 w-5 text-blue-600" />
                         )}
@@ -154,6 +156,9 @@ export default async function SegmentsPage({ searchParams }: PageProps) {
                             {segment.isActive ? "Active" : "Inactive"}
                           </Badge>
                           <Badge variant="outline">{segment.type}</Badge>
+                          <Badge variant={segment.targetEntity === "LEAD" ? "secondary" : "outline"} className="text-xs">
+                            {segment.targetEntity === "LEAD" ? "Leads" : "Contacts"}
+                          </Badge>
                         </div>
                         <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
                           {segment.description && (

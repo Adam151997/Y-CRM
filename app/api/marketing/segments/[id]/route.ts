@@ -55,6 +55,7 @@ const ruleSchema = z.object({
 const updateSegmentSchema = z.object({
   name: z.string().min(1).max(200).optional(),
   description: z.string().optional().nullable(),
+  targetEntity: z.enum(["CONTACT", "LEAD"]).optional(),
   rules: z.array(ruleSchema).optional(),
   ruleLogic: z.enum(["AND", "OR"]).optional(),
   type: z.enum(["DYNAMIC", "STATIC"]).optional(),
@@ -100,6 +101,7 @@ export async function PUT(
     const updateData: Record<string, unknown> = {};
     if (data.name !== undefined) updateData.name = data.name;
     if (data.description !== undefined) updateData.description = data.description;
+    if (data.targetEntity !== undefined) updateData.targetEntity = data.targetEntity;
     if (data.rules !== undefined) updateData.rules = data.rules;
     if (data.ruleLogic !== undefined) updateData.ruleLogic = data.ruleLogic;
     if (data.type !== undefined) updateData.type = data.type;

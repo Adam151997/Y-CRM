@@ -1077,6 +1077,9 @@ model Segment {
   name            String
   description     String?
   
+  // Target entity type: which records this segment evaluates
+  targetEntity    String   @default("CONTACT") // CONTACT, LEAD
+  
   // Dynamic rules for segment membership
   // [{ field: "industry", operator: "equals", value: "Technology" }, ...]
   rules           Json     @default("[]")
@@ -1098,6 +1101,7 @@ model Segment {
   
   // Relations
   campaigns       Campaign[]
+  members         SegmentMember[]
   
   createdById     String
   
@@ -1106,6 +1110,26 @@ model Segment {
 
   @@index([orgId])
   @@index([orgId, isActive])
+  @@index([orgId, targetEntity])
+}
+
+// Tracks actual segment members (computed from rules or manually added)
+model SegmentMember {
+  id          String   @id @default(uuid())
+  segmentId   String
+  segment     Segment  @relation(fields: [segmentId], references: [id], onDelete: Cascade)
+  
+  // Polymorphic - one of these will be set based on segment's targetEntity
+  contactId   String?
+  leadId      String?
+  
+  addedAt     DateTime @default(now())
+  
+  @@unique([segmentId, contactId])
+  @@unique([segmentId, leadId])
+  @@index([segmentId])
+  @@index([contactId])
+  @@index([leadId])
 }
 
 model Form {

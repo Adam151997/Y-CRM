@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -16,8 +16,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, Plus, Trash2 } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Loader2, Plus, Trash2, Users, UserPlus, Eye } from "lucide-react";
 
 const ruleSchema = z.object({
   field: z.string().min(1, "Field is required"),
@@ -28,6 +29,7 @@ const ruleSchema = z.object({
 const formSchema = z.object({
   name: z.string().min(1, "Name is required").max(200),
   description: z.string().optional(),
+  targetEntity: z.enum(["CONTACT", "LEAD"]),
   type: z.enum(["DYNAMIC", "STATIC"]),
   ruleLogic: z.enum(["AND", "OR"]),
   rules: z.array(ruleSchema),
@@ -41,16 +43,10 @@ interface Rule {
   value: string;
 }
 
-const fieldOptions = [
-  { value: "email", label: "Email" },
-  { value: "company", label: "Company" },
-  { value: "industry", label: "Industry" },
-  { value: "source", label: "Lead Source" },
-  { value: "status", label: "Status" },
-  { value: "title", label: "Job Title" },
-  { value: "country", label: "Country" },
-  { value: "createdAt", label: "Created Date" },
-];
+interface FieldOption {
+  value: string;
+  label: string;
+}
 
 const operatorOptions = [
   { value: "equals", label: "equals" },
@@ -68,6 +64,9 @@ export function NewSegmentForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [rules, setRules] = useState<Rule[]>([{ field: "", operator: "equals", value: "" }]);
+  const [fieldOptions, setFieldOptions] = useState<FieldOption[]>([]);
+  const [preview, setPreview] = useState<{ count: number; preview: Array<{ id: string; name: string; email: string | null }> } | null>(null);
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
 
   const {
     register,
@@ -78,6 +77,7 @@ export function NewSegmentForm() {
   } = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      targetEntity: "CONTACT",
       type: "DYNAMIC",
       ruleLogic: "AND",
       rules: [],
@@ -85,7 +85,27 @@ export function NewSegmentForm() {
   });
 
   const selectedType = watch("type");
+  const targetEntity = watch("targetEntity");
   const ruleLogic = watch("ruleLogic");
+
+  // Fetch field options when target entity changes
+  useEffect(() => {
+    async function fetchFields() {
+      try {
+        const response = await fetch(`/api/marketing/segments/fields?targetEntity=${targetEntity}`);
+        if (response.ok) {
+          const data = await response.json();
+          setFieldOptions(data.fields);
+          // Reset rules when entity changes
+          setRules([{ field: "", operator: "equals", value: "" }]);
+          setPreview(null);
+        }
+      } catch (err) {
+        console.error("Error fetching fields:", err);
+      }
+    }
+    fetchFields();
+  }, [targetEntity]);
 
   const addRule = () => {
     setRules([...rules, { field: "", operator: "equals", value: "" }]);
@@ -101,6 +121,32 @@ export function NewSegmentForm() {
     const newRules = [...rules];
     newRules[index][field] = value;
     setRules(newRules);
+  };
+
+  // Preview members
+  const handlePreview = async () => {
+    setIsPreviewLoading(true);
+    try {
+      const validRules = rules.filter(r => r.field && r.operator);
+      const response = await fetch("/api/marketing/segments/preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          targetEntity,
+          rules: validRules,
+          ruleLogic,
+        }),
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setPreview(data);
+      }
+    } catch (err) {
+      console.error("Error previewing:", err);
+    } finally {
+      setIsPreviewLoading(false);
+    }
   };
 
   const onSubmit = async (data: FormData) => {
@@ -156,6 +202,36 @@ export function NewSegmentForm() {
           )}
         </div>
 
+        {/* Target Entity */}
+        <div className="space-y-2">
+          <Label htmlFor="targetEntity">Target Entity *</Label>
+          <Select
+            value={targetEntity}
+            onValueChange={(value) => setValue("targetEntity", value as "CONTACT" | "LEAD")}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select entity type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="CONTACT">
+                <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  Contacts
+                </div>
+              </SelectItem>
+              <SelectItem value="LEAD">
+                <div className="flex items-center gap-2">
+                  <UserPlus className="h-4 w-4" />
+                  Leads
+                </div>
+              </SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">
+            Choose whether this segment targets Contacts or Leads
+          </p>
+        </div>
+
         {/* Type */}
         <div className="space-y-2">
           <Label htmlFor="type">Segment Type *</Label>
@@ -190,19 +266,64 @@ export function NewSegmentForm() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <Label>Segment Rules</Label>
-            <Select
-              value={ruleLogic}
-              onValueChange={(value) => setValue("ruleLogic", value as "AND" | "OR")}
-            >
-              <SelectTrigger className="w-32">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="AND">Match ALL</SelectItem>
-                <SelectItem value="OR">Match ANY</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex items-center gap-2">
+              <Select
+                value={ruleLogic}
+                onValueChange={(value) => setValue("ruleLogic", value as "AND" | "OR")}
+              >
+                <SelectTrigger className="w-32">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="AND">Match ALL</SelectItem>
+                  <SelectItem value="OR">Match ANY</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handlePreview}
+                disabled={isPreviewLoading}
+              >
+                {isPreviewLoading ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Eye className="h-4 w-4 mr-2" />
+                )}
+                Preview
+              </Button>
+            </div>
           </div>
+
+          {/* Preview Results */}
+          {preview && (
+            <Card className="bg-muted/50">
+              <CardHeader className="py-3">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Badge variant="secondary">{preview.count} {targetEntity === "CONTACT" ? "contacts" : "leads"}</Badge>
+                  would match this segment
+                </CardTitle>
+              </CardHeader>
+              {preview.preview.length > 0 && (
+                <CardContent className="py-2">
+                  <div className="text-sm space-y-1">
+                    {preview.preview.map((item) => (
+                      <div key={item.id} className="flex items-center gap-2 text-muted-foreground">
+                        <span>{item.name}</span>
+                        {item.email && <span className="text-xs">({item.email})</span>}
+                      </div>
+                    ))}
+                    {preview.count > preview.preview.length && (
+                      <div className="text-xs text-muted-foreground">
+                        +{preview.count - preview.preview.length} more...
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              )}
+            </Card>
+          )}
 
           <div className="space-y-3">
             {rules.map((rule, index) => (

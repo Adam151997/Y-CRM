@@ -66,6 +66,7 @@ const ruleSchema = z.object({
 const createSegmentSchema = z.object({
   name: z.string().min(1, "Name is required").max(200),
   description: z.string().optional(),
+  targetEntity: z.enum(["CONTACT", "LEAD"]).default("CONTACT"),
   rules: z.array(ruleSchema).default([]),
   ruleLogic: z.enum(["AND", "OR"]).default("AND"),
   type: z.enum(["DYNAMIC", "STATIC"]).default("DYNAMIC"),
@@ -95,6 +96,7 @@ export async function POST(request: NextRequest) {
         orgId,
         name: data.name,
         description: data.description,
+        targetEntity: data.targetEntity,
         rules: data.rules,
         ruleLogic: data.ruleLogic,
         type: data.type,
