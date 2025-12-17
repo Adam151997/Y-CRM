@@ -116,10 +116,10 @@ export default async function FormsPage({ searchParams }: PageProps) {
               : 0;
             
             return (
-              <Link key={form.id} href={`/marketing/forms/${form.id}`}>
-                <Card className="hover:shadow-md transition-shadow cursor-pointer">
-                  <CardContent className="py-4">
-                    <div className="flex items-center gap-4">
+              <Card key={form.id} className="hover:shadow-md transition-shadow">
+                <CardContent className="py-4">
+                  <div className="flex items-center gap-4">
+                    <Link href={`/marketing/forms/${form.id}`} className="flex items-center gap-4 flex-1 min-w-0">
                       <div className="p-2 rounded-lg bg-blue-100">
                         <FileInput className="h-5 w-5 text-blue-600" />
                       </div>
@@ -160,17 +160,17 @@ export default async function FormsPage({ searchParams }: PageProps) {
                           <div className="text-muted-foreground">Conversion</div>
                         </div>
                       </div>
-                      {form.slug && (
-                        <Button variant="ghost" size="icon" asChild onClick={(e) => e.stopPropagation()}>
-                          <a href={`/f/${form.slug}`} target="_blank" rel="noopener noreferrer">
-                            <ExternalLink className="h-4 w-4" />
-                          </a>
-                        </Button>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
+                    </Link>
+                    {form.slug && (
+                      <Button variant="ghost" size="icon" asChild>
+                        <a href={`/f/${form.slug}`} target="_blank" rel="noopener noreferrer">
+                          <ExternalLink className="h-4 w-4" />
+                        </a>
+                      </Button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
             );
           })}
         </div>
