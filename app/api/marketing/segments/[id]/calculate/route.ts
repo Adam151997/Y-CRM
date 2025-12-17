@@ -84,7 +84,7 @@ export async function GET(
     const result = await previewSegmentMembers(
       orgId,
       segment.targetEntity as TargetEntity,
-      segment.rules as SegmentRule[],
+      segment.rules as unknown as SegmentRule[],
       segment.ruleLogic as RuleLogic,
       limit
     );

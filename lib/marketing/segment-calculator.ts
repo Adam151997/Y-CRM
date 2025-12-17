@@ -190,13 +190,13 @@ export async function calculateSegmentMembers(
   }
 
   const targetEntity = segment.targetEntity as TargetEntity;
-  const rules = segment.rules as SegmentRule[];
+  const rules = segment.rules as unknown as SegmentRule[];
   const ruleLogic = segment.ruleLogic as RuleLogic;
   const isStatic = segment.type === "STATIC";
 
   // For static segments, use staticMembers list
   if (isStatic) {
-    const staticMemberIds = (segment.staticMembers as string[]) || [];
+    const staticMemberIds = (segment.staticMembers as unknown as string[]) || [];
     return await updateStaticSegmentMembers(
       segmentId,
       orgId,
