@@ -142,14 +142,41 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
     }
 
-    // Can't edit paid, cancelled, or void invoices (except to cancel/void)
-    if (["PAID", "CANCELLED", "VOID"].includes(existingInvoice.status)) {
-      const body = await request.json();
-      // Only allow status changes for these
-      if (body.status && ["CANCELLED", "VOID"].includes(body.status)) {
+    const body = await request.json();
+    
+    // For non-DRAFT invoices, only allow status changes
+    if (existingInvoice.status !== "DRAFT") {
+      // Only allow specific status transitions
+      if (body.status) {
+        const allowedTransitions: Record<string, string[]> = {
+          SENT: ["VIEWED", "PAID", "PARTIALLY_PAID", "OVERDUE", "VOID", "CANCELLED"],
+          VIEWED: ["PAID", "PARTIALLY_PAID", "OVERDUE", "VOID", "CANCELLED"],
+          PARTIALLY_PAID: ["PAID", "OVERDUE", "VOID"],
+          OVERDUE: ["PAID", "PARTIALLY_PAID", "VOID"],
+          PAID: [], // No transitions allowed from PAID
+          CANCELLED: [], // No transitions allowed from CANCELLED
+          VOID: [], // No transitions allowed from VOID
+        };
+        
+        const allowed = allowedTransitions[existingInvoice.status] || [];
+        
+        if (!allowed.includes(body.status)) {
+          return NextResponse.json(
+            { error: `Cannot change status from ${existingInvoice.status} to ${body.status}` },
+            { status: 400 }
+          );
+        }
+        
+        const updateData: Record<string, unknown> = { status: body.status };
+        
+        // Set paidAt timestamp when marking as PAID
+        if (body.status === "PAID") {
+          updateData.paidAt = new Date();
+        }
+        
         const updated = await prisma.invoice.update({
           where: { id },
-          data: { status: body.status },
+          data: updateData,
         });
         
         await createAuditLog({
@@ -168,12 +195,12 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       }
       
       return NextResponse.json(
-        { error: `Cannot edit ${existingInvoice.status.toLowerCase()} invoice` },
+        { error: "Only draft invoices can be fully edited. Non-draft invoices only allow status changes." },
         { status: 400 }
       );
     }
 
-    const body = await request.json();
+    // DRAFT invoices can be fully edited
     const data = updateInvoiceSchema.parse(body);
 
     // Prepare update data
