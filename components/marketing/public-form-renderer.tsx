@@ -24,12 +24,18 @@ interface FormField {
   options?: string[];
 }
 
+interface Branding {
+  orgName?: string;
+  showPoweredBy?: boolean;
+}
+
 interface PublicFormRendererProps {
   formId: string;
   slug: string;
   name: string;
   description?: string;
   fields: FormField[];
+  branding?: Branding;
 }
 
 export function PublicFormRenderer({
@@ -38,6 +44,7 @@ export function PublicFormRenderer({
   name,
   description,
   fields,
+  branding,
 }: PublicFormRendererProps) {
   const [formData, setFormData] = useState<Record<string, string | boolean | string[]>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -99,15 +106,49 @@ export function PublicFormRenderer({
     }
   };
 
+  // Branding header component
+  const BrandingHeader = () => {
+    if (!branding?.orgName) return null;
+    
+    return (
+      <div className="flex items-center justify-center gap-2 mb-6 pb-4 border-b border-border">
+        <span className="font-semibold text-foreground">{branding.orgName}</span>
+      </div>
+    );
+  };
+
+  // Powered by footer component
+  const PoweredByFooter = () => {
+    if (branding?.showPoweredBy === false) return null;
+    
+    return (
+      <div className="mt-6 pt-4 border-t border-border">
+        <p className="text-xs text-muted-foreground text-center flex items-center justify-center gap-1">
+          Powered by{" "}
+          <a 
+            href="https://y-crm.vercel.app" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="font-semibold text-primary hover:underline"
+          >
+            Y-CRM
+          </a>
+        </p>
+      </div>
+    );
+  };
+
   // Success state
   if (submitStatus === "success") {
     return (
       <div className="text-center py-12">
-        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <CheckCircle className="h-8 w-8 text-green-600" />
+        <BrandingHeader />
+        <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+          <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-400" />
         </div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Submitted Successfully!</h2>
-        <p className="text-gray-600">{confirmationMessage}</p>
+        <h2 className="text-2xl font-bold text-foreground mb-2">Submitted Successfully!</h2>
+        <p className="text-muted-foreground">{confirmationMessage}</p>
+        <PoweredByFooter />
       </div>
     );
   }
@@ -116,22 +157,27 @@ export function PublicFormRenderer({
   if (submitStatus === "error") {
     return (
       <div className="text-center py-12">
-        <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <AlertCircle className="h-8 w-8 text-red-600" />
+        <BrandingHeader />
+        <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+          <AlertCircle className="h-8 w-8 text-red-600 dark:text-red-400" />
         </div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Something went wrong</h2>
-        <p className="text-gray-600 mb-4">Please try again later.</p>
+        <h2 className="text-2xl font-bold text-foreground mb-2">Something went wrong</h2>
+        <p className="text-muted-foreground mb-4">Please try again later.</p>
         <Button onClick={() => setSubmitStatus("idle")}>Try Again</Button>
+        <PoweredByFooter />
       </div>
     );
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Branding Header */}
+      <BrandingHeader />
+
       {/* Form Header */}
       <div className="text-center mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">{name}</h1>
-        {description && <p className="text-gray-600 mt-2">{description}</p>}
+        <h1 className="text-2xl font-bold text-foreground">{name}</h1>
+        {description && <p className="text-muted-foreground mt-2">{description}</p>}
       </div>
 
       {/* Honeypot field - hidden from humans, visible to bots */}
@@ -151,9 +197,9 @@ export function PublicFormRenderer({
       {/* Form Fields */}
       {fields.map((field) => (
         <div key={field.id} className="space-y-2">
-          <Label htmlFor={field.id}>
+          <Label htmlFor={field.id} className="text-foreground">
             {field.label}
-            {field.required && <span className="text-red-500 ml-1">*</span>}
+            {field.required && <span className="text-destructive ml-1">*</span>}
           </Label>
 
           {/* Text Input */}
@@ -164,7 +210,7 @@ export function PublicFormRenderer({
               placeholder={field.placeholder}
               value={(formData[field.id] as string) || ""}
               onChange={(e) => handleFieldChange(field.id, e.target.value)}
-              className={errors[field.id] ? "border-red-500" : ""}
+              className={errors[field.id] ? "border-destructive" : ""}
             />
           )}
 
@@ -176,7 +222,7 @@ export function PublicFormRenderer({
               placeholder={field.placeholder || "you@example.com"}
               value={(formData[field.id] as string) || ""}
               onChange={(e) => handleFieldChange(field.id, e.target.value)}
-              className={errors[field.id] ? "border-red-500" : ""}
+              className={errors[field.id] ? "border-destructive" : ""}
             />
           )}
 
@@ -188,7 +234,7 @@ export function PublicFormRenderer({
               placeholder={field.placeholder || "(123) 456-7890"}
               value={(formData[field.id] as string) || ""}
               onChange={(e) => handleFieldChange(field.id, e.target.value)}
-              className={errors[field.id] ? "border-red-500" : ""}
+              className={errors[field.id] ? "border-destructive" : ""}
             />
           )}
 
@@ -200,7 +246,7 @@ export function PublicFormRenderer({
               placeholder={field.placeholder}
               value={(formData[field.id] as string) || ""}
               onChange={(e) => handleFieldChange(field.id, e.target.value)}
-              className={errors[field.id] ? "border-red-500" : ""}
+              className={errors[field.id] ? "border-destructive" : ""}
             />
           )}
 
@@ -211,7 +257,7 @@ export function PublicFormRenderer({
               type="date"
               value={(formData[field.id] as string) || ""}
               onChange={(e) => handleFieldChange(field.id, e.target.value)}
-              className={errors[field.id] ? "border-red-500" : ""}
+              className={errors[field.id] ? "border-destructive" : ""}
             />
           )}
 
@@ -223,7 +269,7 @@ export function PublicFormRenderer({
               rows={4}
               value={(formData[field.id] as string) || ""}
               onChange={(e) => handleFieldChange(field.id, e.target.value)}
-              className={errors[field.id] ? "border-red-500" : ""}
+              className={errors[field.id] ? "border-destructive" : ""}
             />
           )}
 
@@ -233,7 +279,7 @@ export function PublicFormRenderer({
               value={(formData[field.id] as string) || ""}
               onValueChange={(value) => handleFieldChange(field.id, value)}
             >
-              <SelectTrigger className={errors[field.id] ? "border-red-500" : ""}>
+              <SelectTrigger className={errors[field.id] ? "border-destructive" : ""}>
                 <SelectValue placeholder={field.placeholder || "Select an option"} />
               </SelectTrigger>
               <SelectContent>
@@ -258,9 +304,9 @@ export function PublicFormRenderer({
                     value={option}
                     checked={(formData[field.id] as string) === option}
                     onChange={(e) => handleFieldChange(field.id, e.target.value)}
-                    className="h-4 w-4 border-gray-300 text-primary focus:ring-primary"
+                    className="h-4 w-4 border-border text-primary focus:ring-primary"
                   />
-                  <Label htmlFor={`${field.id}-${option}`} className="font-normal">
+                  <Label htmlFor={`${field.id}-${option}`} className="font-normal text-foreground">
                     {option}
                   </Label>
                 </div>
@@ -276,7 +322,7 @@ export function PublicFormRenderer({
                 checked={(formData[field.id] as boolean) || false}
                 onCheckedChange={(checked) => handleFieldChange(field.id, checked as boolean)}
               />
-              <Label htmlFor={field.id} className="font-normal">
+              <Label htmlFor={field.id} className="font-normal text-foreground">
                 {field.placeholder || field.label}
               </Label>
             </div>
@@ -284,7 +330,7 @@ export function PublicFormRenderer({
 
           {/* Error Message */}
           {errors[field.id] && (
-            <p className="text-sm text-red-500">{errors[field.id]}</p>
+            <p className="text-sm text-destructive">{errors[field.id]}</p>
           )}
         </div>
       ))}
@@ -302,9 +348,12 @@ export function PublicFormRenderer({
       </Button>
 
       {/* Privacy Notice */}
-      <p className="text-xs text-gray-500 text-center">
+      <p className="text-xs text-muted-foreground text-center">
         By submitting this form, you agree to our privacy policy.
       </p>
+
+      {/* Powered By Footer */}
+      <PoweredByFooter />
     </form>
   );
 }

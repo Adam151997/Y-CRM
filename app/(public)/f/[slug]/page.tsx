@@ -33,7 +33,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function PublicFormPage({ params }: PageProps) {
   const { slug } = await params;
 
-  // Fetch form
+  // Fetch form with organization info for branding
   const form = await prisma.form.findFirst({
     where: { slug, isActive: true },
     select: {
@@ -49,6 +49,14 @@ export default async function PublicFormPage({ params }: PageProps) {
   if (!form) {
     notFound();
   }
+
+  // Fetch organization for branding (orgId is the Clerk Org ID which is the Organization.id)
+  const organization = await prisma.organization.findUnique({
+    where: { id: form.orgId },
+    select: {
+      name: true,
+    },
+  });
 
   // Increment view count atomically (server-side)
   // Using try-catch to ensure page still renders even if tracking fails
@@ -71,6 +79,12 @@ export default async function PublicFormPage({ params }: PageProps) {
     options?: string[];
   }>;
 
+  // Build branding object
+  const branding = {
+    orgName: organization?.name || undefined,
+    showPoweredBy: true, // Always show for now, can be made configurable later
+  };
+
   return (
     <Card className="w-full max-w-lg shadow-xl">
       <CardContent className="p-8">
@@ -80,6 +94,7 @@ export default async function PublicFormPage({ params }: PageProps) {
           name={form.name}
           description={form.description || undefined}
           fields={fields}
+          branding={branding}
         />
       </CardContent>
     </Card>
