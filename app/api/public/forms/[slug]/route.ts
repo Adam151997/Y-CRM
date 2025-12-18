@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
-import { incrementFormViews } from "@/lib/marketing/form-submission";
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
 
 // GET /api/public/forms/[slug] - Fetch form for public display
+// NOTE: View tracking is handled by the page component, NOT here
+// This API is used for embedding/AJAX scenarios where the page already tracked the view
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
@@ -35,9 +36,6 @@ export async function GET(
         { status: 404 }
       );
     }
-
-    // Increment view count (fire and forget)
-    incrementFormViews(form.id).catch(console.error);
 
     // Return public form data (exclude orgId)
     return NextResponse.json({

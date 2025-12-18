@@ -251,16 +251,27 @@ export async function processFormSubmission(
       },
     });
 
-    // Update form stats
-    const newSubmissions = form.submissions + 1;
-    const conversionRate = form.views > 0 
-      ? (newSubmissions / form.views) * 100 
+    // Step 1: Atomically increment submissions count
+    const updatedForm = await tx.form.update({
+      where: { id: formId },
+      data: {
+        submissions: { increment: 1 },
+      },
+      select: {
+        submissions: true,
+        views: true,
+      },
+    });
+
+    // Step 2: Calculate conversion rate with fresh values
+    const conversionRate = updatedForm.views > 0 
+      ? (updatedForm.submissions / updatedForm.views) * 100 
       : 0;
 
+    // Step 3: Update conversion rate
     await tx.form.update({
       where: { id: formId },
       data: {
-        submissions: newSubmissions,
         conversionRate: new Prisma.Decimal(conversionRate.toFixed(2)),
       },
     });
@@ -278,7 +289,9 @@ export async function processFormSubmission(
 }
 
 /**
- * Increment form view count
+ * Increment form view count - DEPRECATED
+ * View tracking is now handled directly in the page component
+ * This function is kept for backward compatibility
  */
 export async function incrementFormViews(formId: string): Promise<void> {
   await prisma.form.update({

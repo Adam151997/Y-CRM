@@ -4,6 +4,9 @@ import { PublicFormRenderer } from "@/components/marketing/public-form-renderer"
 import { Card, CardContent } from "@/components/ui/card";
 import { Metadata } from "next";
 
+// Force dynamic rendering - prevents caching which would skip view tracking
+export const dynamic = 'force-dynamic';
+
 interface PageProps {
   params: Promise<{ slug: string }>;
 }
@@ -47,11 +50,17 @@ export default async function PublicFormPage({ params }: PageProps) {
     notFound();
   }
 
-  // Increment view count (server-side)
-  await prisma.form.update({
-    where: { id: form.id },
-    data: { views: { increment: 1 } },
-  }).catch(console.error);
+  // Increment view count atomically (server-side)
+  // Using try-catch to ensure page still renders even if tracking fails
+  try {
+    await prisma.form.update({
+      where: { id: form.id },
+      data: { views: { increment: 1 } },
+    });
+  } catch (error) {
+    console.error("Failed to increment form views:", error);
+    // Don't block page render on tracking failure
+  }
 
   const fields = form.fields as Array<{
     id: string;
