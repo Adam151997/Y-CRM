@@ -8,10 +8,6 @@ import { Separator } from "@/components/ui/separator";
 import Link from "next/link";
 import { 
   ArrowLeft, 
-  Play, 
-  Pause, 
-  Edit, 
-  Trash2, 
   Mail, 
   Share2, 
   Calendar as CalendarIcon,
@@ -19,13 +15,14 @@ import {
   MessageSquare,
   Megaphone,
   Users,
-  Send,
-  Eye,
-  MousePointerClick,
-  TrendingUp,
+  DollarSign,
 } from "lucide-react";
 import { format } from "date-fns";
 import { CampaignActions } from "./_components/campaign-actions";
+import { MetricsEditor } from "./_components/metrics-editor";
+import { StatusManager } from "./_components/status-manager";
+import { ContentEditor } from "./_components/content-editor";
+import { PerformanceFunnel } from "./_components/performance-funnel";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -57,7 +54,13 @@ export default async function CampaignDetailPage({ params }: PageProps) {
     where: { id, orgId },
     include: {
       segment: {
-        select: { id: true, name: true, memberCount: true },
+        select: { 
+          id: true, 
+          name: true, 
+          memberCount: true,
+          targetEntity: true,
+          type: true,
+        },
       },
     },
   });
@@ -68,17 +71,7 @@ export default async function CampaignDetailPage({ params }: PageProps) {
 
   const TypeIcon = typeIcons[campaign.type] || Megaphone;
   const metrics = campaign.metrics as Record<string, number> | null;
-
-  // Calculate rates
-  const openRate = metrics?.sent && metrics?.opened 
-    ? ((metrics.opened / metrics.sent) * 100).toFixed(1) 
-    : null;
-  const clickRate = metrics?.sent && metrics?.clicked 
-    ? ((metrics.clicked / metrics.sent) * 100).toFixed(1) 
-    : null;
-  const conversionRate = metrics?.sent && metrics?.converted 
-    ? ((metrics.converted / metrics.sent) * 100).toFixed(1) 
-    : null;
+  const content = campaign.content as Record<string, string> | null;
 
   return (
     <div className="space-y-6">
@@ -112,97 +105,162 @@ export default async function CampaignDetailPage({ params }: PageProps) {
         <CampaignActions campaign={campaign} />
       </div>
 
+      {/* Status Manager */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Campaign Status</CardTitle>
+          <CardDescription>Track and manage campaign progress</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <StatusManager campaignId={campaign.id} currentStatus={campaign.status} />
+        </CardContent>
+      </Card>
+
       <div className="grid gap-6 md:grid-cols-3">
         {/* Main Content */}
         <div className="md:col-span-2 space-y-6">
-          {/* Metrics */}
-          {metrics && Object.keys(metrics).length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Campaign Performance</CardTitle>
-              </CardHeader>
+          {/* Performance Funnel - Show if has metrics */}
+          <PerformanceFunnel metrics={metrics} campaignType={campaign.type} />
+
+          {/* Metrics Entry - Always show for easy editing */}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Campaign Metrics</CardTitle>
+                <CardDescription>
+                  {metrics && Object.keys(metrics).length > 0 
+                    ? "Track your campaign performance"
+                    : "Enter metrics to track performance"}
+                </CardDescription>
+              </div>
+              <MetricsEditor 
+                campaignId={campaign.id} 
+                initialMetrics={metrics}
+                campaignType={campaign.type}
+              />
+            </CardHeader>
+            {metrics && Object.keys(metrics).length > 0 && (
               <CardContent>
-                <div className="grid gap-4 md:grid-cols-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {metrics.sent !== undefined && (
-                    <div className="text-center p-4 bg-muted/50 rounded-lg">
-                      <Send className="h-5 w-5 mx-auto mb-2 text-muted-foreground" />
+                    <div className="p-3 bg-muted/50 rounded-lg text-center">
                       <div className="text-2xl font-bold">{metrics.sent.toLocaleString()}</div>
-                      <div className="text-sm text-muted-foreground">Sent</div>
+                      <div className="text-xs text-muted-foreground">Sent</div>
                     </div>
                   )}
                   {metrics.opened !== undefined && (
-                    <div className="text-center p-4 bg-muted/50 rounded-lg">
-                      <Eye className="h-5 w-5 mx-auto mb-2 text-muted-foreground" />
+                    <div className="p-3 bg-muted/50 rounded-lg text-center">
                       <div className="text-2xl font-bold">{metrics.opened.toLocaleString()}</div>
-                      <div className="text-sm text-muted-foreground">
-                        Opened {openRate && `(${openRate}%)`}
+                      <div className="text-xs text-muted-foreground">
+                        {campaign.type === "EMAIL" ? "Opened" : "Impressions"}
                       </div>
                     </div>
                   )}
                   {metrics.clicked !== undefined && (
-                    <div className="text-center p-4 bg-muted/50 rounded-lg">
-                      <MousePointerClick className="h-5 w-5 mx-auto mb-2 text-muted-foreground" />
+                    <div className="p-3 bg-muted/50 rounded-lg text-center">
                       <div className="text-2xl font-bold">{metrics.clicked.toLocaleString()}</div>
-                      <div className="text-sm text-muted-foreground">
-                        Clicked {clickRate && `(${clickRate}%)`}
+                      <div className="text-xs text-muted-foreground">
+                        {campaign.type === "EMAIL" ? "Clicked" : "Engagements"}
                       </div>
                     </div>
                   )}
                   {metrics.converted !== undefined && (
-                    <div className="text-center p-4 bg-muted/50 rounded-lg">
-                      <TrendingUp className="h-5 w-5 mx-auto mb-2 text-muted-foreground" />
+                    <div className="p-3 bg-muted/50 rounded-lg text-center">
                       <div className="text-2xl font-bold">{metrics.converted.toLocaleString()}</div>
-                      <div className="text-sm text-muted-foreground">
-                        Converted {conversionRate && `(${conversionRate}%)`}
-                      </div>
+                      <div className="text-xs text-muted-foreground">Converted</div>
                     </div>
                   )}
                 </div>
               </CardContent>
-            </Card>
-          )}
+            )}
+          </Card>
 
-          {/* Content Preview */}
-          {campaign.type === "EMAIL" && campaign.subject && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Email Content</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div>
-                    <span className="text-sm text-muted-foreground">Subject:</span>
-                    <p className="font-medium">{campaign.subject}</p>
-                  </div>
-                  {campaign.content && (
-                    <div>
-                      <span className="text-sm text-muted-foreground">Content Preview:</span>
-                      <div className="mt-2 p-4 bg-muted/50 rounded-lg">
-                        <p className="text-sm">Content editor coming soon...</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* No metrics yet */}
-          {(!metrics || Object.keys(metrics).length === 0) && campaign.status === "DRAFT" && (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-12">
-                <Megaphone className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium">Campaign Not Started</h3>
-                <p className="text-muted-foreground text-center max-w-md">
-                  This campaign is still in draft mode. Schedule or launch it to start collecting metrics.
-                </p>
-              </CardContent>
-            </Card>
-          )}
+          {/* Campaign Content & Notes */}
+          <ContentEditor 
+            campaignId={campaign.id}
+            subject={campaign.subject}
+            content={content}
+            campaignType={campaign.type}
+          />
         </div>
 
         {/* Sidebar */}
         <div className="space-y-6">
+          {/* Target Segment */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                Target Audience
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {campaign.segment ? (
+                <Link 
+                  href={`/marketing/segments/${campaign.segment.id}`}
+                  className="block p-4 bg-muted/50 rounded-lg hover:bg-muted transition-colors"
+                >
+                  <div className="font-medium">{campaign.segment.name}</div>
+                  <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
+                    <span>{campaign.segment.memberCount.toLocaleString()} members</span>
+                    <span>•</span>
+                    <span>{campaign.segment.type}</span>
+                    <span>•</span>
+                    <span>{campaign.segment.targetEntity === "LEAD" ? "Leads" : "Contacts"}</span>
+                  </div>
+                </Link>
+              ) : (
+                <div className="p-4 bg-muted/50 rounded-lg">
+                  <div className="font-medium text-muted-foreground">No segment selected</div>
+                  <div className="text-sm text-muted-foreground mt-1">
+                    Campaign targets all contacts
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Budget (if applicable) */}
+          {(campaign.budget || campaign.type === "ADS") && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <DollarSign className="h-5 w-5" />
+                  Budget
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Budget</span>
+                  <span className="font-medium">
+                    ${campaign.budget ? Number(campaign.budget).toLocaleString() : "Not set"}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Spent</span>
+                  <span className="font-medium">
+                    ${campaign.spent ? Number(campaign.spent).toLocaleString() : "0"}
+                  </span>
+                </div>
+                {campaign.budget && campaign.spent && (
+                  <div className="pt-2">
+                    <div className="h-2 bg-muted rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-primary rounded-full transition-all"
+                        style={{ 
+                          width: `${Math.min((Number(campaign.spent) / Number(campaign.budget)) * 100, 100)}%` 
+                        }}
+                      />
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1 text-right">
+                      {((Number(campaign.spent) / Number(campaign.budget)) * 100).toFixed(1)}% used
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
           {/* Details */}
           <Card>
             <CardHeader>
@@ -215,21 +273,6 @@ export default async function CampaignDetailPage({ params }: PageProps) {
                   <TypeIcon className="h-4 w-4" />
                   {campaign.type}
                 </p>
-              </div>
-              <Separator />
-              <div>
-                <span className="text-sm text-muted-foreground">Target Segment</span>
-                {campaign.segment ? (
-                  <Link 
-                    href={`/marketing/segments/${campaign.segment.id}`}
-                    className="font-medium text-primary hover:underline flex items-center gap-2"
-                  >
-                    <Users className="h-4 w-4" />
-                    {campaign.segment.name} ({campaign.segment.memberCount})
-                  </Link>
-                ) : (
-                  <p className="font-medium text-muted-foreground">All contacts</p>
-                )}
               </div>
               <Separator />
               {campaign.scheduledAt && (
@@ -271,31 +314,15 @@ export default async function CampaignDetailPage({ params }: PageProps) {
                   {format(new Date(campaign.createdAt), "MMM d, yyyy")}
                 </p>
               </div>
+              <Separator />
+              <div>
+                <span className="text-sm text-muted-foreground">Last Updated</span>
+                <p className="font-medium">
+                  {format(new Date(campaign.updatedAt), "MMM d, yyyy 'at' h:mm a")}
+                </p>
+              </div>
             </CardContent>
           </Card>
-
-          {/* Budget (if applicable) */}
-          {(campaign.budget || campaign.spent) && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Budget</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {campaign.budget && (
-                  <div>
-                    <span className="text-sm text-muted-foreground">Budget</span>
-                    <p className="font-medium">${Number(campaign.budget).toLocaleString()}</p>
-                  </div>
-                )}
-                {campaign.spent && (
-                  <div>
-                    <span className="text-sm text-muted-foreground">Spent</span>
-                    <p className="font-medium">${Number(campaign.spent).toLocaleString()}</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
         </div>
       </div>
     </div>
