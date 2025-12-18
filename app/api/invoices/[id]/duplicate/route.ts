@@ -102,8 +102,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
         notes: originalInvoice.notes,
         terms: originalInvoice.terms,
         footer: originalInvoice.footer,
-        billingAddress: originalInvoice.billingAddress,
-        customFields: originalInvoice.customFields,
+        billingAddress: originalInvoice.billingAddress ?? undefined,
+        customFields: originalInvoice.customFields ?? {},
         
         // Attribution
         createdById: authContext.userId,
