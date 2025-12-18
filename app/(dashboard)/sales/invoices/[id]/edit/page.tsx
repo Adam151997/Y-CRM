@@ -196,6 +196,7 @@ export default function EditInvoicePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...data,
+          contactId: data.contactId || null,
           dueDate: new Date(data.dueDate),
           taxRate: data.taxRate || null,
           discountType: data.discountType || null,
