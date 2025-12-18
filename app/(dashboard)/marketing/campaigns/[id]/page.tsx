@@ -50,20 +50,27 @@ export default async function CampaignDetailPage({ params }: PageProps) {
   const { orgId } = await getAuthContext();
   const { id } = await params;
 
-  const campaign = await prisma.campaign.findFirst({
-    where: { id, orgId },
-    include: {
-      segment: {
-        select: { 
-          id: true, 
-          name: true, 
-          memberCount: true,
-          targetEntity: true,
-          type: true,
+  const [campaign, segments] = await Promise.all([
+    prisma.campaign.findFirst({
+      where: { id, orgId },
+      include: {
+        segment: {
+          select: { 
+            id: true, 
+            name: true, 
+            memberCount: true,
+            targetEntity: true,
+            type: true,
+          },
         },
       },
-    },
-  });
+    }),
+    prisma.segment.findMany({
+      where: { orgId, isActive: true },
+      select: { id: true, name: true, memberCount: true },
+      orderBy: { name: "asc" },
+    }),
+  ]);
 
   if (!campaign) {
     notFound();
@@ -102,7 +109,7 @@ export default async function CampaignDetailPage({ params }: PageProps) {
             )}
           </div>
         </div>
-        <CampaignActions campaign={campaign} />
+        <CampaignActions campaign={campaign} segments={segments} />
       </div>
 
       {/* Status Manager */}
