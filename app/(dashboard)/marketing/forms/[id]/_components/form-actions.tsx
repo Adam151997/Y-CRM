@@ -73,7 +73,7 @@ interface Form {
   isActive: boolean;
   createLead: boolean;
   leadSource: string;
-  fields: FormField[] | null;
+  fields: unknown; // JsonValue from Prisma
 }
 
 interface FormActionsProps {
@@ -120,7 +120,7 @@ export function FormActions({ form }: FormActionsProps) {
     slug: form.slug || "",
     createLead: form.createLead,
     leadSource: form.leadSource,
-    fields: (form.fields || []) as FormField[],
+    fields: (Array.isArray(form.fields) ? form.fields : []) as FormField[],
   });
 
   // Reset form when dialog opens
@@ -132,7 +132,7 @@ export function FormActions({ form }: FormActionsProps) {
         slug: form.slug || "",
         createLead: form.createLead,
         leadSource: form.leadSource,
-        fields: (form.fields || []) as FormField[],
+        fields: (Array.isArray(form.fields) ? form.fields : []) as FormField[],
       });
     }
   }, [showEditDialog, form]);

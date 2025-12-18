@@ -53,7 +53,7 @@ interface Segment {
   isActive: boolean;
   type: string;
   targetEntity: string;
-  rules: SegmentRule[];
+  rules: unknown; // JsonValue from Prisma
   ruleLogic: string;
 }
 
@@ -111,7 +111,7 @@ export function SegmentActions({ segment }: SegmentActionsProps) {
     description: segment.description || "",
     targetEntity: segment.targetEntity,
     ruleLogic: segment.ruleLogic || "AND",
-    rules: segment.rules || [],
+    rules: (Array.isArray(segment.rules) ? segment.rules : []) as SegmentRule[],
   });
 
   // Reset form when dialog opens
@@ -122,7 +122,7 @@ export function SegmentActions({ segment }: SegmentActionsProps) {
         description: segment.description || "",
         targetEntity: segment.targetEntity,
         ruleLogic: segment.ruleLogic || "AND",
-        rules: segment.rules || [],
+        rules: (Array.isArray(segment.rules) ? segment.rules : []) as SegmentRule[],
       });
     }
   }, [showEditDialog, segment]);
