@@ -24,18 +24,13 @@ interface FormField {
   options?: string[];
 }
 
-interface Branding {
-  orgName?: string;
-  showPoweredBy?: boolean;
-}
-
 interface PublicFormRendererProps {
   formId: string;
   slug: string;
   name: string;
   description?: string;
   fields: FormField[];
-  branding?: Branding;
+  showPoweredBy?: boolean;
 }
 
 export function PublicFormRenderer({
@@ -44,7 +39,7 @@ export function PublicFormRenderer({
   name,
   description,
   fields,
-  branding,
+  showPoweredBy = true,
 }: PublicFormRendererProps) {
   const [formData, setFormData] = useState<Record<string, string | boolean | string[]>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -106,20 +101,9 @@ export function PublicFormRenderer({
     }
   };
 
-  // Branding header component
-  const BrandingHeader = () => {
-    if (!branding?.orgName) return null;
-    
-    return (
-      <div className="flex items-center justify-center gap-2 mb-6 pb-4 border-b border-border">
-        <span className="font-semibold text-foreground">{branding.orgName}</span>
-      </div>
-    );
-  };
-
   // Powered by footer component
   const PoweredByFooter = () => {
-    if (branding?.showPoweredBy === false) return null;
+    if (!showPoweredBy) return null;
     
     return (
       <div className="mt-6 pt-4 border-t border-border">
@@ -142,7 +126,6 @@ export function PublicFormRenderer({
   if (submitStatus === "success") {
     return (
       <div className="text-center py-12">
-        <BrandingHeader />
         <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
           <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-400" />
         </div>
@@ -157,7 +140,6 @@ export function PublicFormRenderer({
   if (submitStatus === "error") {
     return (
       <div className="text-center py-12">
-        <BrandingHeader />
         <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
           <AlertCircle className="h-8 w-8 text-red-600 dark:text-red-400" />
         </div>
@@ -171,9 +153,6 @@ export function PublicFormRenderer({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Branding Header */}
-      <BrandingHeader />
-
       {/* Form Header */}
       <div className="text-center mb-8">
         <h1 className="text-2xl font-bold text-foreground">{name}</h1>
