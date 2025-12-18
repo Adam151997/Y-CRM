@@ -58,7 +58,7 @@ export default function EditInvoicePage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [accounts, setAccounts] = useState<{ id: string; name: string; contacts?: { id: string; firstName: string; lastName: string; email?: string }[] }[]>([]);
+  const [accounts, setAccounts] = useState<{ id: string; name: string; address?: Record<string, unknown>; contacts?: { id: string; firstName: string; lastName: string; email?: string }[] }[]>([]);
   const [selectedAccount, setSelectedAccount] = useState<typeof accounts[0] | null>(null);
   const [invoiceNumber, setInvoiceNumber] = useState("");
 
@@ -108,7 +108,7 @@ export default function EditInvoicePage() {
           const accountsList = accountsData.data || accountsData.accounts || [];
           // Fetch contacts for each account
           const accountsWithContacts = await Promise.all(
-            accountsList.map(async (account: { id: string; name: string }) => {
+            accountsList.map(async (account: { id: string; name: string; address?: Record<string, unknown> }) => {
               const contactsRes = await fetch(`/api/contacts?accountId=${account.id}&limit=50`);
               if (contactsRes.ok) {
                 const contactsData = await contactsRes.json();
@@ -191,6 +191,12 @@ export default function EditInvoicePage() {
   const onSubmit = async (data: FormValues) => {
     setIsSubmitting(true);
     try {
+      // Build billing address from selected account
+      const billingAddress = selectedAccount ? {
+        name: selectedAccount.name,
+        ...(selectedAccount.address || {}),
+      } : undefined;
+
       const response = await fetch(`/api/invoices/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -201,6 +207,7 @@ export default function EditInvoicePage() {
           taxRate: data.taxRate || null,
           discountType: data.discountType || null,
           discountValue: data.discountValue || null,
+          billingAddress,
         }),
       });
 
