@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -52,12 +52,9 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-interface PageProps {
-  params: Promise<{ id: string }>;
-}
-
-export default function EditInvoicePage({ params }: PageProps) {
-  const { id } = use(params);
+export default function EditInvoicePage() {
+  const params = useParams();
+  const id = typeof params?.id === "string" ? params.id : "";
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
