@@ -39,6 +39,15 @@ export async function GET(
   }
 }
 
+// Helper to transform datetime strings
+const datetimeTransform = z.string().optional().nullable().transform((val) => {
+  if (val === undefined) return undefined;
+  if (val === null) return null;
+  if (val.trim() === "") return null;
+  const date = new Date(val);
+  return isNaN(date.getTime()) ? null : date.toISOString();
+});
+
 // Update schema
 const updateCampaignSchema = z.object({
   name: z.string().min(1).max(200).optional(),
@@ -49,9 +58,9 @@ const updateCampaignSchema = z.object({
   subject: z.string().optional().nullable(),
   content: z.any().optional(),
   settings: z.any().optional(),
-  scheduledAt: z.string().datetime().optional().nullable(),
-  startedAt: z.string().datetime().optional().nullable(),
-  completedAt: z.string().datetime().optional().nullable(),
+  scheduledAt: datetimeTransform,
+  startedAt: datetimeTransform,
+  completedAt: datetimeTransform,
   budget: z.number().positive().optional().nullable(),
   spent: z.number().optional().nullable(),
   metrics: z.any().optional(),

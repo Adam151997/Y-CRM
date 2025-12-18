@@ -63,7 +63,12 @@ const createCampaignSchema = z.object({
   subject: z.string().optional(),
   content: z.any().optional(),
   settings: z.any().optional(),
-  scheduledAt: z.string().datetime().optional(),
+  scheduledAt: z.string().optional().transform((val) => {
+    if (val === undefined) return undefined;
+    if (val.trim() === "") return undefined;
+    const date = new Date(val);
+    return isNaN(date.getTime()) ? undefined : date.toISOString();
+  }),
   budget: z.number().positive().optional(),
 });
 
