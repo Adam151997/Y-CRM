@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, FileText, Clock, CheckCircle, AlertCircle } from "lucide-react";
+import { Plus, FileText, Clock, CheckCircle, AlertCircle, Download, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 import { InvoicesFilters } from "./_components/invoices-filters";
 import { InvoicesTable } from "./_components/invoices-table";
@@ -53,6 +53,8 @@ function InvoicesContent() {
   const [data, setData] = useState<InvoicesData | null>(null);
   const [loading, setLoading] = useState(true);
   const [accounts, setAccounts] = useState<{ id: string; name: string }[]>([]);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isExporting, setIsExporting] = useState(false);
 
   // Fetch invoices
   const fetchInvoices = async () => {
@@ -67,6 +69,8 @@ function InvoicesContent() {
       
       const result = await response.json();
       setData(result);
+      // Clear selection when data changes
+      setSelectedIds([]);
     } catch (error) {
       console.error("Error fetching invoices:", error);
       toast.error("Failed to load invoices");
@@ -123,32 +127,47 @@ function InvoicesContent() {
     }
   };
 
-  const handleSend = async (id: string) => {
-    const invoice = data?.invoices.find(i => i.id === id);
-    if (!invoice) return;
-
-    const email = invoice.contact?.email;
-    if (!email) {
-      toast.error("No email address found for this contact");
+  const handleBulkExport = async () => {
+    if (selectedIds.length === 0) {
+      toast.error("Please select invoices to export");
       return;
     }
 
+    setIsExporting(true);
     try {
-      const response = await fetch(`/api/invoices/${id}/send`, {
+      const response = await fetch("/api/invoices/bulk-export", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ to: email }),
+        body: JSON.stringify({ invoiceIds: selectedIds }),
       });
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || "Failed to send invoice");
+        throw new Error(error.error || "Failed to export invoices");
       }
 
-      toast.success(`Invoice sent to ${email}`);
-      fetchInvoices();
+      // Get the HTML content and create a download
+      const html = await response.text();
+      const blob = new Blob([html], { type: "text/html" });
+      const url = URL.createObjectURL(blob);
+      
+      // Create download link
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = selectedIds.length === 1 
+        ? `invoice-${data?.invoices.find(i => i.id === selectedIds[0])?.invoiceNumber || "export"}.html`
+        : `invoices-export-${new Date().toISOString().split("T")[0]}.html`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast.success(`Exported ${selectedIds.length} invoice${selectedIds.length > 1 ? "s" : ""}`);
+      setSelectedIds([]);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to send invoice");
+      toast.error(error instanceof Error ? error.message : "Failed to export invoices");
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -230,13 +249,47 @@ function InvoicesContent() {
       {/* Filters */}
       <InvoicesFilters accounts={accounts} />
 
+      {/* Bulk Actions Bar */}
+      {selectedIds.length > 0 && (
+        <div className="flex items-center justify-between bg-muted/50 border rounded-lg px-4 py-3">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium">
+              {selectedIds.length} invoice{selectedIds.length > 1 ? "s" : ""} selected
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSelectedIds([])}
+              className="h-7 px-2"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleBulkExport}
+            disabled={isExporting}
+          >
+            {isExporting ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4 mr-2" />
+            )}
+            Export as PDF
+          </Button>
+        </div>
+      )}
+
       {/* Table */}
       <Card>
         <CardContent className="p-0">
           <InvoicesTable
             invoices={data?.invoices || []}
+            selectedIds={selectedIds}
+            onSelectionChange={setSelectedIds}
             onDelete={handleDelete}
-            onSend={handleSend}
+            onRefresh={fetchInvoices}
           />
         </CardContent>
       </Card>

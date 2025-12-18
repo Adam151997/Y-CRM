@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,8 +19,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Eye, Edit, Send, Trash2, FileText } from "lucide-react";
+import { MoreHorizontal, Eye, Edit, Trash2, FileText, Copy, Download } from "lucide-react";
 import { formatCurrency, getStatusInfo } from "@/lib/invoices/client-utils";
+import { toast } from "sonner";
 
 interface Invoice {
   id: string;
@@ -48,16 +50,66 @@ interface Invoice {
 
 interface InvoicesTableProps {
   invoices: Invoice[];
+  selectedIds: string[];
+  onSelectionChange: (ids: string[]) => void;
   onDelete?: (id: string) => void;
-  onSend?: (id: string) => void;
+  onRefresh?: () => void;
 }
 
-export function InvoicesTable({ invoices, onDelete, onSend }: InvoicesTableProps) {
+export function InvoicesTable({ 
+  invoices, 
+  selectedIds, 
+  onSelectionChange, 
+  onDelete,
+  onRefresh,
+}: InvoicesTableProps) {
   const router = useRouter();
 
   const handleRowClick = (id: string) => {
     router.push(`/sales/invoices/${id}`);
   };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      onSelectionChange(invoices.map((inv) => inv.id));
+    } else {
+      onSelectionChange([]);
+    }
+  };
+
+  const handleSelectOne = (id: string, checked: boolean) => {
+    if (checked) {
+      onSelectionChange([...selectedIds, id]);
+    } else {
+      onSelectionChange(selectedIds.filter((selectedId) => selectedId !== id));
+    }
+  };
+
+  const handleDuplicate = async (id: string) => {
+    try {
+      const response = await fetch(`/api/invoices/${id}/duplicate`, {
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to duplicate invoice");
+      }
+
+      const data = await response.json();
+      toast.success(`Invoice duplicated as ${data.invoice.invoiceNumber}`);
+      router.push(`/sales/invoices/${data.invoice.id}`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to duplicate invoice");
+    }
+  };
+
+  const handleDownloadPDF = (id: string) => {
+    window.open(`/api/invoices/${id}/pdf`, "_blank");
+  };
+
+  const allSelected = invoices.length > 0 && selectedIds.length === invoices.length;
+  const someSelected = selectedIds.length > 0 && selectedIds.length < invoices.length;
 
   if (invoices.length === 0) {
     return (
@@ -75,6 +127,18 @@ export function InvoicesTable({ invoices, onDelete, onSend }: InvoicesTableProps
     <Table>
       <TableHeader>
         <TableRow>
+          <TableHead className="w-[50px]">
+            <Checkbox
+              checked={allSelected}
+              ref={(el) => {
+                if (el) {
+                  (el as HTMLButtonElement & { indeterminate: boolean }).indeterminate = someSelected;
+                }
+              }}
+              onCheckedChange={handleSelectAll}
+              aria-label="Select all"
+            />
+          </TableHead>
           <TableHead>Invoice #</TableHead>
           <TableHead>Account</TableHead>
           <TableHead>Status</TableHead>
@@ -88,17 +152,28 @@ export function InvoicesTable({ invoices, onDelete, onSend }: InvoicesTableProps
       <TableBody>
         {invoices.map((invoice) => {
           const statusInfo = getStatusInfo(invoice.status);
+          const isSelected = selectedIds.includes(invoice.id);
 
           return (
             <TableRow
               key={invoice.id}
               className="cursor-pointer"
-              onClick={() => handleRowClick(invoice.id)}
+              data-state={isSelected ? "selected" : undefined}
             >
-              <TableCell className="font-medium">
+              <TableCell onClick={(e) => e.stopPropagation()}>
+                <Checkbox
+                  checked={isSelected}
+                  onCheckedChange={(checked) => handleSelectOne(invoice.id, !!checked)}
+                  aria-label={`Select ${invoice.invoiceNumber}`}
+                />
+              </TableCell>
+              <TableCell 
+                className="font-medium"
+                onClick={() => handleRowClick(invoice.id)}
+              >
                 {invoice.invoiceNumber}
               </TableCell>
-              <TableCell>
+              <TableCell onClick={() => handleRowClick(invoice.id)}>
                 <div>
                   <div className="font-medium">{invoice.account.name}</div>
                   {invoice.contact && (
@@ -108,21 +183,27 @@ export function InvoicesTable({ invoices, onDelete, onSend }: InvoicesTableProps
                   )}
                 </div>
               </TableCell>
-              <TableCell>
+              <TableCell onClick={() => handleRowClick(invoice.id)}>
                 <Badge className={`${statusInfo.bgColor} ${statusInfo.color}`}>
                   {statusInfo.label}
                 </Badge>
               </TableCell>
-              <TableCell>
+              <TableCell onClick={() => handleRowClick(invoice.id)}>
                 {new Date(invoice.issueDate).toLocaleDateString()}
               </TableCell>
-              <TableCell>
+              <TableCell onClick={() => handleRowClick(invoice.id)}>
                 {new Date(invoice.dueDate).toLocaleDateString()}
               </TableCell>
-              <TableCell className="text-right font-medium">
+              <TableCell 
+                className="text-right font-medium"
+                onClick={() => handleRowClick(invoice.id)}
+              >
                 {formatCurrency(invoice.total, invoice.currency)}
               </TableCell>
-              <TableCell className="text-right">
+              <TableCell 
+                className="text-right"
+                onClick={() => handleRowClick(invoice.id)}
+              >
                 {invoice.amountDue > 0 ? (
                   <span className={invoice.status === "OVERDUE" ? "text-red-600 font-medium" : ""}>
                     {formatCurrency(invoice.amountDue, invoice.currency)}
@@ -159,17 +240,24 @@ export function InvoicesTable({ invoices, onDelete, onSend }: InvoicesTableProps
                         Edit
                       </DropdownMenuItem>
                     )}
-                    {["DRAFT", "SENT", "VIEWED", "OVERDUE", "PARTIALLY_PAID"].includes(invoice.status) && (
-                      <DropdownMenuItem
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onSend?.(invoice.id);
-                        }}
-                      >
-                        <Send className="h-4 w-4 mr-2" />
-                        Send
-                      </DropdownMenuItem>
-                    )}
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDuplicate(invoice.id);
+                      }}
+                    >
+                      <Copy className="h-4 w-4 mr-2" />
+                      Duplicate
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDownloadPDF(invoice.id);
+                      }}
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Download PDF
+                    </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     {invoice.status === "DRAFT" && (
                       <DropdownMenuItem
