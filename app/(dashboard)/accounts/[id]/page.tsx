@@ -19,6 +19,8 @@ import {
   Activity,
   FileText,
   Receipt,
+  HeartPulse,
+  Ticket,
 } from "lucide-react";
 import { AccountContacts } from "./_components/account-contacts";
 import { AccountOpportunities } from "./_components/account-opportunities";
@@ -28,6 +30,7 @@ import { AccountActions } from "./_components/account-actions";
 import { AccountRenewals } from "./_components/account-renewals";
 import { AccountDocuments } from "./_components/account-documents";
 import { AccountInvoices } from "./_components/account-invoices";
+import { AccountTickets } from "./_components/account-tickets";
 import { RecordTimeline } from "@/components/shared/record-timeline";
 import { AssigneeDisplay } from "@/components/forms/assignee-selector";
 import { CustomFieldsDisplay } from "@/components/forms/custom-fields-renderer";
@@ -105,8 +108,13 @@ export default async function AccountDetailPage({ params }: AccountDetailPagePro
         },
         take: 20,
       },
+      tickets: {
+        orderBy: { createdAt: "desc" },
+        take: 20,
+      },
+      health: true,
       _count: {
-        select: { contacts: true, opportunities: true, notes: true, tasks: true, renewals: true, activities: true, documents: true, invoices: true },
+        select: { contacts: true, opportunities: true, notes: true, tasks: true, renewals: true, activities: true, documents: true, invoices: true, tickets: true },
       },
     },
   });
@@ -270,11 +278,64 @@ export default async function AccountDetailPage({ params }: AccountDetailPagePro
             </CardContent>
           </Card>
 
+          {/* Health Score Card */}
+          {account.health ? (
+            <Link href={`/cs/health/${account.id}`}>
+              <Card className="hover:bg-muted/50 transition-colors cursor-pointer">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <HeartPulse className="h-4 w-4" />
+                    Health Score
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-3xl font-bold">{account.health.score}</span>
+                      <span className="text-muted-foreground">/100</span>
+                    </div>
+                    <Badge
+                      className={
+                        account.health.riskLevel === "LOW"
+                          ? "bg-green-500/10 text-green-500"
+                          : account.health.riskLevel === "MEDIUM"
+                          ? "bg-yellow-500/10 text-yellow-500"
+                          : account.health.riskLevel === "HIGH"
+                          ? "bg-orange-500/10 text-orange-500"
+                          : "bg-red-500/10 text-red-500"
+                      }
+                    >
+                      {account.health.riskLevel}
+                    </Badge>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+          ) : (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <HeartPulse className="h-4 w-4" />
+                  Health Score
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">No health data yet</p>
+              </CardContent>
+            </Card>
+          )}
+
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">Additional Info</CardTitle>
+              <CardTitle className="text-base">Company Info</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-2">
+              {account.employeeCount && (
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-muted-foreground">Employees</span>
+                  <span className="font-medium">{account.employeeCount.toLocaleString()}</span>
+                </div>
+              )}
               <CustomFieldsDisplay
                 module="ACCOUNT"
                 values={(account.customFields as Record<string, unknown>) || {}}
@@ -311,6 +372,9 @@ export default async function AccountDetailPage({ params }: AccountDetailPagePro
           </TabsTrigger>
           <TabsTrigger value="invoices">
             Invoices ({account._count.invoices})
+          </TabsTrigger>
+          <TabsTrigger value="tickets">
+            Tickets ({account._count.tickets})
           </TabsTrigger>
         </TabsList>
 
@@ -358,6 +422,10 @@ export default async function AccountDetailPage({ params }: AccountDetailPagePro
 
         <TabsContent value="invoices">
           <AccountInvoices invoices={account.invoices} accountId={account.id} />
+        </TabsContent>
+
+        <TabsContent value="tickets">
+          <AccountTickets tickets={account.tickets} accountId={account.id} />
         </TabsContent>
       </Tabs>
     </div>

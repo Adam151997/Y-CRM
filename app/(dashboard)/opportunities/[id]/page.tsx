@@ -16,6 +16,8 @@ import {
   TrendingUp,
   Activity,
   Receipt,
+  CalendarCheck,
+  XCircle,
 } from "lucide-react";
 import { format } from "date-fns";
 import { OpportunityNotes } from "./_components/opportunity-notes";
@@ -251,6 +253,40 @@ export default async function OpportunityDetailPage({ params }: OpportunityDetai
               </div>
             </CardContent>
           </Card>
+
+          {/* Closed Deal Info */}
+          {opportunity.closedWon !== null && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  {opportunity.closedWon ? (
+                    <CalendarCheck className="h-4 w-4 text-green-500" />
+                  ) : (
+                    <XCircle className="h-4 w-4 text-red-500" />
+                  )}
+                  {opportunity.closedWon ? "Won Details" : "Lost Details"}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {opportunity.actualCloseDate && (
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-muted-foreground">Closed Date</span>
+                    <span className="font-medium">
+                      {format(new Date(opportunity.actualCloseDate), "MMM d, yyyy")}
+                    </span>
+                  </div>
+                )}
+                {!opportunity.closedWon && opportunity.lostReason && (
+                  <div className="space-y-1">
+                    <span className="text-sm text-muted-foreground">Lost Reason</span>
+                    <p className="text-sm bg-muted/50 p-2 rounded-md">
+                      {opportunity.lostReason}
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           <Card>
             <CardHeader className="pb-3">

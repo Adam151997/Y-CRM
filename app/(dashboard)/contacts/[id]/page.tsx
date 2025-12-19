@@ -17,10 +17,14 @@ import {
   Star,
   ExternalLink,
   Activity,
+  Ticket,
+  Receipt,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ContactNotes } from "./_components/contact-notes";
 import { ContactTasks } from "./_components/contact-tasks";
+import { ContactTickets } from "./_components/contact-tickets";
+import { ContactInvoices } from "./_components/contact-invoices";
 import { RecordTimeline } from "@/components/shared/record-timeline";
 import { AssigneeDisplay } from "@/components/forms/assignee-selector";
 import { CustomFieldsDisplay } from "@/components/forms/custom-fields-renderer";
@@ -46,6 +50,14 @@ export default async function ContactPage({ params }: ContactPageProps) {
       },
       activities: {
         orderBy: { performedAt: "desc" },
+        take: 20,
+      },
+      tickets: {
+        orderBy: { createdAt: "desc" },
+        take: 20,
+      },
+      invoices: {
+        orderBy: { issueDate: "desc" },
         take: 20,
       },
     },
@@ -208,6 +220,12 @@ export default async function ContactPage({ params }: ContactPageProps) {
               <TabsTrigger value="tasks">
                 Tasks ({contact.tasks.length})
               </TabsTrigger>
+              <TabsTrigger value="tickets">
+                Tickets ({contact.tickets.length})
+              </TabsTrigger>
+              <TabsTrigger value="invoices">
+                Invoices ({contact.invoices.length})
+              </TabsTrigger>
             </TabsList>
             <TabsContent value="timeline" className="mt-4">
               <RecordTimeline
@@ -227,6 +245,18 @@ export default async function ContactPage({ params }: ContactPageProps) {
                 contactId={contact.id}
                 tasks={contact.tasks}
                 userId={userId}
+              />
+            </TabsContent>
+            <TabsContent value="tickets" className="mt-4">
+              <ContactTickets
+                tickets={contact.tickets}
+                contactId={contact.id}
+              />
+            </TabsContent>
+            <TabsContent value="invoices" className="mt-4">
+              <ContactInvoices
+                invoices={contact.invoices}
+                contactId={contact.id}
               />
             </TabsContent>
           </Tabs>

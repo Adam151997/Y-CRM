@@ -162,6 +162,7 @@ export const createTaskSchema = z.object({
   priority: taskPrioritySchema.default("MEDIUM"),
   status: taskStatusSchema.default("PENDING"),
   taskType: taskTypeSchema.optional().nullable(),
+  workspace: z.enum(["sales", "cs", "marketing"]).default("sales"),
   leadId: z.string().uuid().optional().nullable(),
   contactId: z.string().uuid().optional().nullable(),
   accountId: z.string().uuid().optional().nullable(),

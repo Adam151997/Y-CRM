@@ -36,6 +36,7 @@ export async function POST(request: NextRequest) {
         priority: data.priority,
         status: data.status,
         taskType: data.taskType,
+        workspace: data.workspace || "sales",
         leadId: data.leadId,
         contactId: data.contactId,
         accountId: data.accountId,

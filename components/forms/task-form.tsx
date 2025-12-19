@@ -42,6 +42,7 @@ const taskFormSchema = z.object({
   priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]).default("MEDIUM"),
   status: z.enum(["PENDING", "IN_PROGRESS", "COMPLETED", "CANCELLED"]).default("PENDING"),
   taskType: z.enum(["CALL", "EMAIL", "MEETING", "FOLLOW_UP", "ONBOARDING", "RENEWAL", "OTHER"]).optional().nullable(),
+  workspace: z.enum(["sales", "cs", "marketing"]).default("sales"),
   assignedToId: z.string().optional().nullable(),
   leadId: z.string().uuid().optional().nullable(),
   contactId: z.string().uuid().optional().nullable(),
@@ -60,6 +61,7 @@ interface TaskFormProps {
     priority: string;
     status: string;
     taskType?: string | null;
+    workspace?: string | null;
     assignedToId?: string | null;
     leadId?: string | null;
     contactId?: string | null;
@@ -90,6 +92,12 @@ const taskTypes = [
   { value: "ONBOARDING", label: "Onboarding" },
   { value: "RENEWAL", label: "Renewal" },
   { value: "OTHER", label: "Other" },
+];
+
+const workspaces = [
+  { value: "sales", label: "Sales" },
+  { value: "cs", label: "Customer Success" },
+  { value: "marketing", label: "Marketing" },
 ];
 
 interface TeamMember {
@@ -139,6 +147,7 @@ export function TaskForm({ initialData }: TaskFormProps) {
       priority: (initialData?.priority as TaskFormValues["priority"]) || "MEDIUM",
       status: (initialData?.status as TaskFormValues["status"]) || "PENDING",
       taskType: (initialData?.taskType as TaskFormValues["taskType"]) || null,
+      workspace: (initialData?.workspace as TaskFormValues["workspace"]) || "sales",
       assignedToId: initialData?.assignedToId || null,
       leadId: initialData?.leadId || leadIdParam || null,
       contactId: initialData?.contactId || contactIdParam || null,
@@ -328,6 +337,31 @@ export function TaskForm({ initialData }: TaskFormProps) {
                       {statuses.map((status) => (
                         <SelectItem key={status.value} value={status.value}>
                           {status.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="workspace"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Workspace</FormLabel>
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {workspaces.map((ws) => (
+                        <SelectItem key={ws.value} value={ws.value}>
+                          {ws.label}
                         </SelectItem>
                       ))}
                     </SelectContent>
