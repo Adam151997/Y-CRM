@@ -423,8 +423,8 @@ async function getInvoiceStats(
   // Process main currency data
   for (const curr of byCurrency) {
     const currency = curr.currency;
-    const totalInvoiced = Number(curr._sum.total || 0);
-    const totalPaid = Number(curr._sum.amountPaid || 0);
+    const totalInvoiced = Number(curr._sum?.total || 0);
+    const totalPaid = Number(curr._sum?.amountPaid || 0);
     
     // Find overdue/pending for this currency
     const overdueData = overdueByCurrency.find(o => o.currency === currency);
