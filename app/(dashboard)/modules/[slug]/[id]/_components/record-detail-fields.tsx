@@ -1,8 +1,10 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { RelationshipDisplay } from "@/components/forms/relationship-field-input";
 import { format } from "date-fns";
+import { File, ExternalLink, Download } from "lucide-react";
 
 interface Field {
   id: string;
@@ -92,6 +94,45 @@ export function RecordDetailFields({ fields, data }: RecordDetailFieldsProps) {
             showLink={true}
           />
         );
+      case "FILE":
+        const fileValue = value as { url?: string; name?: string; size?: number; type?: string } | null;
+        if (!fileValue?.url) {
+          return <span className="text-muted-foreground">-</span>;
+        }
+        return (
+          <div className="flex items-center gap-3 p-3 border rounded-lg bg-muted/30 max-w-md">
+            <File className="h-8 w-8 text-muted-foreground flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium truncate">{fileValue.name}</p>
+              <p className="text-xs text-muted-foreground">
+                {fileValue.size ? `${(fileValue.size / 1024).toFixed(1)} KB` : ""}
+                {fileValue.type ? ` • ${fileValue.type.split("/")[1]?.toUpperCase()}` : ""}
+              </p>
+            </div>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                asChild
+              >
+                <a href={fileValue.url} target="_blank" rel="noopener noreferrer">
+                  <ExternalLink className="h-4 w-4" />
+                </a>
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                asChild
+              >
+                <a href={fileValue.url} download={fileValue.name}>
+                  <Download className="h-4 w-4" />
+                </a>
+              </Button>
+            </div>
+          </div>
+        );
       default:
         return String(value);
     }
@@ -103,7 +144,7 @@ export function RecordDetailFields({ fields, data }: RecordDetailFieldsProps) {
         <div
           key={field.id}
           className={
-            field.fieldType === "TEXTAREA" || field.fieldType === "RELATIONSHIP"
+            field.fieldType === "TEXTAREA" || field.fieldType === "RELATIONSHIP" || field.fieldType === "FILE"
               ? "md:col-span-2"
               : ""
           }

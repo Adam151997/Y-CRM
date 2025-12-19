@@ -18,7 +18,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Pencil, Trash2, GripVertical, Inbox, Link2 } from "lucide-react";
+import { MoreHorizontal, Pencil, Trash2, GripVertical, Inbox, Link2, Paperclip } from "lucide-react";
 import { toast } from "sonner";
 import { EditCustomFieldDialog } from "./edit-custom-field-dialog";
 
@@ -58,6 +58,7 @@ const fieldTypeLabels: Record<string, string> = {
   EMAIL: "Email",
   PHONE: "Phone",
   RELATIONSHIP: "Relationship",
+  FILE: "File",
 };
 
 const fieldTypeColors: Record<string, string> = {
@@ -74,6 +75,7 @@ const fieldTypeColors: Record<string, string> = {
   EMAIL: "bg-indigo-500/10 text-indigo-500",
   PHONE: "bg-teal-500/10 text-teal-500",
   RELATIONSHIP: "bg-violet-500/10 text-violet-500",
+  FILE: "bg-amber-500/10 text-amber-500",
 };
 
 // Mapping for display names
@@ -174,6 +176,12 @@ export function CustomFieldsList({
                   <div className="flex items-center gap-1 mt-0.5 text-xs text-muted-foreground">
                     <Link2 className="h-3 w-3" />
                     Links to {moduleDisplayNames[field.relatedModule] || field.relatedModule}
+                  </div>
+                )}
+                {field.fieldType === "FILE" && (
+                  <div className="flex items-center gap-1 mt-0.5 text-xs text-muted-foreground">
+                    <Paperclip className="h-3 w-3" />
+                    File attachment
                   </div>
                 )}
               </TableCell>

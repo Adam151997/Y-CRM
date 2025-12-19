@@ -120,6 +120,21 @@ function validateRecordData(
           errors.push(`${field.fieldKey} must be a valid UUID`);
         }
         break;
+
+      case "FILE":
+        // File fields store an object with url, name, size, type, key
+        if (typeof value !== "object" || value === null) {
+          errors.push(`${field.fieldKey} must be a file object`);
+        } else {
+          const fileValue = value as Record<string, unknown>;
+          if (!fileValue.url || typeof fileValue.url !== "string") {
+            errors.push(`${field.fieldKey} must have a valid URL`);
+          }
+          if (!fileValue.name || typeof fileValue.name !== "string") {
+            errors.push(`${field.fieldKey} must have a filename`);
+          }
+        }
+        break;
     }
   }
 

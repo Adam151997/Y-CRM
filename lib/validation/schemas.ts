@@ -263,6 +263,7 @@ export const customFieldTypeSchema = z.enum([
   "EMAIL",
   "PHONE",
   "RELATIONSHIP",
+  "FILE",
 ]);
 
 export const createCustomFieldSchema = z.object({

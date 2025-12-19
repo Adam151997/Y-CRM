@@ -3,7 +3,7 @@ import { getApiAuthContext } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { createAuditLog } from "@/lib/audit";
 import { Prisma } from "@prisma/client";
-import { cleanupOrphanedRelationships, validateRelationships } from "@/lib/relationships";
+import { getReferencingRecords, validateRelationships } from "@/lib/relationships";
 
 interface RouteParams {
   params: Promise<{ slug: string; id: string }>;
@@ -216,17 +216,27 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Record not found" }, { status: 404 });
     }
 
+    // Check for dependencies - block deletion if record is linked elsewhere
+    const referencingRecords = await getReferencingRecords(auth.orgId, slug, id);
+    if (referencingRecords.length > 0) {
+      // Format linked records info for error message
+      const linkedInfo = referencingRecords.slice(0, 5).map(r => 
+        `${r.module} (field: ${r.fieldKey})`
+      );
+      const moreCount = referencingRecords.length > 5 
+        ? ` and ${referencingRecords.length - 5} more` 
+        : '';
+      
+      return NextResponse.json({
+        error: `Cannot delete this record because it is linked to ${referencingRecords.length} other record(s): ${linkedInfo.join(', ')}${moreCount}`,
+        linkedRecords: referencingRecords.slice(0, 10),
+      }, { status: 400 });
+    }
+
     // Delete the record
     await prisma.customModuleRecord.delete({
       where: { id },
     });
-
-    // Clean up orphaned relationships pointing to this record
-    const cleanupResult = await cleanupOrphanedRelationships(
-      auth.orgId,
-      slug, // Use module slug as identifier
-      id
-    );
 
     // Audit log
     await createAuditLog({
@@ -240,7 +250,6 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       metadata: { 
         moduleSlug: module.slug, 
         moduleName: module.name,
-        relationshipsCleanedUp: cleanupResult.cleaned,
       },
     });
 

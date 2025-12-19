@@ -27,6 +27,7 @@ const createCustomFieldSchema = z.object({
     "EMAIL",
     "PHONE",
     "RELATIONSHIP",
+    "FILE",
   ]),
   required: z.boolean().default(false),
   options: z.array(z.string()).optional(),

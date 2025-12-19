@@ -50,6 +50,7 @@ const editCustomFieldSchema = z.object({
     "EMAIL",
     "PHONE",
     "RELATIONSHIP",
+    "FILE",
   ]),
   required: z.boolean().default(false),
   placeholder: z.string().max(200).optional().nullable(),
@@ -94,6 +95,7 @@ const fieldTypes = [
   { value: "EMAIL", label: "Email" },
   { value: "PHONE", label: "Phone" },
   { value: "RELATIONSHIP", label: "Relationship" },
+  { value: "FILE", label: "File" },
 ];
 
 export function EditCustomFieldDialog({

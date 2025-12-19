@@ -34,7 +34,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
-import { Plus, Loader2, Box, Link2 } from "lucide-react";
+import { Plus, Loader2, Box, Link2, Paperclip } from "lucide-react";
 
 const customFieldSchema = z.object({
   moduleType: z.enum(["builtin", "custom"]),
@@ -63,6 +63,7 @@ const customFieldSchema = z.object({
     "EMAIL",
     "PHONE",
     "RELATIONSHIP",
+    "FILE",
   ]),
   required: z.boolean().default(false),
   placeholder: z.string().max(200).optional(),
@@ -130,6 +131,7 @@ const fieldTypes = [
   { value: "EMAIL", label: "Email", description: "Email address" },
   { value: "PHONE", label: "Phone", description: "Phone number" },
   { value: "RELATIONSHIP", label: "Relationship", description: "Link to another module" },
+  { value: "FILE", label: "File", description: "Upload attachment" },
 ];
 
 export function AddCustomFieldButton({ customModules = [] }: AddCustomFieldButtonProps) {
@@ -374,6 +376,9 @@ export function AddCustomFieldButton({ customModules = [] }: AddCustomFieldButto
                           <div className="flex items-center">
                             {type.value === "RELATIONSHIP" && (
                               <Link2 className="h-3.5 w-3.5 mr-2 text-primary" />
+                            )}
+                            {type.value === "FILE" && (
+                              <Paperclip className="h-3.5 w-3.5 mr-2 text-primary" />
                             )}
                             <span>{type.label}</span>
                             <span className="ml-2 text-xs text-muted-foreground">
