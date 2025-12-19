@@ -21,7 +21,7 @@ interface Invoice {
   status: string;
   issueDate: Date;
   dueDate: Date;
-  total: number | string;
+  total: unknown; // Prisma Decimal
   currency: string;
   contact?: {
     firstName: string;
@@ -45,8 +45,9 @@ const statusColors: Record<string, string> = {
   VOID: "bg-slate-500/10 text-slate-500",
 };
 
-function formatCurrency(value: number | string, currency: string): string {
-  const num = typeof value === "string" ? parseFloat(value) : value;
+function formatCurrency(value: unknown, currency: string): string {
+  const num = typeof value === "string" ? parseFloat(value) : Number(value);
+  if (isNaN(num)) return "$0.00";
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency,
@@ -57,7 +58,7 @@ function formatCurrency(value: number | string, currency: string): string {
 export function AccountInvoices({ invoices, accountId }: AccountInvoicesProps) {
   // Calculate totals
   const totalAmount = invoices.reduce(
-    (sum, inv) => sum + (typeof inv.total === "string" ? parseFloat(inv.total) : inv.total),
+    (sum, inv) => sum + Number(inv.total || 0),
     0
   );
   const paidCount = invoices.filter((inv) => inv.status === "PAID").length;
