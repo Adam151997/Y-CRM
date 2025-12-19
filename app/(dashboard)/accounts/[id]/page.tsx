@@ -17,6 +17,8 @@ import {
   DollarSign,
   TrendingUp,
   Activity,
+  FileText,
+  Receipt,
 } from "lucide-react";
 import { AccountContacts } from "./_components/account-contacts";
 import { AccountOpportunities } from "./_components/account-opportunities";
@@ -24,6 +26,8 @@ import { AccountNotes } from "./_components/account-notes";
 import { AccountTasks } from "./_components/account-tasks";
 import { AccountActions } from "./_components/account-actions";
 import { AccountRenewals } from "./_components/account-renewals";
+import { AccountDocuments } from "./_components/account-documents";
+import { AccountInvoices } from "./_components/account-invoices";
 import { RecordTimeline } from "@/components/shared/record-timeline";
 import { AssigneeDisplay } from "@/components/forms/assignee-selector";
 import { CustomFieldsDisplay } from "@/components/forms/custom-fields-renderer";
@@ -90,8 +94,19 @@ export default async function AccountDetailPage({ params }: AccountDetailPagePro
         orderBy: { performedAt: "desc" },
         take: 20,
       },
+      documents: {
+        orderBy: { createdAt: "desc" },
+        take: 20,
+      },
+      invoices: {
+        orderBy: { issueDate: "desc" },
+        include: {
+          contact: { select: { firstName: true, lastName: true } },
+        },
+        take: 20,
+      },
       _count: {
-        select: { contacts: true, opportunities: true, notes: true, tasks: true, renewals: true, activities: true },
+        select: { contacts: true, opportunities: true, notes: true, tasks: true, renewals: true, activities: true, documents: true, invoices: true },
       },
     },
   });
@@ -291,6 +306,12 @@ export default async function AccountDetailPage({ params }: AccountDetailPagePro
           <TabsTrigger value="tasks">
             Tasks ({account._count.tasks})
           </TabsTrigger>
+          <TabsTrigger value="documents">
+            Documents ({account._count.documents})
+          </TabsTrigger>
+          <TabsTrigger value="invoices">
+            Invoices ({account._count.invoices})
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="timeline">
@@ -329,6 +350,14 @@ export default async function AccountDetailPage({ params }: AccountDetailPagePro
 
         <TabsContent value="tasks">
           <AccountTasks accountId={account.id} initialTasks={account.tasks} />
+        </TabsContent>
+
+        <TabsContent value="documents">
+          <AccountDocuments documents={account.documents} accountId={account.id} />
+        </TabsContent>
+
+        <TabsContent value="invoices">
+          <AccountInvoices invoices={account.invoices} accountId={account.id} />
         </TabsContent>
       </Tabs>
     </div>

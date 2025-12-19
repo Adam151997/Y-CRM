@@ -14,12 +14,16 @@ import {
   Calendar,
   DollarSign,
   TrendingUp,
+  Activity,
+  Receipt,
 } from "lucide-react";
 import { format } from "date-fns";
 import { OpportunityNotes } from "./_components/opportunity-notes";
 import { OpportunityTasks } from "./_components/opportunity-tasks";
 import { OpportunityActions } from "./_components/opportunity-actions";
 import { OpportunityTimeline } from "./_components/opportunity-timeline";
+import { OpportunityInvoices } from "./_components/opportunity-invoices";
+import { RecordTimeline } from "@/components/shared/record-timeline";
 import { AssigneeDisplay } from "@/components/forms/assignee-selector";
 import { CustomFieldsDisplay } from "@/components/forms/custom-fields-renderer";
 
@@ -58,10 +62,21 @@ export default async function OpportunityDetailPage({ params }: OpportunityDetai
         where: { status: { in: ["PENDING", "IN_PROGRESS"] } },
         take: 5,
       },
+      invoices: {
+        orderBy: { issueDate: "desc" },
+        take: 10,
+      },
       _count: {
-        select: { notes: true, tasks: true },
+        select: { notes: true, tasks: true, invoices: true },
       },
     },
+  });
+
+  // Fetch activities from the account (since opportunities don't have direct activity relation)
+  const accountActivities = await prisma.activity.findMany({
+    where: { orgId, accountId: opportunity?.accountId },
+    orderBy: { performedAt: "desc" },
+    take: 20,
   });
 
   if (!opportunity) {
@@ -252,15 +267,29 @@ export default async function OpportunityDetailPage({ params }: OpportunityDetai
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="notes" className="space-y-4">
+      <Tabs defaultValue="activity" className="space-y-4">
         <TabsList>
+          <TabsTrigger value="activity" className="gap-2">
+            <Activity className="h-4 w-4" />
+            Activity
+          </TabsTrigger>
           <TabsTrigger value="notes">
             Notes ({opportunity._count.notes})
           </TabsTrigger>
           <TabsTrigger value="tasks">
             Tasks ({opportunity._count.tasks})
           </TabsTrigger>
+          <TabsTrigger value="invoices">
+            Invoices ({opportunity._count.invoices})
+          </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="activity">
+          <RecordTimeline
+            activities={accountActivities}
+            emptyMessage="No activity yet for this opportunity's account"
+          />
+        </TabsContent>
 
         <TabsContent value="notes">
           <OpportunityNotes opportunityId={opportunity.id} initialNotes={opportunity.notes} />
@@ -268,6 +297,14 @@ export default async function OpportunityDetailPage({ params }: OpportunityDetai
 
         <TabsContent value="tasks">
           <OpportunityTasks opportunityId={opportunity.id} initialTasks={opportunity.tasks} />
+        </TabsContent>
+
+        <TabsContent value="invoices">
+          <OpportunityInvoices
+            invoices={opportunity.invoices}
+            opportunityId={opportunity.id}
+            accountId={opportunity.accountId}
+          />
         </TabsContent>
       </Tabs>
     </div>

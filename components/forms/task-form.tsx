@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -40,7 +41,8 @@ const taskFormSchema = z.object({
   dueDate: z.date().optional().nullable(),
   priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]).default("MEDIUM"),
   status: z.enum(["PENDING", "IN_PROGRESS", "COMPLETED", "CANCELLED"]).default("PENDING"),
-  taskType: z.enum(["CALL", "EMAIL", "MEETING", "FOLLOW_UP", "OTHER"]).optional().nullable(),
+  taskType: z.enum(["CALL", "EMAIL", "MEETING", "FOLLOW_UP", "ONBOARDING", "RENEWAL", "OTHER"]).optional().nullable(),
+  assignedToId: z.string().optional().nullable(),
   leadId: z.string().uuid().optional().nullable(),
   contactId: z.string().uuid().optional().nullable(),
   accountId: z.string().uuid().optional().nullable(),
@@ -58,6 +60,7 @@ interface TaskFormProps {
     priority: string;
     status: string;
     taskType?: string | null;
+    assignedToId?: string | null;
     leadId?: string | null;
     contactId?: string | null;
     accountId?: string | null;
@@ -84,8 +87,15 @@ const taskTypes = [
   { value: "EMAIL", label: "Email" },
   { value: "MEETING", label: "Meeting" },
   { value: "FOLLOW_UP", label: "Follow Up" },
+  { value: "ONBOARDING", label: "Onboarding" },
+  { value: "RENEWAL", label: "Renewal" },
   { value: "OTHER", label: "Other" },
 ];
+
+interface TeamMember {
+  id: string;
+  name: string;
+}
 
 const NO_SELECTION = "_none";
 
@@ -93,6 +103,26 @@ export function TaskForm({ initialData }: TaskFormProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isEditing = !!initialData;
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [loadingMembers, setLoadingMembers] = useState(true);
+
+  // Fetch team members
+  useEffect(() => {
+    async function fetchTeamMembers() {
+      try {
+        const res = await fetch("/api/team-members");
+        if (res.ok) {
+          const data = await res.json();
+          setTeamMembers(data.members || []);
+        }
+      } catch (error) {
+        console.error("Failed to fetch team members:", error);
+      } finally {
+        setLoadingMembers(false);
+      }
+    }
+    fetchTeamMembers();
+  }, []);
 
   // Get IDs from URL params (for creating tasks from other pages)
   const leadIdParam = searchParams.get("leadId");
@@ -109,6 +139,7 @@ export function TaskForm({ initialData }: TaskFormProps) {
       priority: (initialData?.priority as TaskFormValues["priority"]) || "MEDIUM",
       status: (initialData?.status as TaskFormValues["status"]) || "PENDING",
       taskType: (initialData?.taskType as TaskFormValues["taskType"]) || null,
+      assignedToId: initialData?.assignedToId || null,
       leadId: initialData?.leadId || leadIdParam || null,
       contactId: initialData?.contactId || contactIdParam || null,
       accountId: initialData?.accountId || accountIdParam || null,
@@ -297,6 +328,38 @@ export function TaskForm({ initialData }: TaskFormProps) {
                       {statuses.map((status) => (
                         <SelectItem key={status.value} value={status.value}>
                           {status.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="assignedToId"
+              render={({ field }) => (
+                <FormItem className="md:col-span-2">
+                  <FormLabel>Assign To</FormLabel>
+                  <Select
+                    value={field.value || NO_SELECTION}
+                    onValueChange={(value) =>
+                      field.onChange(value === NO_SELECTION ? null : value)
+                    }
+                    disabled={loadingMembers}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder={loadingMembers ? "Loading..." : "Select team member"} />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value={NO_SELECTION}>Unassigned</SelectItem>
+                      {teamMembers.map((member) => (
+                        <SelectItem key={member.id} value={member.id}>
+                          {member.name}
                         </SelectItem>
                       ))}
                     </SelectContent>

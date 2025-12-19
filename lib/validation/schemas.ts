@@ -150,6 +150,8 @@ export const taskTypeSchema = z.enum([
   "EMAIL",
   "MEETING",
   "FOLLOW_UP",
+  "ONBOARDING",
+  "RENEWAL",
   "OTHER",
 ]);
 
