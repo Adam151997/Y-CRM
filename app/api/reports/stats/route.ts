@@ -366,6 +366,7 @@ async function getInvoiceStats(
         issueDate: dateFilter, 
         status: { not: "DRAFT" } 
       },
+      orderBy: { currency: "asc" },
       _sum: { 
         total: true,
         amountPaid: true,
@@ -393,6 +394,7 @@ async function getInvoiceStats(
         status: { in: ["SENT", "PARTIALLY_PAID", "OVERDUE"] },
         dueDate: { lt: now },
       },
+      orderBy: { currency: "asc" },
       _sum: { amountDue: true },
     }),
     prisma.invoice.groupBy({
@@ -403,6 +405,7 @@ async function getInvoiceStats(
         status: { in: ["SENT", "PARTIALLY_PAID"] },
         dueDate: { gte: now },
       },
+      orderBy: { currency: "asc" },
       _sum: { amountDue: true },
     }),
   ]);
@@ -483,6 +486,7 @@ async function getInvoiceStats(
         issueDate: { gte: monthStart, lte: monthEnd },
         status: { not: "DRAFT" },
       },
+      orderBy: { currency: "asc" },
       _sum: { total: true, amountPaid: true },
     });
 
