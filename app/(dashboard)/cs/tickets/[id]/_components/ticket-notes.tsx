@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { Bot, Paperclip } from "lucide-react";
+import { JsonValue } from "@prisma/client/runtime/library";
 
 interface Attachment {
   name: string;
@@ -21,7 +22,7 @@ interface Note {
   authorId: string;
   authorType: string;
   authorName: string | null;
-  attachments: Attachment[] | null;
+  attachments: JsonValue;
   createdAt: Date;
 }
 
@@ -59,7 +60,10 @@ export function TicketNotes({ messages }: TicketNotesProps) {
           return "U";
         };
 
-        const attachments = Array.isArray(note.attachments) ? note.attachments : [];
+        const rawAttachments = note.attachments;
+        const attachments: Attachment[] = Array.isArray(rawAttachments) 
+          ? (rawAttachments as Attachment[]) 
+          : [];
 
         return (
           <div
