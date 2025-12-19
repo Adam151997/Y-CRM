@@ -439,7 +439,7 @@ async function getInvoiceStats(
 
   const transformedByStatus = byStatus.map(item => ({
     status: item.status,
-    _count: item._count._all,
+    _count: item._count?._all ?? 0,
     _sum: { total: Number(item._sum?.total || 0) },
   }));
 
