@@ -47,6 +47,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Inbox,
+  Paperclip,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
@@ -167,6 +168,17 @@ export function RecordsList({
             value={String(value)}
             showLink={true}
           />
+        );
+      case "FILE":
+        const fileValue = value as { url?: string; name?: string } | null;
+        if (!fileValue?.name) return "-";
+        return (
+          <div className="flex items-center gap-1.5">
+            <Paperclip className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+            <span className="truncate max-w-[150px]" title={fileValue.name}>
+              {fileValue.name}
+            </span>
+          </div>
         );
       default:
         return String(value);
