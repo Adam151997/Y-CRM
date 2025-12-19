@@ -62,7 +62,7 @@ export function TicketNotes({ messages }: TicketNotesProps) {
 
         const rawAttachments = note.attachments;
         const attachments: Attachment[] = Array.isArray(rawAttachments) 
-          ? (rawAttachments as Attachment[]) 
+          ? (rawAttachments as unknown as Attachment[]) 
           : [];
 
         return (
