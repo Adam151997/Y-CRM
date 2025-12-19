@@ -5,6 +5,12 @@ import { Prisma } from "@prisma/client";
 import { createAuditLog } from "@/lib/audit";
 import { updateContactSchema } from "@/lib/validation/schemas";
 import { validateCustomFields } from "@/lib/validation/custom-fields";
+import { 
+  getRoutePermissionContext, 
+  filterToAllowedFields,
+  validateEditFields,
+  checkRecordAccess,
+} from "@/lib/api-permissions";
 import { cleanupOrphanedRelationships } from "@/lib/relationships";
 
 interface RouteParams {
@@ -17,6 +23,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const auth = await getApiAuthContext();
     if (!auth) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Get permission context
+    const permCtx = await getRoutePermissionContext(auth.userId, auth.orgId, "contacts", "view");
+    if (!permCtx.allowed) {
+      return NextResponse.json({ error: "You don't have permission to view contacts" }, { status: 403 });
     }
 
     const { id } = await params;
@@ -52,7 +64,17 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Contact not found" }, { status: 404 });
     }
 
-    return NextResponse.json(contact);
+    // Check record-level access
+    const accessError = checkRecordAccess(permCtx.recordVisibility, auth.userId, contact.assignedToId);
+    if (accessError) return accessError;
+
+    // Apply field-level filtering
+    const filteredContact = filterToAllowedFields(
+      contact as unknown as Record<string, unknown>,
+      permCtx.allowedViewFields
+    );
+
+    return NextResponse.json(filteredContact);
   } catch (error) {
     console.error("Error fetching contact:", error);
     return NextResponse.json(
@@ -70,8 +92,30 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Get permission context
+    const permCtx = await getRoutePermissionContext(auth.userId, auth.orgId, "contacts", "edit");
+    if (!permCtx.allowed) {
+      return NextResponse.json({ error: "You don't have permission to edit contacts" }, { status: 403 });
+    }
+
     const { id } = await params;
     const body = await request.json();
+
+    // Get existing contact
+    const existingContact = await prisma.contact.findFirst({
+      where: {
+        id,
+        orgId: auth.orgId,
+      },
+    });
+
+    if (!existingContact) {
+      return NextResponse.json({ error: "Contact not found" }, { status: 404 });
+    }
+
+    // Check record-level access
+    const accessError = checkRecordAccess(permCtx.recordVisibility, auth.userId, existingContact.assignedToId);
+    if (accessError) return accessError;
 
     // Validate update data
     const validationResult = updateContactSchema.safeParse(body);
@@ -84,16 +128,17 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     const data = validationResult.data;
 
-    // Get existing contact
-    const existingContact = await prisma.contact.findFirst({
-      where: {
-        id,
-        orgId: auth.orgId,
-      },
-    });
-
-    if (!existingContact) {
-      return NextResponse.json({ error: "Contact not found" }, { status: 404 });
+    // Validate field-level permissions
+    const fieldValidation = validateEditFields(
+      data as Record<string, unknown>,
+      permCtx.allowedEditFields,
+      ["customFields"]
+    );
+    if (!fieldValidation.valid) {
+      return NextResponse.json(
+        { error: `You don't have permission to edit these fields: ${fieldValidation.disallowedFields.join(", ")}` },
+        { status: 403 }
+      );
     }
 
     // Validate custom fields if present
@@ -210,6 +255,12 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Get permission context
+    const permCtx = await getRoutePermissionContext(auth.userId, auth.orgId, "contacts", "delete");
+    if (!permCtx.allowed) {
+      return NextResponse.json({ error: "You don't have permission to delete contacts" }, { status: 403 });
+    }
+
     const { id } = await params;
 
     // Get existing contact
@@ -223,6 +274,10 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     if (!existingContact) {
       return NextResponse.json({ error: "Contact not found" }, { status: 404 });
     }
+
+    // Check record-level access
+    const accessError = checkRecordAccess(permCtx.recordVisibility, auth.userId, existingContact.assignedToId);
+    if (accessError) return accessError;
 
     // Delete contact (cascade will handle related records)
     await prisma.contact.delete({

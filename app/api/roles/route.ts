@@ -15,6 +15,7 @@ const createRoleSchema = z.object({
     module: z.string(),
     actions: z.array(z.enum(["view", "create", "edit", "delete"])),
     fields: z.record(z.array(z.string())).nullable().optional(),
+    recordVisibility: z.enum(["ALL", "OWN_ONLY", "UNASSIGNED"]).optional(),
   })).optional(),
 });
 
@@ -116,6 +117,7 @@ export async function POST(request: NextRequest) {
                 module: p.module,
                 actions: p.actions,
                 fields: p.fields ? (p.fields as Prisma.InputJsonValue) : Prisma.JsonNull,
+                recordVisibility: p.recordVisibility || "ALL",
               })),
             }
           : undefined,

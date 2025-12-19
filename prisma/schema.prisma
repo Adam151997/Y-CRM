@@ -128,6 +128,9 @@ model Permission {
   module   String   // "leads", "contacts", "accounts", "opportunities", "tasks", "documents", or custom module slug
   actions  String[] // ["view", "create", "edit", "delete"]
   fields   Json?    // { "view": ["name", "email"], "edit": ["status"] } - null = all fields
+  
+  // Record-level visibility
+  recordVisibility String @default("ALL") // ALL, OWN_ONLY, UNASSIGNED
 
   @@unique([roleId, module])
   @@index([roleId])

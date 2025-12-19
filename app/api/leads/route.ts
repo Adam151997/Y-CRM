@@ -7,7 +7,11 @@ import { createNotification } from "@/lib/notifications";
 import { createActivity } from "@/lib/activity";
 import { createLeadSchema, leadFilterSchema } from "@/lib/validation/schemas";
 import { validateCustomFields } from "@/lib/validation/custom-fields";
-import { checkRoutePermission } from "@/lib/api-permissions";
+import { 
+  getRoutePermissionContext, 
+  filterArrayToAllowedFields,
+  validateEditFields,
+} from "@/lib/api-permissions";
 
 // GET /api/leads - List leads with filtering and pagination
 export async function GET(request: NextRequest) {
@@ -17,9 +21,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Check permission
-    const permissionError = await checkRoutePermission(auth.userId, auth.orgId, "leads", "view");
-    if (permissionError) return permissionError;
+    // Get permission context (includes record visibility filter)
+    const permCtx = await getRoutePermissionContext(auth.userId, auth.orgId, "leads", "view");
+    if (!permCtx.allowed) {
+      return NextResponse.json({ error: "You don't have permission to view leads" }, { status: 403 });
+    }
 
     const { searchParams } = new URL(request.url);
     const params = Object.fromEntries(searchParams.entries());
@@ -47,8 +53,11 @@ export async function GET(request: NextRequest) {
       createdBefore,
     } = filterResult.data;
 
-    // Build where clause
-    const where: Record<string, unknown> = { orgId: auth.orgId };
+    // Build where clause with record visibility filter
+    const where: Record<string, unknown> = { 
+      orgId: auth.orgId,
+      ...permCtx.visibilityFilter, // Apply record-level permissions
+    };
 
     if (status) where.status = status;
     if (source) where.source = source;
@@ -90,8 +99,14 @@ export async function GET(request: NextRequest) {
       prisma.lead.count({ where }),
     ]);
 
+    // Apply field-level filtering if configured
+    const filteredLeads = filterArrayToAllowedFields(
+      leads as unknown as Record<string, unknown>[],
+      permCtx.allowedViewFields
+    );
+
     return NextResponse.json({
-      data: leads,
+      data: filteredLeads,
       total,
       page,
       limit,
@@ -114,9 +129,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Check permission
-    const permissionError = await checkRoutePermission(auth.userId, auth.orgId, "leads", "create");
-    if (permissionError) return permissionError;
+    // Get permission context
+    const permCtx = await getRoutePermissionContext(auth.userId, auth.orgId, "leads", "create");
+    if (!permCtx.allowed) {
+      return NextResponse.json({ error: "You don't have permission to create leads" }, { status: 403 });
+    }
 
     const body = await request.json();
 
@@ -130,6 +147,19 @@ export async function POST(request: NextRequest) {
     }
 
     const data = validationResult.data;
+
+    // Validate field-level edit permissions (for create, we check edit fields)
+    const fieldValidation = validateEditFields(
+      data as Record<string, unknown>,
+      permCtx.allowedEditFields,
+      ["customFields"] // Always allow customFields wrapper
+    );
+    if (!fieldValidation.valid) {
+      return NextResponse.json(
+        { error: `You don't have permission to set these fields: ${fieldValidation.disallowedFields.join(", ")}` },
+        { status: 403 }
+      );
+    }
 
     // Validate custom fields if present
     if (data.customFields && Object.keys(data.customFields).length > 0) {

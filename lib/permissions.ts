@@ -7,6 +7,16 @@ import { cache } from "react";
 // =============================================================================
 
 export type ActionType = "view" | "create" | "edit" | "delete";
+export type RecordVisibility = "ALL" | "OWN_ONLY" | "UNASSIGNED";
+
+export interface ModulePermission {
+  actions: ActionType[];
+  fields: {
+    view: string[] | null;  // null = all fields
+    edit: string[] | null;  // null = all fields
+  };
+  recordVisibility: RecordVisibility;
+}
 
 export interface UserPermissions {
   role: {
@@ -14,10 +24,7 @@ export interface UserPermissions {
     name: string;
     isSystem: boolean;
   } | null;
-  permissions: Map<string, {
-    actions: ActionType[];
-    fields: Record<string, string[]> | null;
-  }>;
+  permissions: Map<string, ModulePermission>;
   isAdmin: boolean;
 }
 
@@ -37,6 +44,13 @@ export const BUILT_IN_MODULES = [
 
 // All possible actions
 export const ALL_ACTIONS: ActionType[] = ["view", "create", "edit", "delete"];
+
+// Record visibility options
+export const RECORD_VISIBILITY_OPTIONS: { value: RecordVisibility; label: string; description: string }[] = [
+  { value: "ALL", label: "All Records", description: "Can access all records in this module" },
+  { value: "OWN_ONLY", label: "Own Records Only", description: "Can only access records assigned to them" },
+  { value: "UNASSIGNED", label: "Own + Unassigned", description: "Can access own records and unassigned records" },
+];
 
 // =============================================================================
 // Permission Fetching (cached per request)
@@ -78,15 +92,18 @@ export const getUserPermissions = cache(async (
   const isAdmin = role.name.toLowerCase() === "admin" || role.isSystem;
 
   // Build permissions map
-  const permissions = new Map<string, {
-    actions: ActionType[];
-    fields: Record<string, string[]> | null;
-  }>();
+  const permissions = new Map<string, ModulePermission>();
 
   for (const perm of role.permissions) {
+    const fieldsConfig = perm.fields as { view?: string[]; edit?: string[] } | null;
+    
     permissions.set(perm.module, {
       actions: perm.actions as ActionType[],
-      fields: perm.fields as Record<string, string[]> | null,
+      fields: {
+        view: fieldsConfig?.view || null,
+        edit: fieldsConfig?.edit || null,
+      },
+      recordVisibility: (perm.recordVisibility as RecordVisibility) || "ALL",
     });
   }
 
@@ -136,6 +153,28 @@ export async function checkPermission(
 }
 
 /**
+ * Get module permission details including fields and record visibility
+ */
+export async function getModulePermission(
+  clerkUserId: string,
+  orgId: string,
+  module: string
+): Promise<ModulePermission | null> {
+  const userPermissions = await getUserPermissions(clerkUserId, orgId);
+
+  // Admins have full access
+  if (userPermissions.isAdmin) {
+    return {
+      actions: ALL_ACTIONS,
+      fields: { view: null, edit: null },
+      recordVisibility: "ALL",
+    };
+  }
+
+  return userPermissions.permissions.get(module) || null;
+}
+
+/**
  * Get allowed fields for a module/action
  * Returns null if all fields are allowed
  */
@@ -145,19 +184,25 @@ export async function getAllowedFields(
   module: string,
   action: "view" | "edit"
 ): Promise<string[] | null> {
-  const userPermissions = await getUserPermissions(clerkUserId, orgId);
+  const modulePerms = await getModulePermission(clerkUserId, orgId, module);
 
-  // Admins can access all fields
-  if (userPermissions.isAdmin) {
-    return null;
+  if (!modulePerms) {
+    return []; // No permission = no fields
   }
 
-  const modulePerms = userPermissions.permissions.get(module);
-  if (!modulePerms?.fields) {
-    return null; // All fields allowed
-  }
+  return modulePerms.fields[action];
+}
 
-  return modulePerms.fields[action] || null;
+/**
+ * Get record visibility setting for a module
+ */
+export async function getRecordVisibility(
+  clerkUserId: string,
+  orgId: string,
+  module: string
+): Promise<RecordVisibility> {
+  const modulePerms = await getModulePermission(clerkUserId, orgId, module);
+  return modulePerms?.recordVisibility || "ALL";
 }
 
 /**
@@ -217,6 +262,48 @@ export function filterArrayToAllowedFields<T extends Record<string, unknown>>(
   return dataArray.map((item) => filterToAllowedFields(item, allowedFields));
 }
 
+/**
+ * Build record visibility filter for Prisma queries
+ */
+export function buildRecordVisibilityFilter(
+  visibility: RecordVisibility,
+  clerkUserId: string
+): Record<string, unknown> {
+  switch (visibility) {
+    case "OWN_ONLY":
+      return { assignedToId: clerkUserId };
+    case "UNASSIGNED":
+      return {
+        OR: [
+          { assignedToId: clerkUserId },
+          { assignedToId: null },
+        ],
+      };
+    case "ALL":
+    default:
+      return {};
+  }
+}
+
+/**
+ * Check if user can access a specific record based on visibility rules
+ */
+export function canAccessRecord(
+  visibility: RecordVisibility,
+  clerkUserId: string,
+  recordAssignedToId: string | null
+): boolean {
+  switch (visibility) {
+    case "OWN_ONLY":
+      return recordAssignedToId === clerkUserId;
+    case "UNASSIGNED":
+      return recordAssignedToId === clerkUserId || recordAssignedToId === null;
+    case "ALL":
+    default:
+      return true;
+  }
+}
+
 // =============================================================================
 // API Route Helpers
 // =============================================================================
@@ -239,6 +326,43 @@ export async function requirePermission(
       403
     );
   }
+}
+
+/**
+ * Get full permission context for API routes
+ * Returns permission details needed for filtering
+ */
+export async function getPermissionContext(
+  clerkUserId: string,
+  orgId: string,
+  module: string,
+  action: ActionType
+): Promise<{
+  allowed: boolean;
+  allowedViewFields: string[] | null;
+  allowedEditFields: string[] | null;
+  recordVisibility: RecordVisibility;
+  visibilityFilter: Record<string, unknown>;
+}> {
+  const modulePerms = await getModulePermission(clerkUserId, orgId, module);
+
+  if (!modulePerms || !modulePerms.actions.includes(action)) {
+    return {
+      allowed: false,
+      allowedViewFields: [],
+      allowedEditFields: [],
+      recordVisibility: "ALL",
+      visibilityFilter: {},
+    };
+  }
+
+  return {
+    allowed: true,
+    allowedViewFields: modulePerms.fields.view,
+    allowedEditFields: modulePerms.fields.edit,
+    recordVisibility: modulePerms.recordVisibility,
+    visibilityFilter: buildRecordVisibilityFilter(modulePerms.recordVisibility, clerkUserId),
+  };
 }
 
 export class PermissionError extends Error {
@@ -269,6 +393,7 @@ export async function createDefaultRoles(orgId: string): Promise<void> {
         module,
         actions: ALL_ACTIONS as string[],
         fields: Prisma.JsonNull,
+        recordVisibility: "ALL",
       })),
     },
     {
@@ -280,6 +405,7 @@ export async function createDefaultRoles(orgId: string): Promise<void> {
         module,
         actions: ALL_ACTIONS as string[],
         fields: Prisma.JsonNull,
+        recordVisibility: "ALL",
       })),
     },
     {
@@ -291,6 +417,7 @@ export async function createDefaultRoles(orgId: string): Promise<void> {
         module,
         actions: ["view", "create", "edit"] as string[],
         fields: Prisma.JsonNull,
+        recordVisibility: "OWN_ONLY",
       })),
     },
     {
@@ -302,6 +429,7 @@ export async function createDefaultRoles(orgId: string): Promise<void> {
         module,
         actions: ["view"] as string[],
         fields: Prisma.JsonNull,
+        recordVisibility: "ALL",
       })),
     },
   ];

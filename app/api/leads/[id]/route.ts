@@ -6,7 +6,12 @@ import { createAuditLog } from "@/lib/audit";
 import { createNotification } from "@/lib/notifications";
 import { updateLeadSchema } from "@/lib/validation/schemas";
 import { validateCustomFields } from "@/lib/validation/custom-fields";
-import { checkRoutePermission } from "@/lib/api-permissions";
+import { 
+  getRoutePermissionContext, 
+  filterToAllowedFields,
+  validateEditFields,
+  checkRecordAccess,
+} from "@/lib/api-permissions";
 import { cleanupOrphanedRelationships } from "@/lib/relationships";
 
 interface RouteParams {
@@ -21,9 +26,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Check permission
-    const permissionError = await checkRoutePermission(auth.userId, auth.orgId, "leads", "view");
-    if (permissionError) return permissionError;
+    // Get permission context
+    const permCtx = await getRoutePermissionContext(auth.userId, auth.orgId, "leads", "view");
+    if (!permCtx.allowed) {
+      return NextResponse.json({ error: "You don't have permission to view leads" }, { status: 403 });
+    }
 
     const { id } = await params;
 
@@ -60,7 +67,17 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Lead not found" }, { status: 404 });
     }
 
-    return NextResponse.json(lead);
+    // Check record-level access
+    const accessError = checkRecordAccess(permCtx.recordVisibility, auth.userId, lead.assignedToId);
+    if (accessError) return accessError;
+
+    // Apply field-level filtering
+    const filteredLead = filterToAllowedFields(
+      lead as unknown as Record<string, unknown>,
+      permCtx.allowedViewFields
+    );
+
+    return NextResponse.json(filteredLead);
   } catch (error) {
     console.error("Error fetching lead:", error);
     return NextResponse.json(
@@ -78,12 +95,30 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Check permission
-    const permissionError = await checkRoutePermission(auth.userId, auth.orgId, "leads", "edit");
-    if (permissionError) return permissionError;
+    // Get permission context
+    const permCtx = await getRoutePermissionContext(auth.userId, auth.orgId, "leads", "edit");
+    if (!permCtx.allowed) {
+      return NextResponse.json({ error: "You don't have permission to edit leads" }, { status: 403 });
+    }
 
     const { id } = await params;
     const body = await request.json();
+
+    // Get existing lead first
+    const existingLead = await prisma.lead.findFirst({
+      where: {
+        id,
+        orgId: auth.orgId,
+      },
+    });
+
+    if (!existingLead) {
+      return NextResponse.json({ error: "Lead not found" }, { status: 404 });
+    }
+
+    // Check record-level access
+    const accessError = checkRecordAccess(permCtx.recordVisibility, auth.userId, existingLead.assignedToId);
+    if (accessError) return accessError;
 
     // Validate update data
     const validationResult = updateLeadSchema.safeParse(body);
@@ -96,16 +131,17 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     const data = validationResult.data;
 
-    // Get existing lead
-    const existingLead = await prisma.lead.findFirst({
-      where: {
-        id,
-        orgId: auth.orgId,
-      },
-    });
-
-    if (!existingLead) {
-      return NextResponse.json({ error: "Lead not found" }, { status: 404 });
+    // Validate field-level edit permissions
+    const fieldValidation = validateEditFields(
+      data as Record<string, unknown>,
+      permCtx.allowedEditFields,
+      ["customFields"] // Always allow customFields wrapper
+    );
+    if (!fieldValidation.valid) {
+      return NextResponse.json(
+        { error: `You don't have permission to edit these fields: ${fieldValidation.disallowedFields.join(", ")}` },
+        { status: 403 }
+      );
     }
 
     // Track status and pipeline changes for notifications
@@ -243,9 +279,11 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Check permission
-    const permissionError = await checkRoutePermission(auth.userId, auth.orgId, "leads", "delete");
-    if (permissionError) return permissionError;
+    // Get permission context
+    const permCtx = await getRoutePermissionContext(auth.userId, auth.orgId, "leads", "delete");
+    if (!permCtx.allowed) {
+      return NextResponse.json({ error: "You don't have permission to delete leads" }, { status: 403 });
+    }
 
     const { id } = await params;
 
@@ -260,6 +298,10 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     if (!existingLead) {
       return NextResponse.json({ error: "Lead not found" }, { status: 404 });
     }
+
+    // Check record-level access
+    const accessError = checkRecordAccess(permCtx.recordVisibility, auth.userId, existingLead.assignedToId);
+    if (accessError) return accessError;
 
     // Delete lead (cascade will handle related records)
     await prisma.lead.delete({

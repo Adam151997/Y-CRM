@@ -7,6 +7,11 @@ import { createNotification } from "@/lib/notifications";
 import { createActivity } from "@/lib/activity";
 import { createContactSchema } from "@/lib/validation/schemas";
 import { validateCustomFields } from "@/lib/validation/custom-fields";
+import { 
+  getRoutePermissionContext, 
+  filterArrayToAllowedFields,
+  validateEditFields,
+} from "@/lib/api-permissions";
 import { z } from "zod";
 
 // Filter schema
@@ -28,6 +33,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Get permission context
+    const permCtx = await getRoutePermissionContext(auth.userId, auth.orgId, "contacts", "view");
+    if (!permCtx.allowed) {
+      return NextResponse.json({ error: "You don't have permission to view contacts" }, { status: 403 });
+    }
+
     const { searchParams } = new URL(request.url);
     const params = Object.fromEntries(searchParams.entries());
 
@@ -43,8 +54,11 @@ export async function GET(request: NextRequest) {
     const { page, limit, sortBy, sortOrder, query, accountId, assignedToId } =
       filterResult.data;
 
-    // Build where clause
-    const where: Record<string, unknown> = { orgId: auth.orgId };
+    // Build where clause with record visibility filter
+    const where: Record<string, unknown> = { 
+      orgId: auth.orgId,
+      ...permCtx.visibilityFilter,
+    };
 
     if (accountId) where.accountId = accountId;
     if (assignedToId) where.assignedToId = assignedToId;
@@ -77,8 +91,14 @@ export async function GET(request: NextRequest) {
       prisma.contact.count({ where }),
     ]);
 
+    // Apply field-level filtering
+    const filteredContacts = filterArrayToAllowedFields(
+      contacts as unknown as Record<string, unknown>[],
+      permCtx.allowedViewFields
+    );
+
     return NextResponse.json({
-      data: contacts,
+      data: filteredContacts,
       total,
       page,
       limit,
@@ -101,6 +121,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Get permission context
+    const permCtx = await getRoutePermissionContext(auth.userId, auth.orgId, "contacts", "create");
+    if (!permCtx.allowed) {
+      return NextResponse.json({ error: "You don't have permission to create contacts" }, { status: 403 });
+    }
+
     const body = await request.json();
 
     // Validate base schema
@@ -113,6 +139,19 @@ export async function POST(request: NextRequest) {
     }
 
     const data = validationResult.data;
+
+    // Validate field-level permissions
+    const fieldValidation = validateEditFields(
+      data as Record<string, unknown>,
+      permCtx.allowedEditFields,
+      ["customFields"]
+    );
+    if (!fieldValidation.valid) {
+      return NextResponse.json(
+        { error: `You don't have permission to set these fields: ${fieldValidation.disallowedFields.join(", ")}` },
+        { status: 403 }
+      );
+    }
 
     // Validate custom fields if present
     if (data.customFields && Object.keys(data.customFields).length > 0) {

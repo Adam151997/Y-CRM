@@ -11,7 +11,13 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Separator } from "@/components/ui/separator";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import { 
   ArrowLeft, 
@@ -30,37 +36,46 @@ import {
   BookOpen,
   Megaphone,
   Layers,
-  Box
+  Box,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 
 // Built-in modules with icons
 const BUILT_IN_MODULES = [
-  { slug: "leads", name: "Leads", icon: Users },
-  { slug: "contacts", name: "Contacts", icon: Users },
-  { slug: "accounts", name: "Accounts", icon: Building },
-  { slug: "opportunities", name: "Opportunities", icon: Target },
-  { slug: "tasks", name: "Tasks", icon: CheckSquare },
-  { slug: "invoices", name: "Invoices", icon: FileText },
-  { slug: "documents", name: "Documents", icon: FileText },
-  { slug: "dashboard", name: "Dashboard", icon: LayoutGrid },
-  { slug: "pipeline", name: "Pipeline", icon: Layers },
-  { slug: "reports", name: "Reports", icon: FileText },
-  { slug: "tickets", name: "Tickets", icon: Ticket },
-  { slug: "health", name: "Health Scores", icon: Heart },
-  { slug: "playbooks", name: "Playbooks", icon: BookOpen },
-  { slug: "campaigns", name: "Campaigns", icon: Megaphone },
-  { slug: "segments", name: "Segments", icon: Users },
-  { slug: "forms", name: "Forms", icon: FileText },
-  { slug: "settings", name: "Settings", icon: Shield },
+  { slug: "leads", name: "Leads", icon: Users, hasOwnership: true },
+  { slug: "contacts", name: "Contacts", icon: Users, hasOwnership: true },
+  { slug: "accounts", name: "Accounts", icon: Building, hasOwnership: true },
+  { slug: "opportunities", name: "Opportunities", icon: Target, hasOwnership: true },
+  { slug: "tasks", name: "Tasks", icon: CheckSquare, hasOwnership: true },
+  { slug: "invoices", name: "Invoices", icon: FileText, hasOwnership: false },
+  { slug: "documents", name: "Documents", icon: FileText, hasOwnership: false },
+  { slug: "dashboard", name: "Dashboard", icon: LayoutGrid, hasOwnership: false },
+  { slug: "pipeline", name: "Pipeline", icon: Layers, hasOwnership: false },
+  { slug: "reports", name: "Reports", icon: FileText, hasOwnership: false },
+  { slug: "tickets", name: "Tickets", icon: Ticket, hasOwnership: true },
+  { slug: "health", name: "Health Scores", icon: Heart, hasOwnership: false },
+  { slug: "playbooks", name: "Playbooks", icon: BookOpen, hasOwnership: false },
+  { slug: "campaigns", name: "Campaigns", icon: Megaphone, hasOwnership: false },
+  { slug: "segments", name: "Segments", icon: Users, hasOwnership: false },
+  { slug: "forms", name: "Forms", icon: FileText, hasOwnership: false },
+  { slug: "settings", name: "Settings", icon: Shield, hasOwnership: false },
 ];
 
 const ACTIONS = ["view", "create", "edit", "delete"] as const;
+
+const VISIBILITY_OPTIONS = [
+  { value: "ALL", label: "All Records", description: "See all records" },
+  { value: "OWN_ONLY", label: "Own Only", description: "Only assigned records" },
+  { value: "UNASSIGNED", label: "Own + Unassigned", description: "Own and unassigned" },
+];
 
 interface Permission {
   id?: string;
   module: string;
   actions: string[];
   fields?: Record<string, string[]> | null;
+  recordVisibility?: string;
 }
 
 interface Role {
@@ -79,6 +94,11 @@ interface CustomModule {
   name: string;
 }
 
+interface ModulePermission {
+  actions: Set<string>;
+  recordVisibility: string;
+}
+
 export default function RoleEditorPage() {
   const params = useParams();
   const id = params.id as string;
@@ -93,7 +113,7 @@ export default function RoleEditorPage() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [isDefault, setIsDefault] = useState(false);
-  const [permissions, setPermissions] = useState<Map<string, Set<string>>>(new Map());
+  const [permissions, setPermissions] = useState<Map<string, ModulePermission>>(new Map());
 
   // Fetch role and custom modules
   useEffect(() => {
@@ -116,10 +136,13 @@ export default function RoleEditorPage() {
         setDescription(roleData.role.description || "");
         setIsDefault(roleData.role.isDefault);
 
-        // Build permissions map
-        const permMap = new Map<string, Set<string>>();
+        // Build permissions map with recordVisibility
+        const permMap = new Map<string, ModulePermission>();
         roleData.role.permissions.forEach((p: Permission) => {
-          permMap.set(p.module, new Set(p.actions));
+          permMap.set(p.module, {
+            actions: new Set(p.actions),
+            recordVisibility: p.recordVisibility || "ALL",
+          });
         });
         setPermissions(permMap);
 
@@ -138,11 +161,17 @@ export default function RoleEditorPage() {
     fetchData();
   }, [id, router]);
 
+  // Get or create module permission
+  const getModulePermission = (module: string): ModulePermission => {
+    return permissions.get(module) || { actions: new Set(), recordVisibility: "ALL" };
+  };
+
   // Toggle action for a module
   const toggleAction = (module: string, action: string) => {
     setPermissions((prev) => {
       const newMap = new Map(prev);
-      const actions = newMap.get(module) || new Set();
+      const current = getModulePermission(module);
+      const actions = new Set(current.actions);
       
       if (actions.has(action)) {
         actions.delete(action);
@@ -153,7 +182,7 @@ export default function RoleEditorPage() {
       if (actions.size === 0) {
         newMap.delete(module);
       } else {
-        newMap.set(module, new Set(actions));
+        newMap.set(module, { ...current, actions });
       }
       
       return newMap;
@@ -164,9 +193,10 @@ export default function RoleEditorPage() {
   const toggleAllActions = (module: string, enabled: boolean) => {
     setPermissions((prev) => {
       const newMap = new Map(prev);
+      const current = getModulePermission(module);
       
       if (enabled) {
-        newMap.set(module, new Set(ACTIONS));
+        newMap.set(module, { ...current, actions: new Set(ACTIONS) });
       } else {
         newMap.delete(module);
       }
@@ -175,15 +205,25 @@ export default function RoleEditorPage() {
     });
   };
 
-  // Check if module has all actions
-  const hasAllActions = (module: string) => {
-    const actions = permissions.get(module);
-    return actions?.size === ACTIONS.length;
+  // Set record visibility for a module
+  const setRecordVisibility = (module: string, visibility: string) => {
+    setPermissions((prev) => {
+      const newMap = new Map(prev);
+      const current = getModulePermission(module);
+      
+      // Only set if module has any actions
+      if (current.actions.size > 0) {
+        newMap.set(module, { ...current, recordVisibility: visibility });
+      }
+      
+      return newMap;
+    });
   };
 
-  // Check if module has any actions
-  const hasAnyAction = (module: string) => {
-    return permissions.has(module) && permissions.get(module)!.size > 0;
+  // Check if module has all actions
+  const hasAllActions = (module: string) => {
+    const perm = permissions.get(module);
+    return perm?.actions.size === ACTIONS.length;
   };
 
   // Save role
@@ -196,9 +236,10 @@ export default function RoleEditorPage() {
     setSaving(true);
     try {
       // Convert permissions map to array
-      const permissionsArray = Array.from(permissions.entries()).map(([module, actions]) => ({
+      const permissionsArray = Array.from(permissions.entries()).map(([module, perm]) => ({
         module,
-        actions: Array.from(actions),
+        actions: Array.from(perm.actions),
+        recordVisibility: perm.recordVisibility,
       }));
 
       const response = await fetch(`/api/roles/${id}`, {
@@ -229,9 +270,9 @@ export default function RoleEditorPage() {
   // Grant all permissions
   const grantAll = () => {
     const allModules = [...BUILT_IN_MODULES.map(m => m.slug), ...customModules.map(m => m.slug)];
-    const newMap = new Map<string, Set<string>>();
+    const newMap = new Map<string, ModulePermission>();
     allModules.forEach(module => {
-      newMap.set(module, new Set(ACTIONS));
+      newMap.set(module, { actions: new Set(ACTIONS), recordVisibility: "ALL" });
     });
     setPermissions(newMap);
   };
@@ -265,7 +306,7 @@ export default function RoleEditorPage() {
 
   const allModules = [
     ...BUILT_IN_MODULES,
-    ...customModules.map(m => ({ slug: m.slug, name: m.name, icon: Box })),
+    ...customModules.map(m => ({ slug: m.slug, name: m.name, icon: Box, hasOwnership: true })),
   ];
 
   return (
@@ -360,7 +401,7 @@ export default function RoleEditorPage() {
           <div>
             <CardTitle>Module Permissions</CardTitle>
             <CardDescription>
-              Control what users with this role can access
+              Control what users with this role can access and which records they can see
             </CardDescription>
           </div>
           <div className="flex gap-2">
@@ -374,28 +415,36 @@ export default function RoleEditorPage() {
         </CardHeader>
         <CardContent>
           {/* Header */}
-          <div className="grid grid-cols-[1fr,repeat(4,80px),60px] gap-2 pb-3 border-b text-sm font-medium text-muted-foreground">
+          <div className="grid grid-cols-[1fr,repeat(4,60px),60px,140px] gap-2 pb-3 border-b text-sm font-medium text-muted-foreground">
             <div>Module</div>
             {ACTIONS.map((action) => (
-              <div key={action} className="text-center capitalize">{action}</div>
+              <div key={action} className="text-center capitalize text-xs">{action}</div>
             ))}
-            <div className="text-center">All</div>
+            <div className="text-center text-xs">All</div>
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-1">
+                <Eye className="h-3 w-3" />
+                <span className="text-xs">Visibility</span>
+              </div>
+            </div>
           </div>
 
           {/* Module rows */}
           <div className="divide-y">
             {allModules.map((module) => {
               const Icon = module.icon;
-              const modulePerms = permissions.get(module.slug) || new Set();
+              const perm = permissions.get(module.slug);
+              const modulePerms = perm?.actions || new Set();
+              const hasActions = modulePerms.size > 0;
               
               return (
                 <div
                   key={module.slug}
-                  className="grid grid-cols-[1fr,repeat(4,80px),60px] gap-2 py-3 items-center"
+                  className="grid grid-cols-[1fr,repeat(4,60px),60px,140px] gap-2 py-3 items-center"
                 >
                   <div className="flex items-center gap-2">
                     <Icon className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-medium">{module.name}</span>
+                    <span className="font-medium text-sm">{module.name}</span>
                     {!BUILT_IN_MODULES.find(m => m.slug === module.slug) && (
                       <Badge variant="outline" className="text-xs">Custom</Badge>
                     )}
@@ -416,6 +465,31 @@ export default function RoleEditorPage() {
                       onCheckedChange={(checked) => toggleAllActions(module.slug, !!checked)}
                     />
                   </div>
+
+                  {/* Record Visibility */}
+                  <div className="flex justify-center">
+                    {module.hasOwnership && hasActions ? (
+                      <Select
+                        value={perm?.recordVisibility || "ALL"}
+                        onValueChange={(value) => setRecordVisibility(module.slug, value)}
+                      >
+                        <SelectTrigger className="h-8 w-[130px] text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {VISIBILITY_OPTIONS.map((opt) => (
+                            <SelectItem key={opt.value} value={opt.value}>
+                              <div className="flex flex-col">
+                                <span>{opt.label}</span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    )}
+                  </div>
                 </div>
               );
             })}
@@ -429,6 +503,37 @@ export default function RoleEditorPage() {
         </CardContent>
       </Card>
 
+      {/* Record Visibility Legend */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Eye className="h-5 w-5" />
+            Record Visibility Guide
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-3">
+            {VISIBILITY_OPTIONS.map((opt) => (
+              <div key={opt.value} className="flex items-start gap-3 p-3 rounded-lg border">
+                <div className={`p-2 rounded-md ${
+                  opt.value === "ALL" ? "bg-green-500/10 text-green-500" :
+                  opt.value === "OWN_ONLY" ? "bg-orange-500/10 text-orange-500" :
+                  "bg-blue-500/10 text-blue-500"
+                }`}>
+                  {opt.value === "ALL" ? <Eye className="h-4 w-4" /> :
+                   opt.value === "OWN_ONLY" ? <EyeOff className="h-4 w-4" /> :
+                   <Users className="h-4 w-4" />}
+                </div>
+                <div>
+                  <p className="font-medium text-sm">{opt.label}</p>
+                  <p className="text-xs text-muted-foreground">{opt.description}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Permission Summary */}
       <Card>
         <CardHeader>
@@ -437,12 +542,17 @@ export default function RoleEditorPage() {
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-2">
-            {Array.from(permissions.entries()).map(([module, actions]) => (
+            {Array.from(permissions.entries()).map(([module, perm]) => (
               <Badge key={module} variant="secondary" className="gap-1">
                 {allModules.find(m => m.slug === module)?.name || module}
                 <span className="text-muted-foreground">
-                  ({Array.from(actions).join(", ")})
+                  ({Array.from(perm.actions).join(", ")})
                 </span>
+                {perm.recordVisibility !== "ALL" && (
+                  <span className="text-orange-500 ml-1">
+                    [{perm.recordVisibility === "OWN_ONLY" ? "Own" : "Own+Unassigned"}]
+                  </span>
+                )}
               </Badge>
             ))}
             {permissions.size === 0 && (
