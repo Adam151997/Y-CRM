@@ -17,14 +17,12 @@ import {
   MessageSquare,
   CheckSquare,
   Activity,
-  FileText,
 } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
 import { LeadNotes } from "./_components/lead-notes";
 import { LeadTasks } from "./_components/lead-tasks";
 import { LeadTimeline } from "./_components/lead-timeline";
 import { LeadActions } from "./_components/lead-actions";
-import { LeadDocuments } from "./_components/lead-documents";
 import { AssigneeDisplay } from "@/components/forms/assignee-selector";
 import { CustomFieldsDisplay } from "@/components/forms/custom-fields-renderer";
 
@@ -57,10 +55,6 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
       },
       activities: {
         orderBy: { performedAt: "desc" },
-        take: 20,
-      },
-      documents: {
-        orderBy: { createdAt: "desc" },
         take: 20,
       },
     },
@@ -247,10 +241,6 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
                 <CheckSquare className="h-4 w-4" />
                 Tasks ({pendingTasks.length})
               </TabsTrigger>
-              <TabsTrigger value="documents" className="gap-2">
-                <FileText className="h-4 w-4" />
-                Documents ({lead.documents.length})
-              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="timeline">
@@ -276,13 +266,6 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
                 leadId={lead.id}
                 orgId={orgId}
                 userId={userId}
-              />
-            </TabsContent>
-
-            <TabsContent value="documents">
-              <LeadDocuments
-                documents={lead.documents}
-                leadId={lead.id}
               />
             </TabsContent>
           </Tabs>
