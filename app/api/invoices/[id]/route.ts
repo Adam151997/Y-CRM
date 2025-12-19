@@ -169,9 +169,11 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         
         const updateData: Record<string, unknown> = { status: body.status };
         
-        // Set paidAt timestamp when marking as PAID
+        // Set paidAt timestamp and update amounts when marking as PAID
         if (body.status === "PAID") {
           updateData.paidAt = new Date();
+          updateData.amountPaid = existingInvoice.total; // Mark full amount as paid
+          updateData.amountDue = 0; // Nothing left to pay
         }
         
         const updated = await prisma.invoice.update({

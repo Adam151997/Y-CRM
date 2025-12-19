@@ -356,21 +356,22 @@ async function getInvoiceStats(
 ) {
   const now = new Date();
   
-  // All queries use issueDate for consistent filtering
-  // This ensures all metrics are based on the same invoice set
-  const [invoiceAggregates, byStatus] = await prisma.$transaction([
-    // Get all invoices in date range (excluding drafts) with their payment info
-    prisma.invoice.aggregate({
+  // Get all invoices grouped by currency for accurate multi-currency reporting
+  const [byCurrency, byStatus] = await prisma.$transaction([
+    // Group by currency - this is the key change for multi-currency support
+    prisma.invoice.groupBy({
+      by: ["currency"],
       where: { 
         orgId, 
         issueDate: dateFilter, 
         status: { not: "DRAFT" } 
       },
       _sum: { 
-        total: true,      // Total invoiced amount
-        amountPaid: true, // Total collected (handles partial payments)
-        amountDue: true,  // Total outstanding
+        total: true,
+        amountPaid: true,
+        amountDue: true,
       },
+      _count: { _all: true },
     }),
     // Group by status for breakdown chart
     prisma.invoice.groupBy({
@@ -382,41 +383,87 @@ async function getInvoiceStats(
     }),
   ]);
 
-  // Calculate overdue and pending from invoices in the date range
-  const [overdueInvoices, pendingInvoices] = await prisma.$transaction([
-    // Overdue: issued in period, unpaid/partial, past due date
-    prisma.invoice.aggregate({
+  // Calculate overdue and pending grouped by currency
+  const [overdueByCurrency, pendingByCurrency] = await prisma.$transaction([
+    prisma.invoice.groupBy({
+      by: ["currency"],
       where: { 
         orgId,
         issueDate: dateFilter,
         status: { in: ["SENT", "PARTIALLY_PAID", "OVERDUE"] },
         dueDate: { lt: now },
       },
-      _sum: { amountDue: true }, // Use amountDue, not total
+      _sum: { amountDue: true },
     }),
-    // Pending: issued in period, unpaid/partial, not yet due
-    prisma.invoice.aggregate({
+    prisma.invoice.groupBy({
+      by: ["currency"],
       where: { 
         orgId,
         issueDate: dateFilter,
         status: { in: ["SENT", "PARTIALLY_PAID"] },
         dueDate: { gte: now },
       },
-      _sum: { amountDue: true }, // Use amountDue, not total
+      _sum: { amountDue: true },
     }),
   ]);
 
-  const totalInvoiced = Number(invoiceAggregates._sum.total || 0);
-  const totalPaid = Number(invoiceAggregates._sum.amountPaid || 0); // Actual collected amount
-  const totalOverdue = Number(overdueInvoices._sum.amountDue || 0); // Outstanding overdue amount
-  const totalPending = Number(pendingInvoices._sum.amountDue || 0); // Outstanding not-yet-due amount
-  
-  // Collection rate: amount collected vs amount invoiced (same invoice set)
-  const collectionRate = totalInvoiced > 0 ? (totalPaid / totalInvoiced) * 100 : 0;
+  // Build currency breakdown
+  const currencyBreakdown: Record<string, {
+    totalInvoiced: number;
+    totalPaid: number;
+    totalOverdue: number;
+    totalPending: number;
+    invoiceCount: number;
+    collectionRate: number;
+  }> = {};
 
-  // Get monthly data within the date range
-  // For monthly chart, we show invoiced (by issue date) vs collected (by issue date's amountPaid)
-  const monthlyData: { month: string; invoiced: number; collected: number }[] = [];
+  // Process main currency data
+  for (const curr of byCurrency) {
+    const currency = curr.currency;
+    const totalInvoiced = Number(curr._sum.total || 0);
+    const totalPaid = Number(curr._sum.amountPaid || 0);
+    
+    // Find overdue/pending for this currency
+    const overdueData = overdueByCurrency.find(o => o.currency === currency);
+    const pendingData = pendingByCurrency.find(p => p.currency === currency);
+    
+    let count = 0;
+    if (curr._count && typeof curr._count === 'object' && '_all' in curr._count) {
+      count = curr._count._all ?? 0;
+    }
+
+    currencyBreakdown[currency] = {
+      totalInvoiced,
+      totalPaid,
+      totalOverdue: Number(overdueData?._sum?.amountDue || 0),
+      totalPending: Number(pendingData?._sum?.amountDue || 0),
+      invoiceCount: count,
+      collectionRate: totalInvoiced > 0 ? (totalPaid / totalInvoiced) * 100 : 0,
+    };
+  }
+
+  // Determine primary currency (most invoices or default to USD)
+  let primaryCurrency = "USD";
+  let maxCount = 0;
+  for (const [currency, data] of Object.entries(currencyBreakdown)) {
+    if (data.invoiceCount > maxCount) {
+      maxCount = data.invoiceCount;
+      primaryCurrency = currency;
+    }
+  }
+
+  // Calculate totals for primary currency (for backward compatibility with overview cards)
+  const primaryData = currencyBreakdown[primaryCurrency] || {
+    totalInvoiced: 0,
+    totalPaid: 0,
+    totalOverdue: 0,
+    totalPending: 0,
+    invoiceCount: 0,
+    collectionRate: 0,
+  };
+
+  // Get monthly data for primary currency
+  const monthlyData: { month: string; invoiced: number; collected: number; currency: string }[] = [];
   const monthDiff = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
   const monthsToShow = Math.min(Math.max(monthDiff + 1, 1), 12);
   
@@ -424,13 +471,13 @@ async function getInvoiceStats(
     const monthStart = new Date(end.getFullYear(), end.getMonth() - i, 1);
     const monthEnd = new Date(end.getFullYear(), end.getMonth() - i + 1, 0, 23, 59, 59, 999);
     
-    // Skip months outside our date range
     if (monthEnd < start || monthStart > end) continue;
     
     const monthName = monthStart.toLocaleDateString("en-US", { month: "short", year: "2-digit" });
 
-    // Both use issueDate for consistency - shows invoices issued that month and how much collected on them
-    const monthlyInvoices = await prisma.invoice.aggregate({
+    // Get monthly data grouped by currency
+    const monthlyByCurrency = await prisma.invoice.groupBy({
+      by: ["currency"],
       where: {
         orgId,
         issueDate: { gte: monthStart, lte: monthEnd },
@@ -439,10 +486,13 @@ async function getInvoiceStats(
       _sum: { total: true, amountPaid: true },
     });
 
+    // Sum up for primary currency (for chart)
+    const primaryMonthly = monthlyByCurrency.find(m => m.currency === primaryCurrency);
     monthlyData.push({
       month: monthName,
-      invoiced: Number(monthlyInvoices._sum.total || 0),
-      collected: Number(monthlyInvoices._sum.amountPaid || 0),
+      invoiced: Number(primaryMonthly?._sum?.total || 0),
+      collected: Number(primaryMonthly?._sum?.amountPaid || 0),
+      currency: primaryCurrency,
     });
   }
 
@@ -462,11 +512,15 @@ async function getInvoiceStats(
   });
 
   return {
-    totalInvoiced,
-    totalPaid,
-    totalOverdue,
-    totalPending,
-    collectionRate,
+    // Primary currency totals (for overview cards - backward compatible)
+    totalInvoiced: primaryData.totalInvoiced,
+    totalPaid: primaryData.totalPaid,
+    totalOverdue: primaryData.totalOverdue,
+    totalPending: primaryData.totalPending,
+    collectionRate: primaryData.collectionRate,
+    primaryCurrency,
+    // Full currency breakdown
+    byCurrency: currencyBreakdown,
     byStatus: transformedByStatus,
     monthlyData,
   };

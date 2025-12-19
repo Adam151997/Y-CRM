@@ -21,7 +21,7 @@ import { LeadsBySource } from "./leads-by-source";
 import { LeadsByStatus } from "./leads-by-status";
 import { OpportunitiesByStage } from "./opportunities-by-stage";
 import { RecentActivity } from "./recent-activity";
-import { InvoiceOverview, InvoicesByStatus, MonthlyRevenue } from "./invoice-analytics";
+import { InvoiceOverview, InvoicesByStatus, MonthlyRevenue, CurrencyBreakdown } from "./invoice-analytics";
 import { PipelineFunnel } from "./pipeline-funnel";
 import { PipelineValueByStage } from "./pipeline-value-by-stage";
 import { SalesVelocity } from "./sales-velocity";
@@ -56,8 +56,17 @@ interface ReportStats {
     totalOverdue: number;
     totalPending: number;
     collectionRate: number;
+    primaryCurrency: string;
+    byCurrency: Record<string, {
+      totalInvoiced: number;
+      totalPaid: number;
+      totalOverdue: number;
+      totalPending: number;
+      invoiceCount: number;
+      collectionRate: number;
+    }>;
     byStatus: { status: string; _count: number; _sum: { total: number; amountPaid: number } }[];
-    monthlyData: { month: string; invoiced: number; collected: number }[];
+    monthlyData: { month: string; invoiced: number; collected: number; currency: string }[];
   };
   salesVelocity: {
     avgDealSize: number;
@@ -383,16 +392,28 @@ export function ReportsClient() {
         </TabsContent>
 
         <TabsContent value="invoices" className="space-y-4">
+          {/* Currency Breakdown - shows all currencies */}
+          {Object.keys(invoices.byCurrency).length > 1 && (
+            <CurrencyBreakdown byCurrency={invoices.byCurrency} />
+          )}
+          
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <InvoiceOverview
               totalInvoiced={invoices.totalInvoiced}
               totalPaid={invoices.totalPaid}
               totalOverdue={invoices.totalOverdue}
               totalPending={invoices.totalPending}
+              currency={invoices.primaryCurrency}
             />
-            <InvoicesByStatus data={invoices.byStatus} />
+            <InvoicesByStatus 
+              data={invoices.byStatus} 
+              currency={invoices.primaryCurrency}
+            />
           </div>
-          <MonthlyRevenue data={invoices.monthlyData} />
+          <MonthlyRevenue 
+            data={invoices.monthlyData} 
+            currency={invoices.primaryCurrency}
+          />
         </TabsContent>
       </Tabs>
     </div>

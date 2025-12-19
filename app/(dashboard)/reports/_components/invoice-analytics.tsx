@@ -1,6 +1,7 @@
 "use client";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { 
   BarChart, 
   Bar, 
@@ -15,11 +16,32 @@ import {
   Legend,
 } from "recharts";
 
+// Currency symbols mapping
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  USD: "$",
+  EUR: "€",
+  GBP: "£",
+  EGP: "E£",
+  AED: "د.إ",
+  SAR: "﷼",
+  JPY: "¥",
+  CNY: "¥",
+  INR: "₹",
+  CAD: "C$",
+  AUD: "A$",
+};
+
+function formatCurrency(amount: number, currency: string): string {
+  const symbol = CURRENCY_SYMBOLS[currency] || currency + " ";
+  return `${symbol}${amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+}
+
 interface InvoiceOverviewProps {
   totalInvoiced: number;
   totalPaid: number;
   totalOverdue: number;
   totalPending: number;
+  currency?: string;
 }
 
 const COLORS = {
@@ -33,7 +55,8 @@ export function InvoiceOverview({
   totalInvoiced, 
   totalPaid, 
   totalOverdue, 
-  totalPending 
+  totalPending,
+  currency = "USD",
 }: InvoiceOverviewProps) {
   const data = [
     { name: "Paid", value: totalPaid, color: COLORS.paid },
@@ -48,7 +71,7 @@ export function InvoiceOverview({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Invoice Overview</CardTitle>
+        <CardTitle>Invoice Overview ({currency})</CardTitle>
         <CardDescription>
           Payment status breakdown • {collectionRate}% collection rate
         </CardDescription>
@@ -72,7 +95,7 @@ export function InvoiceOverview({
                 ))}
               </Pie>
               <Tooltip 
-                formatter={(value: number) => [`$${value.toLocaleString()}`, 'Amount']}
+                formatter={(value: number) => [formatCurrency(value, currency), 'Amount']}
               />
               <Legend />
             </PieChart>
@@ -87,15 +110,103 @@ export function InvoiceOverview({
   );
 }
 
+interface CurrencyBreakdownProps {
+  byCurrency: Record<string, {
+    totalInvoiced: number;
+    totalPaid: number;
+    totalOverdue: number;
+    totalPending: number;
+    invoiceCount: number;
+    collectionRate: number;
+  }>;
+}
+
+export function CurrencyBreakdown({ byCurrency }: CurrencyBreakdownProps) {
+  const currencies = Object.entries(byCurrency).sort((a, b) => b[1].invoiceCount - a[1].invoiceCount);
+
+  if (currencies.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Revenue by Currency</CardTitle>
+          <CardDescription>Breakdown of invoices across currencies</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="h-[200px] flex items-center justify-center text-muted-foreground">
+            No invoice data available
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Revenue by Currency</CardTitle>
+        <CardDescription>Breakdown of invoices across {currencies.length} currenc{currencies.length === 1 ? 'y' : 'ies'}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-6">
+          {currencies.map(([currency, data]) => (
+            <div key={currency} className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-lg">{currency}</span>
+                  <span className="text-sm text-muted-foreground">
+                    ({data.invoiceCount} invoice{data.invoiceCount !== 1 ? 's' : ''})
+                  </span>
+                </div>
+                <span className="text-sm font-medium text-green-600">
+                  {data.collectionRate.toFixed(0)}% collected
+                </span>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="space-y-1">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Invoiced</span>
+                    <span className="font-medium">{formatCurrency(data.totalInvoiced, currency)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Collected</span>
+                    <span className="font-medium text-green-600">{formatCurrency(data.totalPaid, currency)}</span>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Pending</span>
+                    <span className="font-medium text-yellow-600">{formatCurrency(data.totalPending, currency)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Overdue</span>
+                    <span className="font-medium text-red-600">{formatCurrency(data.totalOverdue, currency)}</span>
+                  </div>
+                </div>
+              </div>
+
+              <Progress 
+                value={data.collectionRate} 
+                className="h-2"
+              />
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 interface InvoicesByStatusProps {
   data: {
     status: string;
     _count: number;
     _sum: { total: number | null; amountPaid?: number | null };
   }[];
+  currency?: string;
 }
 
-export function InvoicesByStatus({ data }: InvoicesByStatusProps) {
+export function InvoicesByStatus({ data, currency = "USD" }: InvoicesByStatusProps) {
   const chartData = data.map(item => ({
     name: item.status.replace("_", " "),
     count: item._count,
@@ -123,10 +234,16 @@ export function InvoicesByStatus({ data }: InvoicesByStatusProps) {
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={chartData} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
-              <XAxis type="number" tickFormatter={(v) => `$${(v/1000).toFixed(0)}k`} />
+              <XAxis 
+                type="number" 
+                tickFormatter={(v) => {
+                  const symbol = CURRENCY_SYMBOLS[currency] || "";
+                  return `${symbol}${(v/1000).toFixed(0)}k`;
+                }} 
+              />
               <YAxis dataKey="name" type="category" width={100} />
               <Tooltip 
-                formatter={(value: number) => [`$${value.toLocaleString()}`, 'Total Value']}
+                formatter={(value: number) => [formatCurrency(value, currency), 'Total Value']}
               />
               <Bar 
                 dataKey="value" 
@@ -157,14 +274,16 @@ interface MonthlyRevenueProps {
     month: string;
     invoiced: number;
     collected: number;
+    currency?: string;
   }[];
+  currency?: string;
 }
 
-export function MonthlyRevenue({ data }: MonthlyRevenueProps) {
+export function MonthlyRevenue({ data, currency = "USD" }: MonthlyRevenueProps) {
   return (
     <Card className="col-span-2">
       <CardHeader>
-        <CardTitle>Monthly Revenue</CardTitle>
+        <CardTitle>Monthly Revenue ({currency})</CardTitle>
         <CardDescription>Invoiced vs Collected over time</CardDescription>
       </CardHeader>
       <CardContent>
@@ -173,9 +292,14 @@ export function MonthlyRevenue({ data }: MonthlyRevenueProps) {
             <BarChart data={data}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} />
               <XAxis dataKey="month" />
-              <YAxis tickFormatter={(v) => `$${(v/1000).toFixed(0)}k`} />
+              <YAxis 
+                tickFormatter={(v) => {
+                  const symbol = CURRENCY_SYMBOLS[currency] || "";
+                  return `${symbol}${(v/1000).toFixed(0)}k`;
+                }} 
+              />
               <Tooltip 
-                formatter={(value: number) => [`$${value.toLocaleString()}`, '']}
+                formatter={(value: number) => [formatCurrency(value, currency), '']}
               />
               <Legend />
               <Bar dataKey="invoiced" name="Invoiced" fill="#6366f1" radius={[4, 4, 0, 0]} />
