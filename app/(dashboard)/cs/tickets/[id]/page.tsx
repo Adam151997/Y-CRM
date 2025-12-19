@@ -285,7 +285,7 @@ export default async function TicketDetailPage({ params }: PageProps) {
                     </Badge>
                   </div>
                 )}
-                {(ticket.tags as string[] | null)?.length > 0 && (
+                {Array.isArray(ticket.tags) && ticket.tags.length > 0 && (
                   <div>
                     <p className="text-sm font-medium mb-2">Tags</p>
                     <div className="flex flex-wrap gap-1">
