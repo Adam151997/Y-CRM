@@ -56,7 +56,7 @@ interface ReportStats {
     totalOverdue: number;
     totalPending: number;
     collectionRate: number;
-    byStatus: { status: string; _count: number; _sum: { total: number } }[];
+    byStatus: { status: string; _count: number; _sum: { total: number; amountPaid: number } }[];
     monthlyData: { month: string; invoiced: number; collected: number }[];
   };
   salesVelocity: {

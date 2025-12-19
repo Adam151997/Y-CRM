@@ -356,20 +356,45 @@ async function getInvoiceStats(
 ) {
   const now = new Date();
   
-  const [paidInvoices, overdueInvoices, pendingInvoices, byStatus, allInvoices] = await prisma.$transaction([
+  // All queries use issueDate for consistent filtering
+  // This ensures all metrics are based on the same invoice set
+  const [invoiceAggregates, byStatus] = await prisma.$transaction([
+    // Get all invoices in date range (excluding drafts) with their payment info
     prisma.invoice.aggregate({
-      where: { orgId, paidAt: dateFilter, status: "PAID" },
-      _sum: { total: true },
+      where: { 
+        orgId, 
+        issueDate: dateFilter, 
+        status: { not: "DRAFT" } 
+      },
+      _sum: { 
+        total: true,      // Total invoiced amount
+        amountPaid: true, // Total collected (handles partial payments)
+        amountDue: true,  // Total outstanding
+      },
     }),
+    // Group by status for breakdown chart
+    prisma.invoice.groupBy({
+      by: ["status"],
+      where: { orgId, issueDate: dateFilter },
+      orderBy: { status: "asc" },
+      _count: { _all: true },
+      _sum: { total: true, amountPaid: true },
+    }),
+  ]);
+
+  // Calculate overdue and pending from invoices in the date range
+  const [overdueInvoices, pendingInvoices] = await prisma.$transaction([
+    // Overdue: issued in period, unpaid/partial, past due date
     prisma.invoice.aggregate({
       where: { 
         orgId,
         issueDate: dateFilter,
-        status: { in: ["SENT", "PARTIALLY_PAID"] },
+        status: { in: ["SENT", "PARTIALLY_PAID", "OVERDUE"] },
         dueDate: { lt: now },
       },
-      _sum: { total: true },
+      _sum: { amountDue: true }, // Use amountDue, not total
     }),
+    // Pending: issued in period, unpaid/partial, not yet due
     prisma.invoice.aggregate({
       where: { 
         orgId,
@@ -377,28 +402,20 @@ async function getInvoiceStats(
         status: { in: ["SENT", "PARTIALLY_PAID"] },
         dueDate: { gte: now },
       },
-      _sum: { total: true },
-    }),
-    prisma.invoice.groupBy({
-      by: ["status"],
-      where: { orgId, issueDate: dateFilter },
-      orderBy: { status: "asc" },
-      _count: { _all: true },
-      _sum: { total: true },
-    }),
-    prisma.invoice.aggregate({
-      where: { orgId, issueDate: dateFilter, status: { not: "DRAFT" } },
-      _sum: { total: true },
+      _sum: { amountDue: true }, // Use amountDue, not total
     }),
   ]);
 
-  const totalPaid = Number(paidInvoices._sum.total || 0);
-  const totalOverdue = Number(overdueInvoices._sum.total || 0);
-  const totalPending = Number(pendingInvoices._sum.total || 0);
-  const totalInvoiced = Number(allInvoices._sum.total || 0);
+  const totalInvoiced = Number(invoiceAggregates._sum.total || 0);
+  const totalPaid = Number(invoiceAggregates._sum.amountPaid || 0); // Actual collected amount
+  const totalOverdue = Number(overdueInvoices._sum.amountDue || 0); // Outstanding overdue amount
+  const totalPending = Number(pendingInvoices._sum.amountDue || 0); // Outstanding not-yet-due amount
+  
+  // Collection rate: amount collected vs amount invoiced (same invoice set)
   const collectionRate = totalInvoiced > 0 ? (totalPaid / totalInvoiced) * 100 : 0;
 
   // Get monthly data within the date range
+  // For monthly chart, we show invoiced (by issue date) vs collected (by issue date's amountPaid)
   const monthlyData: { month: string; invoiced: number; collected: number }[] = [];
   const monthDiff = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
   const monthsToShow = Math.min(Math.max(monthDiff + 1, 1), 12);
@@ -412,28 +429,20 @@ async function getInvoiceStats(
     
     const monthName = monthStart.toLocaleDateString("en-US", { month: "short", year: "2-digit" });
 
-    const [invoiced, collected] = await prisma.$transaction([
-      prisma.invoice.aggregate({
-        where: {
-          orgId,
-          issueDate: { gte: monthStart, lte: monthEnd },
-          status: { not: "DRAFT" },
-        },
-        _sum: { total: true },
-      }),
-      prisma.invoice.aggregate({
-        where: {
-          orgId,
-          paidAt: { gte: monthStart, lte: monthEnd },
-        },
-        _sum: { amountPaid: true },
-      }),
-    ]);
+    // Both use issueDate for consistency - shows invoices issued that month and how much collected on them
+    const monthlyInvoices = await prisma.invoice.aggregate({
+      where: {
+        orgId,
+        issueDate: { gte: monthStart, lte: monthEnd },
+        status: { not: "DRAFT" },
+      },
+      _sum: { total: true, amountPaid: true },
+    });
 
     monthlyData.push({
       month: monthName,
-      invoiced: Number(invoiced._sum.total || 0),
-      collected: Number(collected._sum.amountPaid || 0),
+      invoiced: Number(monthlyInvoices._sum.total || 0),
+      collected: Number(monthlyInvoices._sum.amountPaid || 0),
     });
   }
 
@@ -445,7 +454,10 @@ async function getInvoiceStats(
     return {
       status: item.status,
       _count: count,
-      _sum: { total: Number(item._sum?.total || 0) },
+      _sum: { 
+        total: Number(item._sum?.total || 0),
+        amountPaid: Number(item._sum?.amountPaid || 0),
+      },
     };
   });
 

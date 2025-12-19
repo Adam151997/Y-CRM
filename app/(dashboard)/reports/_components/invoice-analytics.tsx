@@ -91,7 +91,7 @@ interface InvoicesByStatusProps {
   data: {
     status: string;
     _count: number;
-    _sum: { total: number | null };
+    _sum: { total: number | null; amountPaid?: number | null };
   }[];
 }
 
