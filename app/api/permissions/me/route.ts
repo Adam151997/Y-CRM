@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getApiAuthContext } from "@/lib/auth";
-import { getUserPermissions } from "@/lib/permissions";
+import { getUserPermissions, type ModulePermission } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -18,10 +18,7 @@ export async function GET() {
     const permissions = await getUserPermissions(auth.userId, auth.orgId);
 
     // Convert Map to plain object for JSON serialization
-    const permissionsObject: Record<string, {
-      actions: string[];
-      fields: Record<string, string[]> | null;
-    }> = {};
+    const permissionsObject: Record<string, ModulePermission> = {};
 
     permissions.permissions.forEach((value, key) => {
       permissionsObject[key] = value;
