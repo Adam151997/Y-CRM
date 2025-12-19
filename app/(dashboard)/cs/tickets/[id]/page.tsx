@@ -19,9 +19,8 @@ import {
 import { clerkClient } from "@clerk/nextjs/server";
 import { format, formatDistanceToNow } from "date-fns";
 import { TicketActions } from "./_components/ticket-actions";
-import { TicketMessages } from "./_components/ticket-messages";
-import { AddMessageForm } from "./_components/add-message-form";
-import { TicketCSAT } from "./_components/ticket-csat";
+import { TicketNotes } from "./_components/ticket-notes";
+import { AddNoteForm } from "./_components/add-note-form";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -137,21 +136,21 @@ export default async function TicketDetailPage({ params }: PageProps) {
             </Card>
           )}
 
-          {/* Messages / Conversation */}
+          {/* Notes */}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <MessageSquare className="h-5 w-5" />
-                Conversation
+                Notes
               </CardTitle>
               <CardDescription>
-                {ticket.messages.length} message{ticket.messages.length !== 1 ? "s" : ""}
+                {ticket.messages.length} note{ticket.messages.length !== 1 ? "s" : ""}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <TicketMessages messages={ticket.messages} />
+              <TicketNotes messages={ticket.messages} />
               <Separator />
-              <AddMessageForm ticketId={ticket.id} />
+              <AddNoteForm ticketId={ticket.id} />
             </CardContent>
           </Card>
         </div>
@@ -306,15 +305,6 @@ export default async function TicketDetailPage({ params }: PageProps) {
               </CardContent>
             </Card>
           )}
-
-          {/* Customer Satisfaction */}
-          <TicketCSAT
-            ticketId={ticket.id}
-            ticketNumber={ticket.ticketNumber}
-            existingScore={ticket.satisfactionScore}
-            existingFeedback={ticket.satisfactionFeedback}
-            status={ticket.status}
-          />
         </div>
       </div>
     </div>

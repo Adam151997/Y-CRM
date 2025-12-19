@@ -2,11 +2,20 @@ import { NextRequest, NextResponse } from "next/server";
 import { getApiAuthContext } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { createAuditLog } from "@/lib/audit";
+import { clerkClient } from "@clerk/nextjs/server";
 import { z } from "zod";
+
+const attachmentSchema = z.object({
+  name: z.string(),
+  url: z.string(),
+  size: z.number(),
+  type: z.string(),
+});
 
 const createMessageSchema = z.object({
   content: z.string().min(1),
-  isInternal: z.boolean().default(false),
+  isInternal: z.boolean().default(true),
+  attachments: z.array(attachmentSchema).optional(),
 });
 
 interface RouteParams {
@@ -77,6 +86,16 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Ticket not found" }, { status: 404 });
     }
 
+    // Get author name from Clerk
+    let authorName = null;
+    try {
+      const client = await clerkClient();
+      const user = await client.users.getUser(auth.userId);
+      authorName = `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.emailAddresses[0]?.emailAddress || null;
+    } catch {
+      // Ignore error, author name is optional
+    }
+
     // Create message
     const message = await prisma.ticketMessage.create({
       data: {
@@ -85,7 +104,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         isInternal: data.isInternal,
         authorId: auth.userId,
         authorType: "USER",
-        authorName: null, // Could fetch user name from Clerk if needed
+        authorName,
+        attachments: data.attachments || [],
       },
     });
 
