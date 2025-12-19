@@ -17,7 +17,7 @@ import { formatDistanceToNow } from "date-fns";
 
 interface TicketData {
   id: string;
-  ticketNumber: string;
+  ticketNumber: number;
   subject: string;
   status: string;
   priority: string;
