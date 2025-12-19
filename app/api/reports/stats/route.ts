@@ -437,11 +437,17 @@ async function getInvoiceStats(
     });
   }
 
-  const transformedByStatus = byStatus.map(item => ({
-    status: item.status,
-    _count: item._count?._all ?? 0,
-    _sum: { total: Number(item._sum?.total || 0) },
-  }));
+  const transformedByStatus = byStatus.map(item => {
+    let count = 0;
+    if (item._count && typeof item._count === 'object' && '_all' in item._count) {
+      count = item._count._all ?? 0;
+    }
+    return {
+      status: item.status,
+      _count: count,
+      _sum: { total: Number(item._sum?.total || 0) },
+    };
+  });
 
   return {
     totalInvoiced,
