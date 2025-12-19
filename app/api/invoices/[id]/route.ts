@@ -211,7 +211,6 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     if (data.accountId) updateData.accountId = data.accountId;
     if (data.contactId !== undefined) updateData.contactId = data.contactId;
     if (data.opportunityId !== undefined) updateData.opportunityId = data.opportunityId;
-    if (data.status) updateData.status = data.status;
     if (data.issueDate) updateData.issueDate = data.issueDate;
     if (data.dueDate) updateData.dueDate = data.dueDate;
     if (data.currency) updateData.currency = data.currency;
@@ -223,6 +222,17 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     if (data.footer !== undefined) updateData.footer = data.footer;
     if (data.billingAddress !== undefined) updateData.billingAddress = data.billingAddress;
     if (data.customFields) updateData.customFields = data.customFields;
+
+    // Handle status change from DRAFT
+    if (data.status) {
+      updateData.status = data.status;
+      
+      // When changing from DRAFT to PAID, set payment fields
+      if (data.status === "PAID") {
+        updateData.paidAt = new Date();
+        // Will be set after totals calculation below
+      }
+    }
 
     // If items are provided, recalculate totals
     if (data.items) {
@@ -276,6 +286,14 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       updateData.discountAmount = totals.discountAmount;
       updateData.total = totals.total;
       updateData.amountDue = totals.amountDue;
+    }
+
+    // If status is changing to PAID, set payment amounts based on final total
+    if (data.status === "PAID") {
+      // Use the calculated total or existing total
+      const finalTotal = updateData.total ?? existingInvoice.total;
+      updateData.amountPaid = finalTotal;
+      updateData.amountDue = 0;
     }
 
     // Update invoice

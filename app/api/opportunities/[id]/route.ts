@@ -205,18 +205,31 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     // Track stage change for notification
     const isStageChanging = data.stageId && data.stageId !== existingOpportunity.stageId;
+    let newStage = null;
 
     // Verify stage if being changed
     if (isStageChanging) {
-      const stage = await prisma.pipelineStage.findFirst({
+      newStage = await prisma.pipelineStage.findFirst({
         where: { id: data.stageId, orgId: auth.orgId, module: "OPPORTUNITY" },
       });
-      if (!stage) {
+      if (!newStage) {
         return NextResponse.json({ error: "Pipeline stage not found" }, { status: 404 });
       }
       // Update probability based on stage
-      if (stage.probability !== null) {
-        data.probability = stage.probability;
+      if (newStage.probability !== null) {
+        data.probability = newStage.probability;
+      }
+      
+      // Auto-set closedWon and actualCloseDate when moving to Won/Lost stage
+      if (newStage.isWon && existingOpportunity.closedWon !== true) {
+        (data as Record<string, unknown>).closedWon = true;
+        (data as Record<string, unknown>).actualCloseDate = new Date();
+        data.probability = 100;
+      } else if (newStage.isLost && existingOpportunity.closedWon !== false) {
+        (data as Record<string, unknown>).closedWon = false;
+        (data as Record<string, unknown>).actualCloseDate = new Date();
+        (data as Record<string, unknown>).lostReason = (data as Record<string, unknown>).lostReason || null;
+        data.probability = 0;
       }
     }
 
@@ -245,6 +258,18 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       expectedCloseDate: data.expectedCloseDate,
       assignedToId: data.assignedToId,
     };
+
+    // Handle closedWon and actualCloseDate (set when stage changes to Won/Lost)
+    const extendedData = data as Record<string, unknown>;
+    if (extendedData.closedWon !== undefined) {
+      updateData.closedWon = extendedData.closedWon as boolean;
+    }
+    if (extendedData.actualCloseDate !== undefined) {
+      updateData.actualCloseDate = extendedData.actualCloseDate as Date;
+    }
+    if (extendedData.lostReason !== undefined) {
+      updateData.lostReason = extendedData.lostReason as string | null;
+    }
 
     // Handle accountId relation
     if (data.accountId !== undefined) {
@@ -288,15 +313,73 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     // Create notification for pipeline stage change
     if (isStageChanging) {
-      await createNotification({
-        orgId: auth.orgId,
-        userId: auth.userId,
-        type: "PIPELINE_MOVED",
-        title: `Pipeline updated: ${updatedOpportunity.name}`,
-        message: `Moved to: ${updatedOpportunity.stage.name}`,
-        entityType: "OPPORTUNITY",
-        entityId: updatedOpportunity.id,
-      });
+      // Check if this was an auto-close via stage change
+      if (newStage?.isWon && existingOpportunity.closedWon !== true) {
+        // Create notification for opportunity won
+        const formattedValue = new Intl.NumberFormat('en-US', {
+          style: 'currency',
+          currency: updatedOpportunity.currency,
+          maximumFractionDigits: 0,
+        }).format(Number(updatedOpportunity.value));
+
+        await createNotification({
+          orgId: auth.orgId,
+          userId: auth.userId,
+          type: "OPPORTUNITY_WON",
+          title: `🎉 Opportunity won: ${updatedOpportunity.name}`,
+          message: `Value: ${formattedValue} | Account: ${updatedOpportunity.account.name}`,
+          entityType: "OPPORTUNITY",
+          entityId: updatedOpportunity.id,
+        });
+
+        await createActivity({
+          orgId: auth.orgId,
+          type: "OPPORTUNITY_WON",
+          subject: `🎉 Opportunity won: ${updatedOpportunity.name}`,
+          description: `Value: ${formattedValue} | Account: ${updatedOpportunity.account.name}`,
+          accountId: updatedOpportunity.accountId,
+          performedById: auth.userId,
+          performedByType: "USER",
+        });
+      } else if (newStage?.isLost && existingOpportunity.closedWon !== false) {
+        // Create notification for opportunity lost
+        const formattedValue = new Intl.NumberFormat('en-US', {
+          style: 'currency',
+          currency: updatedOpportunity.currency,
+          maximumFractionDigits: 0,
+        }).format(Number(updatedOpportunity.value));
+
+        await createNotification({
+          orgId: auth.orgId,
+          userId: auth.userId,
+          type: "OPPORTUNITY_LOST",
+          title: `Opportunity lost: ${updatedOpportunity.name}`,
+          message: `Value: ${formattedValue} | Account: ${updatedOpportunity.account.name}`,
+          entityType: "OPPORTUNITY",
+          entityId: updatedOpportunity.id,
+        });
+
+        await createActivity({
+          orgId: auth.orgId,
+          type: "OPPORTUNITY_LOST",
+          subject: `Opportunity lost: ${updatedOpportunity.name}`,
+          description: `Value: ${formattedValue} | Account: ${updatedOpportunity.account.name}`,
+          accountId: updatedOpportunity.accountId,
+          performedById: auth.userId,
+          performedByType: "USER",
+        });
+      } else {
+        // Regular stage change notification
+        await createNotification({
+          orgId: auth.orgId,
+          userId: auth.userId,
+          type: "PIPELINE_MOVED",
+          title: `Pipeline updated: ${updatedOpportunity.name}`,
+          message: `Moved to: ${updatedOpportunity.stage.name}`,
+          entityType: "OPPORTUNITY",
+          entityId: updatedOpportunity.id,
+        });
+      }
     }
 
     return NextResponse.json(updatedOpportunity);
