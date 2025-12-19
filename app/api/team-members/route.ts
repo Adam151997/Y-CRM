@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { getApiAuthContext } from "@/lib/auth";
 import { clerkClient } from "@clerk/nextjs/server";
 
+// Force dynamic rendering
+export const dynamic = "force-dynamic";
+
 // GET /api/team-members - Get all team members in the organization
 export async function GET() {
   try {
