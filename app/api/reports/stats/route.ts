@@ -215,6 +215,8 @@ export async function GET(request: NextRequest) {
         totalOverdue: invoiceStats.totalOverdue,
         totalPending: invoiceStats.totalPending,
         collectionRate: invoiceStats.collectionRate,
+        primaryCurrency: invoiceStats.primaryCurrency,
+        byCurrency: invoiceStats.byCurrency,
         byStatus: invoiceStats.byStatus,
         monthlyData: invoiceStats.monthlyData,
       },

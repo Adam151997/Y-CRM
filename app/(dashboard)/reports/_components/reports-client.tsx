@@ -393,7 +393,7 @@ export function ReportsClient() {
 
         <TabsContent value="invoices" className="space-y-4">
           {/* Currency Breakdown - shows all currencies */}
-          {Object.keys(invoices.byCurrency).length > 1 && (
+          {invoices.byCurrency && Object.keys(invoices.byCurrency).length > 1 && (
             <CurrencyBreakdown byCurrency={invoices.byCurrency} />
           )}
           
