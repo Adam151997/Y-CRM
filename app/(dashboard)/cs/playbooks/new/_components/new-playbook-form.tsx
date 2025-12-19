@@ -26,6 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
 import { Loader2, Plus, Trash2, GripVertical, Info } from "lucide-react";
 
 const stepSchema = z.object({
@@ -46,6 +47,7 @@ const playbookSchema = z.object({
     healthScoreThreshold: z.number().min(0).max(100).optional(),
   }).optional(),
   steps: z.array(stepSchema).min(1, "At least one step is required"),
+  isTemplate: z.boolean().default(false),
 });
 
 type PlaybookFormValues = z.infer<typeof playbookSchema>;
@@ -98,6 +100,7 @@ export function NewPlaybookForm() {
           assigneeType: "CSM",
         },
       ],
+      isTemplate: false,
     },
   });
 
@@ -300,6 +303,27 @@ export function NewPlaybookForm() {
                 />
               </FormControl>
               <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="isTemplate"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+              <div className="space-y-0.5">
+                <FormLabel className="text-base">Template Playbook</FormLabel>
+                <FormDescription>
+                  Mark this as a template that can be cloned by other users
+                </FormDescription>
+              </div>
+              <FormControl>
+                <Switch
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </FormControl>
             </FormItem>
           )}
         />

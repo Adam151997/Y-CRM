@@ -14,11 +14,14 @@ import {
   Clock,
   MessageSquare,
   AlertCircle,
+  UserCheck,
 } from "lucide-react";
+import { clerkClient } from "@clerk/nextjs/server";
 import { format, formatDistanceToNow } from "date-fns";
 import { TicketActions } from "./_components/ticket-actions";
 import { TicketMessages } from "./_components/ticket-messages";
 import { AddMessageForm } from "./_components/add-message-form";
+import { TicketCSAT } from "./_components/ticket-csat";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -66,6 +69,34 @@ export default async function TicketDetailPage({ params }: PageProps) {
     notFound();
   }
 
+  // Fetch assigned user name
+  let assignedUserName = "Unassigned";
+  if (ticket.assignedToId) {
+    try {
+      const client = await clerkClient();
+      const user = await client.users.getUser(ticket.assignedToId);
+      assignedUserName = `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.emailAddresses[0]?.emailAddress || "Unknown";
+    } catch {
+      assignedUserName = "Unknown";
+    }
+  }
+
+  // Fetch team members for reassignment
+  let teamMembers: { id: string; name: string }[] = [];
+  try {
+    const client = await clerkClient();
+    const memberships = await client.organizations.getOrganizationMembershipList({
+      organizationId: orgId,
+      limit: 100,
+    });
+    teamMembers = memberships.data.map((m) => ({
+      id: m.publicUserData?.userId || "",
+      name: `${m.publicUserData?.firstName || ""} ${m.publicUserData?.lastName || ""}`.trim() || m.publicUserData?.identifier || "Unknown",
+    })).filter(m => m.id);
+  } catch (error) {
+    console.error("Failed to fetch team members:", error);
+  }
+
   return (
     <div className="space-y-6">
       {/* Back Button */}
@@ -88,7 +119,7 @@ export default async function TicketDetailPage({ params }: PageProps) {
           </div>
           <h2 className="text-xl">{ticket.subject}</h2>
         </div>
-        <TicketActions ticket={ticket} />
+        <TicketActions ticket={ticket} teamMembers={teamMembers} />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -163,6 +194,15 @@ export default async function TicketDetailPage({ params }: PageProps) {
                 </div>
               )}
 
+              {/* Assigned To */}
+              <div className="flex items-start gap-3">
+                <UserCheck className="h-4 w-4 mt-0.5 text-muted-foreground" />
+                <div>
+                  <p className="text-sm font-medium">Assigned To</p>
+                  <p className="text-sm">{assignedUserName}</p>
+                </div>
+              </div>
+
               {/* Category */}
               {ticket.category && (
                 <div className="flex items-start gap-3">
@@ -222,7 +262,7 @@ export default async function TicketDetailPage({ params }: PageProps) {
           </Card>
 
           {/* AI Insights */}
-          {(ticket.sentiment || ticket.aiSummary) && (
+          {(ticket.sentiment || ticket.aiSummary || (ticket.tags as string[] | null)?.length) && (
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">AI Insights</CardTitle>
@@ -245,6 +285,18 @@ export default async function TicketDetailPage({ params }: PageProps) {
                     </Badge>
                   </div>
                 )}
+                {(ticket.tags as string[] | null)?.length > 0 && (
+                  <div>
+                    <p className="text-sm font-medium mb-2">Tags</p>
+                    <div className="flex flex-wrap gap-1">
+                      {(ticket.tags as string[]).map((tag, idx) => (
+                        <Badge key={idx} variant="secondary" className="text-xs">
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 {ticket.aiSummary && (
                   <div>
                     <p className="text-sm font-medium">Summary</p>
@@ -254,6 +306,15 @@ export default async function TicketDetailPage({ params }: PageProps) {
               </CardContent>
             </Card>
           )}
+
+          {/* Customer Satisfaction */}
+          <TicketCSAT
+            ticketId={ticket.id}
+            ticketNumber={ticket.ticketNumber}
+            existingScore={ticket.satisfactionScore}
+            existingFeedback={ticket.satisfactionFeedback}
+            status={ticket.status}
+          />
         </div>
       </div>
     </div>

@@ -11,10 +11,12 @@ const updateTicketSchema = z.object({
   status: z.enum(["NEW", "OPEN", "PENDING", "RESOLVED", "CLOSED"]).optional(),
   priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]).optional(),
   category: z.string().optional(),
-  assignedToId: z.string().optional(),
+  assignedToId: z.string().nullable().optional(),
   resolution: z.string().optional(),
   resolvedAt: z.string().datetime().optional(),
   closedAt: z.string().datetime().optional(),
+  satisfactionScore: z.number().min(1).max(5).optional(),
+  satisfactionFeedback: z.string().nullable().optional(),
 });
 
 interface RouteParams {
@@ -106,6 +108,8 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       updateData.resolvedById = auth.userId;
     }
     if (data.closedAt !== undefined) updateData.closedAt = new Date(data.closedAt);
+    if (data.satisfactionScore !== undefined) updateData.satisfactionScore = data.satisfactionScore;
+    if (data.satisfactionFeedback !== undefined) updateData.satisfactionFeedback = data.satisfactionFeedback;
 
     // Update ticket
     const ticket = await prisma.ticket.update({

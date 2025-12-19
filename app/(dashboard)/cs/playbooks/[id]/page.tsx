@@ -13,6 +13,7 @@ import {
   Building2,
   Zap,
   Settings,
+  Copy,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { RunPlaybookButton } from "./_components/run-playbook-button";
@@ -133,6 +134,12 @@ export default async function PlaybookDetailPage({ params }: PageProps) {
             <Badge variant={playbook.isActive ? "default" : "secondary"}>
               {playbook.isActive ? "Active" : "Inactive"}
             </Badge>
+            {playbook.isTemplate && (
+              <Badge variant="outline" className="text-blue-600 border-blue-300">
+                <Copy className="h-3 w-3 mr-1" />
+                Template
+              </Badge>
+            )}
           </div>
           {playbook.description && (
             <p className="text-muted-foreground">{playbook.description}</p>

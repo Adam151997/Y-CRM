@@ -29,24 +29,42 @@ import {
   XCircle,
   Loader2,
   AlertTriangle,
+  UserPlus,
 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 
 interface Ticket {
   id: string;
   ticketNumber: number;
   status: string;
   priority: string;
+  assignedToId: string | null;
+}
+
+interface TeamMember {
+  id: string;
+  name: string;
 }
 
 interface TicketActionsProps {
   ticket: Ticket;
+  teamMembers: TeamMember[];
 }
 
-export function TicketActions({ ticket }: TicketActionsProps) {
+export function TicketActions({ ticket, teamMembers }: TicketActionsProps) {
   const router = useRouter();
   const [isUpdating, setIsUpdating] = useState(false);
   const [showResolveDialog, setShowResolveDialog] = useState(false);
   const [showCloseDialog, setShowCloseDialog] = useState(false);
+  const [showAssignDialog, setShowAssignDialog] = useState(false);
+  const [selectedAssignee, setSelectedAssignee] = useState(ticket.assignedToId || "");
 
   const updateStatus = async (status: string, resolution?: string) => {
     setIsUpdating(true);
@@ -94,6 +112,31 @@ export function TicketActions({ ticket }: TicketActionsProps) {
       router.refresh();
     } catch (error) {
       toast.error("Failed to update priority");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const updateAssignment = async () => {
+    setIsUpdating(true);
+    try {
+      const response = await fetch(`/api/cs/tickets/${ticket.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          assignedToId: selectedAssignee === "_unassigned" ? null : selectedAssignee 
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update assignment");
+      }
+
+      toast.success("Ticket reassigned successfully");
+      setShowAssignDialog(false);
+      router.refresh();
+    } catch (error) {
+      toast.error("Failed to reassign ticket");
     } finally {
       setIsUpdating(false);
     }
@@ -160,6 +203,12 @@ export function TicketActions({ ticket }: TicketActionsProps) {
               </DropdownMenuItem>
             )
           ))}
+
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => setShowAssignDialog(true)}>
+            <UserPlus className="h-4 w-4 mr-2" />
+            Reassign Ticket
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 
@@ -197,6 +246,41 @@ export function TicketActions({ ticket }: TicketActionsProps) {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={() => updateStatus("CLOSED")}>
               Close Ticket
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Reassign Dialog */}
+      <AlertDialog open={showAssignDialog} onOpenChange={setShowAssignDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reassign Ticket #{ticket.ticketNumber}</AlertDialogTitle>
+            <AlertDialogDescription>
+              Select a team member to assign this ticket to.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4">
+            <Label htmlFor="assignee">Assign To</Label>
+            <Select value={selectedAssignee} onValueChange={setSelectedAssignee}>
+              <SelectTrigger className="mt-2">
+                <SelectValue placeholder="Select team member" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="_unassigned">Unassigned</SelectItem>
+                {teamMembers.map((member) => (
+                  <SelectItem key={member.id} value={member.id}>
+                    {member.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={updateAssignment} disabled={isUpdating}>
+              {isUpdating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Reassign
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

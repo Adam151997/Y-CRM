@@ -153,7 +153,7 @@ export async function POST(request: NextRequest) {
         status: "NEW",
         createdById: auth.userId,
         createdByType: "USER",
-        assignedToId: data.assignedToId || auth.userId,
+        assignedToId: data.assignedToId && data.assignedToId !== "_none" ? data.assignedToId : null,
       },
       include: {
         account: { select: { id: true, name: true } },

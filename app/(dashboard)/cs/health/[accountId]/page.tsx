@@ -300,6 +300,18 @@ export default async function AccountHealthDetailPage({ params }: PageProps) {
                     {health.openTicketCount}
                   </Badge>
                 </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm">Avg Resolution Time</span>
+                  </div>
+                  <span className="text-sm font-medium">
+                    {health.avgTicketResolution 
+                      ? `${health.avgTicketResolution} hrs`
+                      : "N/A"
+                    }
+                  </span>
+                </div>
               </CardContent>
             </Card>
 

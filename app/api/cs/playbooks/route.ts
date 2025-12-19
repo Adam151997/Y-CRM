@@ -28,6 +28,7 @@ const playbookSchema = z.object({
   triggerConfig: triggerConfigSchema,
   steps: z.array(stepSchema).min(1),
   isActive: z.boolean().optional().default(true),
+  isTemplate: z.boolean().optional().default(false),
 });
 
 // GET /api/cs/playbooks - List all playbooks
@@ -104,6 +105,7 @@ export async function POST(request: Request) {
         triggerConfig: data.triggerConfig || {},
         steps: data.steps,
         isActive: data.isActive,
+        isTemplate: data.isTemplate,
         createdById: userId,
       },
     });

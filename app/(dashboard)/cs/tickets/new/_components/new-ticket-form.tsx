@@ -34,6 +34,7 @@ const ticketSchema = z.object({
   contactId: z.string().optional(),
   priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]),
   category: z.string().optional(),
+  assignedToId: z.string().optional(),
 });
 
 type TicketFormValues = z.infer<typeof ticketSchema>;
@@ -50,12 +51,18 @@ interface Contact {
   accountId: string | null;
 }
 
+interface TeamMember {
+  id: string;
+  name: string;
+}
+
 interface NewTicketFormProps {
   accounts: Account[];
   contacts: Contact[];
+  teamMembers: TeamMember[];
 }
 
-export function NewTicketForm({ accounts, contacts }: NewTicketFormProps) {
+export function NewTicketForm({ accounts, contacts, teamMembers }: NewTicketFormProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -68,6 +75,7 @@ export function NewTicketForm({ accounts, contacts }: NewTicketFormProps) {
       contactId: "",
       priority: "MEDIUM",
       category: "",
+      assignedToId: "",
     },
   });
 
@@ -244,6 +252,35 @@ export function NewTicketForm({ accounts, contacts }: NewTicketFormProps) {
             )}
           />
         </div>
+
+        <FormField
+          control={form.control}
+          name="assignedToId"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Assign To (Optional)</FormLabel>
+              <Select value={field.value} onValueChange={field.onChange}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select team member" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="_none">Unassigned</SelectItem>
+                  {teamMembers.map((member) => (
+                    <SelectItem key={member.id} value={member.id}>
+                      {member.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormDescription>
+                Assign this ticket to a support agent
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <div className="flex justify-end gap-3">
           <Button
