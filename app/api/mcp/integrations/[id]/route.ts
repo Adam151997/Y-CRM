@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/db";
+import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { createAuditLog } from "@/lib/audit";
 import { encryptObject } from "@/lib/encryption";
@@ -22,13 +23,13 @@ const updateMCPIntegrationSchema = z.object({
   serverUrl: z.string().url().optional().nullable(),
   command: z.string().optional().nullable(),
   args: z.array(z.string()).optional(),
-  env: z.record(z.string()).optional(),
+  env: z.record(z.string()).optional().nullable(),
   authType: z.enum(["NONE", "API_KEY", "BEARER", "CUSTOM_HEADER"]).optional(),
   authConfig: z.object({
     apiKey: z.string().optional(),
     headerName: z.string().optional(),
     headerValue: z.string().optional(),
-  }).optional(),
+  }).optional().nullable(),
   isEnabled: z.boolean().optional(),
   autoConnect: z.boolean().optional(),
 });
@@ -146,7 +147,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     }
 
     // Build update data
-    const updateData: Record<string, unknown> = {};
+    const updateData: Prisma.MCPIntegrationUpdateInput = {};
     if (data.name !== undefined) updateData.name = data.name;
     if (data.description !== undefined) updateData.description = data.description;
     if (data.transportType !== undefined) updateData.transportType = data.transportType;
@@ -162,7 +163,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       if (data.authConfig && Object.keys(data.authConfig).length > 0) {
         updateData.authConfig = encryptObject(data.authConfig as Record<string, unknown>);
       } else {
-        updateData.authConfig = null;
+        updateData.authConfig = Prisma.JsonNull;
       }
     }
 
@@ -170,7 +171,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       if (data.env && Object.keys(data.env).length > 0) {
         updateData.env = encryptObject(data.env);
       } else {
-        updateData.env = null;
+        updateData.env = Prisma.JsonNull;
       }
     }
 

@@ -7,9 +7,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/db";
+import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { createAuditLog } from "@/lib/audit";
-import { encryptObject, decryptObject, safeDecrypt } from "@/lib/encryption";
+import { encryptObject } from "@/lib/encryption";
 
 // Force dynamic rendering
 export const dynamic = "force-dynamic";
@@ -47,13 +48,17 @@ const createMCPIntegrationSchema = z.object({
 
 /**
  * Encrypt sensitive MCP config fields
+ * Returns Prisma-compatible JSON values
  */
 function encryptMCPSecrets(
   authConfig: Record<string, string> | null | undefined,
   env: Record<string, string> | null | undefined
-): { encryptedAuthConfig: string | null; encryptedEnv: string | null } {
-  let encryptedAuthConfig: string | null = null;
-  let encryptedEnv: string | null = null;
+): { 
+  encryptedAuthConfig: Prisma.InputJsonValue | typeof Prisma.JsonNull; 
+  encryptedEnv: Prisma.InputJsonValue | typeof Prisma.JsonNull;
+} {
+  let encryptedAuthConfig: Prisma.InputJsonValue | typeof Prisma.JsonNull = Prisma.JsonNull;
+  let encryptedEnv: Prisma.InputJsonValue | typeof Prisma.JsonNull = Prisma.JsonNull;
 
   if (authConfig && Object.keys(authConfig).length > 0) {
     encryptedAuthConfig = encryptObject(authConfig);
@@ -168,9 +173,9 @@ export async function POST(request: NextRequest) {
         serverUrl: data.serverUrl,
         command: data.command,
         args: data.args || [],
-        env: encryptedEnv, // Store as encrypted string
+        env: encryptedEnv,
         authType: data.authType || "NONE",
-        authConfig: encryptedAuthConfig, // Store as encrypted string
+        authConfig: encryptedAuthConfig,
         isEnabled: data.isEnabled,
         autoConnect: data.autoConnect,
         status: "DISCONNECTED",
@@ -189,7 +194,6 @@ export async function POST(request: NextRequest) {
         name: integration.name,
         transportType: integration.transportType,
         authType: integration.authType,
-        // Don't log secrets
       },
       metadata: { source: "api" },
     });
