@@ -7,6 +7,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getApiAuthContext } from "@/lib/auth";
+import { validateAPIKey, canRead, canWrite } from "@/lib/api-keys";
 import { 
   getMCPServer, 
   initializeMCPServer, 
@@ -15,6 +16,9 @@ import {
   Y_CRM_SERVER_INFO,
   LATEST_PROTOCOL_VERSION,
 } from "@/lib/mcp";
+
+// Force dynamic rendering
+export const dynamic = "force-dynamic";
 
 // Initialize MCP server
 let initialized = false;
@@ -94,33 +98,50 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Authenticate
+    // Try Clerk authentication first (for internal/browser requests)
     const auth = await getApiAuthContext();
-    if (!auth) {
-      // For MCP clients without Clerk auth, use API key
-      const apiKey = request.headers.get("X-API-Key");
-      if (!apiKey) {
-        return NextResponse.json(
-          {
-            jsonrpc: "2.0",
-            id: null,
-            error: { code: -1, message: "Authentication required" }
-          },
-          { status: 401 }
-        );
-      }
-      
-      // TODO: Validate API key and get org/user from database
-      // For now, use placeholder values for development
-      const devAuth = {
-        orgId: "dev_org",
-        userId: "dev_user",
-      };
-      
-      return handleMessage(request, sessionId, devAuth);
+    
+    if (auth) {
+      return handleMessage(request, sessionId, {
+        orgId: auth.orgId,
+        userId: auth.userId,
+        scopes: ["mcp:read", "mcp:write", "mcp:admin"], // Full access for authenticated users
+      });
     }
 
-    return handleMessage(request, sessionId, auth);
+    // Fall back to API key authentication (for external MCP clients)
+    const apiKey = request.headers.get("X-API-Key");
+    
+    if (!apiKey) {
+      return NextResponse.json(
+        {
+          jsonrpc: "2.0",
+          id: null,
+          error: { code: -1, message: "Authentication required. Provide X-API-Key header." }
+        },
+        { status: 401 }
+      );
+    }
+
+    // Validate API key
+    const validation = await validateAPIKey(apiKey);
+
+    if (!validation.valid) {
+      return NextResponse.json(
+        {
+          jsonrpc: "2.0",
+          id: null,
+          error: { code: -1, message: validation.error || "Invalid API key" }
+        },
+        { status: 401 }
+      );
+    }
+
+    return handleMessage(request, sessionId, {
+      orgId: validation.orgId!,
+      userId: `api_key:${validation.keyId}`,
+      scopes: validation.scopes || [],
+    });
   } catch (error) {
     console.error("[MCP API] POST error:", error);
     return NextResponse.json(
@@ -140,7 +161,7 @@ export async function POST(request: NextRequest) {
 async function handleMessage(
   request: NextRequest, 
   sessionId: string, 
-  auth: { orgId: string; userId: string }
+  auth: { orgId: string; userId: string; scopes: string[] }
 ) {
   ensureInitialized();
   const server = getMCPServer();
@@ -186,6 +207,20 @@ async function handleMessage(
       },
       { status: 400 }
     );
+  }
+
+  // Check write permission for tool calls
+  if (message.method === "tools/call") {
+    if (!canWrite(auth.scopes)) {
+      return NextResponse.json(
+        {
+          jsonrpc: "2.0",
+          id: message.id || null,
+          error: { code: -32603, message: "API key does not have write permission" }
+        },
+        { status: 403 }
+      );
+    }
   }
 
   // Handle the message

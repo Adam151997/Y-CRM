@@ -2,6 +2,8 @@
  * MCP Integration Connect/Disconnect API
  * POST: Connect to the MCP server
  * DELETE: Disconnect from the MCP server
+ * 
+ * Auth config and env are decrypted before use
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -10,10 +12,52 @@ import prisma from "@/lib/db";
 import { createAuditLog } from "@/lib/audit";
 import { getToolRegistry } from "@/lib/mcp/registry";
 import { createMCPClient } from "@/lib/mcp/client";
+import { decryptObject, safeDecrypt } from "@/lib/encryption";
 import type { TransportConfig } from "@/lib/mcp/client";
+
+// Force dynamic rendering
+export const dynamic = "force-dynamic";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
+}
+
+/**
+ * Safely decrypt MCP secrets
+ */
+function decryptMCPSecrets(
+  encryptedAuthConfig: unknown,
+  encryptedEnv: unknown
+): {
+  authConfig: Record<string, string> | null;
+  env: Record<string, string> | null;
+} {
+  let authConfig: Record<string, string> | null = null;
+  let env: Record<string, string> | null = null;
+
+  try {
+    if (encryptedAuthConfig && typeof encryptedAuthConfig === "string") {
+      authConfig = decryptObject<Record<string, string>>(encryptedAuthConfig);
+    } else if (encryptedAuthConfig && typeof encryptedAuthConfig === "object") {
+      // Legacy: unencrypted JSON object
+      authConfig = encryptedAuthConfig as Record<string, string>;
+    }
+  } catch (error) {
+    console.error("[MCP Connect] Failed to decrypt authConfig:", error);
+  }
+
+  try {
+    if (encryptedEnv && typeof encryptedEnv === "string") {
+      env = decryptObject<Record<string, string>>(encryptedEnv);
+    } else if (encryptedEnv && typeof encryptedEnv === "object") {
+      // Legacy: unencrypted JSON object
+      env = encryptedEnv as Record<string, string>;
+    }
+  } catch (error) {
+    console.error("[MCP Connect] Failed to decrypt env:", error);
+  }
+
+  return { authConfig, env };
 }
 
 /**
@@ -54,6 +98,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     });
 
     try {
+      // Decrypt sensitive configuration
+      const { authConfig, env } = decryptMCPSecrets(
+        integration.authConfig,
+        integration.env
+      );
+
       // Build transport config based on type
       let transportConfig: TransportConfig;
 
@@ -64,7 +114,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
         // Build headers for authentication
         const headers: Record<string, string> = {};
-        const authConfig = integration.authConfig as Record<string, string> | null;
 
         if (integration.authType === "API_KEY" && authConfig?.apiKey) {
           headers["X-API-Key"] = authConfig.apiKey;
@@ -89,7 +138,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           type: "stdio" as const,
           command: integration.command,
           args: (integration.args as string[]) || [],
-          env: (integration.env as Record<string, string>) || {},
+          env: env || {},
         };
       }
 
@@ -116,7 +165,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       await registry.addMCPClient(integration.name, client);
 
       // Update integration status
-      const updated = await prisma.mCPIntegration.update({
+      await prisma.mCPIntegration.update({
         where: { id },
         data: {
           status: "CONNECTED",

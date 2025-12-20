@@ -1,9 +1,11 @@
 /**
  * Google OAuth Client
  * Handles OAuth 2.0 flow for all Google services
+ * Tokens are encrypted at rest
  */
 
 import prisma from "@/lib/db";
+import { encrypt, decrypt, safeDecrypt } from "@/lib/encryption";
 
 // Google OAuth configuration
 const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
@@ -187,13 +189,17 @@ export async function getGoogleUserInfo(
 }
 
 /**
- * Save Google tokens to database
+ * Save Google tokens to database (encrypted)
  */
 export async function saveGoogleTokens(
   orgId: string,
   tokens: GoogleTokens,
   userInfo: GoogleUserInfo
 ): Promise<void> {
+  // Encrypt sensitive tokens
+  const encryptedAccessToken = encrypt(tokens.access_token);
+  const encryptedRefreshToken = tokens.refresh_token ? encrypt(tokens.refresh_token) : null;
+
   await prisma.integration.upsert({
     where: {
       orgId_provider: {
@@ -206,10 +212,12 @@ export async function saveGoogleTokens(
       provider: "google",
       status: "ACTIVE",
       connectionId: userInfo.id,
+      // Store encrypted tokens in dedicated fields
+      accessToken: encryptedAccessToken,
+      refreshToken: encryptedRefreshToken,
+      tokenExpiresAt: new Date(tokens.expires_at),
+      // Non-sensitive metadata
       metadata: {
-        access_token: tokens.access_token,
-        refresh_token: tokens.refresh_token,
-        expires_at: tokens.expires_at,
         scope: tokens.scope,
         email: userInfo.email,
         name: userInfo.name,
@@ -220,10 +228,10 @@ export async function saveGoogleTokens(
     update: {
       status: "ACTIVE",
       connectionId: userInfo.id,
+      accessToken: encryptedAccessToken,
+      refreshToken: encryptedRefreshToken,
+      tokenExpiresAt: new Date(tokens.expires_at),
       metadata: {
-        access_token: tokens.access_token,
-        refresh_token: tokens.refresh_token,
-        expires_at: tokens.expires_at,
         scope: tokens.scope,
         email: userInfo.email,
         name: userInfo.name,
@@ -251,11 +259,28 @@ export async function getValidAccessToken(orgId: string): Promise<string | null>
   if (!integration || integration.status !== "ACTIVE") {
     return null;
   }
-  
-  const metadata = integration.metadata as Record<string, unknown>;
-  const accessToken = metadata.access_token as string;
-  const refreshToken = metadata.refresh_token as string;
-  const expiresAt = metadata.expires_at as number;
+
+  // Get tokens - support both new encrypted fields and legacy metadata storage
+  let accessToken: string | null = null;
+  let refreshToken: string | null = null;
+  let expiresAt: number;
+
+  if (integration.accessToken) {
+    // New format: tokens in dedicated encrypted fields
+    accessToken = safeDecrypt(integration.accessToken);
+    refreshToken = integration.refreshToken ? safeDecrypt(integration.refreshToken) : null;
+    expiresAt = integration.tokenExpiresAt?.getTime() || 0;
+  } else {
+    // Legacy format: tokens in metadata (may be unencrypted)
+    const metadata = integration.metadata as Record<string, unknown>;
+    accessToken = safeDecrypt(metadata.access_token as string);
+    refreshToken = metadata.refresh_token ? safeDecrypt(metadata.refresh_token as string) : null;
+    expiresAt = metadata.expires_at as number;
+  }
+
+  if (!accessToken) {
+    return null;
+  }
   
   // Check if token is expired (with 5 min buffer)
   if (Date.now() > expiresAt - 300000) {
@@ -268,7 +293,9 @@ export async function getValidAccessToken(orgId: string): Promise<string | null>
       console.log("[Google] Refreshing access token...");
       const newTokens = await refreshAccessToken(refreshToken);
       
-      // Update database with new tokens
+      // Update database with new encrypted tokens
+      const encryptedAccessToken = encrypt(newTokens.access_token);
+      
       await prisma.integration.update({
         where: {
           orgId_provider: {
@@ -277,11 +304,8 @@ export async function getValidAccessToken(orgId: string): Promise<string | null>
           },
         },
         data: {
-          metadata: {
-            ...metadata,
-            access_token: newTokens.access_token,
-            expires_at: newTokens.expires_at,
-          },
+          accessToken: encryptedAccessToken,
+          tokenExpiresAt: new Date(newTokens.expires_at),
           updatedAt: new Date(),
         },
       });
@@ -300,10 +324,6 @@ export async function getValidAccessToken(orgId: string): Promise<string | null>
         },
         data: {
           status: "ERROR",
-          metadata: {
-            ...metadata,
-            error: "Token refresh failed. Please reconnect.",
-          },
           updatedAt: new Date(),
         },
       });
@@ -379,8 +399,15 @@ export async function disconnectGoogle(orgId: string): Promise<void> {
   });
   
   if (integration) {
-    const metadata = integration.metadata as Record<string, unknown>;
-    const accessToken = metadata.access_token as string;
+    // Get access token for revocation
+    let accessToken: string | null = null;
+    
+    if (integration.accessToken) {
+      accessToken = safeDecrypt(integration.accessToken);
+    } else {
+      const metadata = integration.metadata as Record<string, unknown>;
+      accessToken = metadata.access_token ? safeDecrypt(metadata.access_token as string) : null;
+    }
     
     // Revoke token with Google
     if (accessToken) {
@@ -393,7 +420,7 @@ export async function disconnectGoogle(orgId: string): Promise<void> {
       }
     }
     
-    // Update database
+    // Clear sensitive data from database
     await prisma.integration.update({
       where: {
         orgId_provider: {
@@ -403,9 +430,58 @@ export async function disconnectGoogle(orgId: string): Promise<void> {
       },
       data: {
         status: "DISCONNECTED",
+        accessToken: null,
+        refreshToken: null,
+        tokenExpiresAt: null,
         metadata: {},
         updatedAt: new Date(),
       },
     });
   }
+}
+
+/**
+ * Rotate encryption - re-encrypt tokens with new key
+ * Call this when rotating ENCRYPTION_KEY
+ */
+export async function rotateGoogleTokenEncryption(
+  orgId: string,
+  oldKey: string
+): Promise<void> {
+  const integration = await prisma.integration.findUnique({
+    where: {
+      orgId_provider: {
+        orgId,
+        provider: "google",
+      },
+    },
+  });
+
+  if (!integration || !integration.accessToken) {
+    return;
+  }
+
+  // Temporarily use old key to decrypt
+  const originalKey = process.env.ENCRYPTION_KEY;
+  process.env.ENCRYPTION_KEY = oldKey;
+
+  const decryptedAccess = decrypt(integration.accessToken);
+  const decryptedRefresh = integration.refreshToken ? decrypt(integration.refreshToken) : null;
+
+  // Restore new key and re-encrypt
+  process.env.ENCRYPTION_KEY = originalKey;
+
+  await prisma.integration.update({
+    where: {
+      orgId_provider: {
+        orgId,
+        provider: "google",
+      },
+    },
+    data: {
+      accessToken: encrypt(decryptedAccess),
+      refreshToken: decryptedRefresh ? encrypt(decryptedRefresh) : null,
+      updatedAt: new Date(),
+    },
+  });
 }

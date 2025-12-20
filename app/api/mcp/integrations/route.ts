@@ -1,6 +1,7 @@
 /**
  * MCP Integrations API
  * Manage external MCP server connections
+ * Auth config is encrypted at rest
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -8,6 +9,10 @@ import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/db";
 import { z } from "zod";
 import { createAuditLog } from "@/lib/audit";
+import { encryptObject, decryptObject, safeDecrypt } from "@/lib/encryption";
+
+// Force dynamic rendering
+export const dynamic = "force-dynamic";
 
 // Validation schema for creating MCP integration
 const createMCPIntegrationSchema = z.object({
@@ -39,6 +44,27 @@ const createMCPIntegrationSchema = z.object({
 }, {
   message: "SSE transport requires serverUrl, STDIO transport requires command",
 });
+
+/**
+ * Encrypt sensitive MCP config fields
+ */
+function encryptMCPSecrets(
+  authConfig: Record<string, string> | null | undefined,
+  env: Record<string, string> | null | undefined
+): { encryptedAuthConfig: string | null; encryptedEnv: string | null } {
+  let encryptedAuthConfig: string | null = null;
+  let encryptedEnv: string | null = null;
+
+  if (authConfig && Object.keys(authConfig).length > 0) {
+    encryptedAuthConfig = encryptObject(authConfig);
+  }
+
+  if (env && Object.keys(env).length > 0) {
+    encryptedEnv = encryptObject(env);
+  }
+
+  return { encryptedAuthConfig, encryptedEnv };
+}
 
 /**
  * GET /api/mcp/integrations
@@ -73,6 +99,7 @@ export async function GET(request: NextRequest) {
         autoConnect: true,
         createdAt: true,
         updatedAt: true,
+        // Don't include authConfig or env - they're encrypted secrets
       },
     });
 
@@ -125,6 +152,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Encrypt sensitive fields
+    const { encryptedAuthConfig, encryptedEnv } = encryptMCPSecrets(
+      data.authConfig as Record<string, string> | undefined,
+      data.env
+    );
+
     // Create the integration
     const integration = await prisma.mCPIntegration.create({
       data: {
@@ -135,9 +168,9 @@ export async function POST(request: NextRequest) {
         serverUrl: data.serverUrl,
         command: data.command,
         args: data.args || [],
-        env: data.env || {},
+        env: encryptedEnv, // Store as encrypted string
         authType: data.authType || "NONE",
-        authConfig: data.authConfig || {},
+        authConfig: encryptedAuthConfig, // Store as encrypted string
         isEnabled: data.isEnabled,
         autoConnect: data.autoConnect,
         status: "DISCONNECTED",
@@ -152,7 +185,12 @@ export async function POST(request: NextRequest) {
       recordId: integration.id,
       actorType: "USER",
       actorId: userId,
-      newState: { ...integration, authConfig: "[REDACTED]" } as unknown as Record<string, unknown>,
+      newState: {
+        name: integration.name,
+        transportType: integration.transportType,
+        authType: integration.authType,
+        // Don't log secrets
+      },
       metadata: { source: "api" },
     });
 

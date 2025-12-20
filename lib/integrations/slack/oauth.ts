@@ -1,9 +1,11 @@
 /**
  * Slack OAuth Client
  * Handles OAuth 2.0 flow for Slack
+ * Tokens are encrypted at rest
  */
 
 import prisma from "@/lib/db";
+import { encrypt, decrypt, safeDecrypt } from "@/lib/encryption";
 
 // Slack OAuth configuration
 const SLACK_AUTH_URL = "https://slack.com/oauth/v2/authorize";
@@ -106,12 +108,15 @@ export async function exchangeSlackCode(
 }
 
 /**
- * Save Slack tokens to database
+ * Save Slack tokens to database (encrypted)
  */
 export async function saveSlackTokens(
   orgId: string,
   tokens: SlackTokens
 ): Promise<void> {
+  // Encrypt sensitive token
+  const encryptedAccessToken = encrypt(tokens.access_token);
+
   await prisma.integration.upsert({
     where: {
       orgId_provider: {
@@ -124,8 +129,10 @@ export async function saveSlackTokens(
       provider: "slack",
       status: "ACTIVE",
       connectionId: tokens.team.id,
+      // Store encrypted token in dedicated field
+      accessToken: encryptedAccessToken,
+      // Non-sensitive metadata
       metadata: {
-        access_token: tokens.access_token,
         scope: tokens.scope,
         bot_user_id: tokens.bot_user_id,
         team_id: tokens.team.id,
@@ -137,8 +144,8 @@ export async function saveSlackTokens(
     update: {
       status: "ACTIVE",
       connectionId: tokens.team.id,
+      accessToken: encryptedAccessToken,
       metadata: {
-        access_token: tokens.access_token,
         scope: tokens.scope,
         bot_user_id: tokens.bot_user_id,
         team_id: tokens.team.id,
@@ -167,9 +174,16 @@ export async function getSlackAccessToken(orgId: string): Promise<string | null>
   if (!integration || integration.status !== "ACTIVE") {
     return null;
   }
-  
-  const metadata = integration.metadata as Record<string, unknown>;
-  return metadata.access_token as string;
+
+  // Support both new encrypted field and legacy metadata storage
+  if (integration.accessToken) {
+    // New format: token in dedicated encrypted field
+    return safeDecrypt(integration.accessToken);
+  } else {
+    // Legacy format: token in metadata (may be unencrypted)
+    const metadata = integration.metadata as Record<string, unknown>;
+    return metadata.access_token ? safeDecrypt(metadata.access_token as string) : null;
+  }
 }
 
 /**
@@ -234,8 +248,15 @@ export async function disconnectSlack(orgId: string): Promise<void> {
   });
   
   if (integration) {
-    const metadata = integration.metadata as Record<string, unknown>;
-    const accessToken = metadata.access_token as string;
+    // Get access token for revocation
+    let accessToken: string | null = null;
+    
+    if (integration.accessToken) {
+      accessToken = safeDecrypt(integration.accessToken);
+    } else {
+      const metadata = integration.metadata as Record<string, unknown>;
+      accessToken = metadata.access_token ? safeDecrypt(metadata.access_token as string) : null;
+    }
     
     // Revoke token with Slack
     if (accessToken) {
@@ -251,7 +272,7 @@ export async function disconnectSlack(orgId: string): Promise<void> {
       }
     }
     
-    // Update database
+    // Clear sensitive data from database
     await prisma.integration.update({
       where: {
         orgId_provider: {
@@ -261,9 +282,56 @@ export async function disconnectSlack(orgId: string): Promise<void> {
       },
       data: {
         status: "DISCONNECTED",
+        accessToken: null,
+        refreshToken: null,
+        tokenExpiresAt: null,
         metadata: {},
         updatedAt: new Date(),
       },
     });
   }
+}
+
+/**
+ * Rotate encryption - re-encrypt tokens with new key
+ * Call this when rotating ENCRYPTION_KEY
+ */
+export async function rotateSlackTokenEncryption(
+  orgId: string,
+  oldKey: string
+): Promise<void> {
+  const integration = await prisma.integration.findUnique({
+    where: {
+      orgId_provider: {
+        orgId,
+        provider: "slack",
+      },
+    },
+  });
+
+  if (!integration || !integration.accessToken) {
+    return;
+  }
+
+  // Temporarily use old key to decrypt
+  const originalKey = process.env.ENCRYPTION_KEY;
+  process.env.ENCRYPTION_KEY = oldKey;
+
+  const decryptedToken = decrypt(integration.accessToken);
+
+  // Restore new key and re-encrypt
+  process.env.ENCRYPTION_KEY = originalKey;
+
+  await prisma.integration.update({
+    where: {
+      orgId_provider: {
+        orgId,
+        provider: "slack",
+      },
+    },
+    data: {
+      accessToken: encrypt(decryptedToken),
+      updatedAt: new Date(),
+    },
+  });
 }

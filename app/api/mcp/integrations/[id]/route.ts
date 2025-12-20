@@ -1,6 +1,7 @@
 /**
  * MCP Integration API - Individual Operations
  * GET, PUT, DELETE for specific integration
+ * Auth config is encrypted at rest
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -8,6 +9,10 @@ import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/db";
 import { z } from "zod";
 import { createAuditLog } from "@/lib/audit";
+import { encryptObject } from "@/lib/encryption";
+
+// Force dynamic rendering
+export const dynamic = "force-dynamic";
 
 // Validation schema for updating MCP integration
 const updateMCPIntegrationSchema = z.object({
@@ -56,12 +61,29 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Don't expose sensitive auth config
+    // Don't expose sensitive auth config or env
     return NextResponse.json({
       integration: {
-        ...integration,
+        id: integration.id,
+        name: integration.name,
+        description: integration.description,
+        transportType: integration.transportType,
+        serverUrl: integration.serverUrl,
+        command: integration.command,
+        args: integration.args,
+        authType: integration.authType,
+        // Indicate if secrets are configured without exposing them
         authConfig: integration.authConfig ? { configured: true } : null,
         env: integration.env ? { configured: true } : null,
+        status: integration.status,
+        lastConnectedAt: integration.lastConnectedAt,
+        lastError: integration.lastError,
+        capabilities: integration.capabilities,
+        toolCount: integration.toolCount,
+        isEnabled: integration.isEnabled,
+        autoConnect: integration.autoConnect,
+        createdAt: integration.createdAt,
+        updatedAt: integration.updatedAt,
       },
     });
   } catch (error) {
@@ -131,11 +153,26 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     if (data.serverUrl !== undefined) updateData.serverUrl = data.serverUrl;
     if (data.command !== undefined) updateData.command = data.command;
     if (data.args !== undefined) updateData.args = data.args;
-    if (data.env !== undefined) updateData.env = data.env;
     if (data.authType !== undefined) updateData.authType = data.authType;
-    if (data.authConfig !== undefined) updateData.authConfig = data.authConfig;
     if (data.isEnabled !== undefined) updateData.isEnabled = data.isEnabled;
     if (data.autoConnect !== undefined) updateData.autoConnect = data.autoConnect;
+
+    // Encrypt sensitive fields if provided
+    if (data.authConfig !== undefined) {
+      if (data.authConfig && Object.keys(data.authConfig).length > 0) {
+        updateData.authConfig = encryptObject(data.authConfig as Record<string, unknown>);
+      } else {
+        updateData.authConfig = null;
+      }
+    }
+
+    if (data.env !== undefined) {
+      if (data.env && Object.keys(data.env).length > 0) {
+        updateData.env = encryptObject(data.env);
+      } else {
+        updateData.env = null;
+      }
+    }
 
     // If disabling, set status to DISCONNECTED
     if (data.isEnabled === false) {
@@ -154,8 +191,16 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       recordId: integration.id,
       actorType: "USER",
       actorId: userId,
-      previousState: { ...existing, authConfig: "[REDACTED]", env: "[REDACTED]" } as unknown as Record<string, unknown>,
-      newState: { ...integration, authConfig: "[REDACTED]", env: "[REDACTED]" } as unknown as Record<string, unknown>,
+      previousState: {
+        name: existing.name,
+        transportType: existing.transportType,
+        isEnabled: existing.isEnabled,
+      },
+      newState: {
+        name: integration.name,
+        transportType: integration.transportType,
+        isEnabled: integration.isEnabled,
+      },
       metadata: { source: "api" },
     });
 
@@ -217,7 +262,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       recordId: id,
       actorType: "USER",
       actorId: userId,
-      previousState: { name: existing.name, transportType: existing.transportType } as unknown as Record<string, unknown>,
+      previousState: { name: existing.name, transportType: existing.transportType },
       metadata: { source: "api" },
     });
 

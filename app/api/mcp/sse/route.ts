@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getMCPServer, initializeMCPServer, getToolRegistry, registerInternalTools } from "@/lib/mcp";
+import { validateAPIKey, canRead } from "@/lib/api-keys";
 
 // Runtime config for streaming
 export const runtime = "nodejs";
@@ -59,16 +60,39 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // TODO: Validate API key against database
-    // For now, accept any non-empty key for development
+    // Validate API key
+    const validation = await validateAPIKey(apiKey);
+
+    if (!validation.valid) {
+      console.warn("[MCP SSE] Invalid API key:", validation.error);
+      return NextResponse.json(
+        { error: validation.error || "Invalid API key" },
+        { status: 401 }
+      );
+    }
+
+    // Check read permission
+    if (!canRead(validation.scopes || [])) {
+      return NextResponse.json(
+        { error: "API key does not have read permission" },
+        { status: 403 }
+      );
+    }
 
     ensureInitialized();
     const server = getMCPServer();
 
-    // Create SSE connection
+    // Create SSE connection with org context
     const { connection, stream } = server.createSSEConnection();
 
-    console.log(`[MCP SSE] New connection established: ${connection.id}`);
+    // Store org context in connection metadata
+    connection.metadata = {
+      orgId: validation.orgId,
+      keyId: validation.keyId,
+      scopes: validation.scopes,
+    };
+
+    console.log(`[MCP SSE] New connection established: ${connection.id} for org: ${validation.orgId}`);
 
     // Return SSE stream
     return new Response(stream, {

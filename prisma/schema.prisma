@@ -1286,3 +1286,44 @@ model MCPIntegration {
   @@index([orgId, isEnabled])
   @@index([orgId, status])
 }
+
+// =============================================================================
+// API KEYS (For MCP Server Access)
+// =============================================================================
+
+model APIKey {
+  id          String    @id @default(uuid())
+  orgId       String
+  
+  // Key identification
+  name        String    // Display name: "Production MCP Key", "Development Key"
+  description String?
+  
+  // Key storage (never store the actual key, only hash)
+  keyHash     String    // SHA-256 hash of the full key
+  keyPrefix   String    // First 12 chars for identification (e.g., "ycrm_abc123")
+  
+  // Permissions
+  scopes      String[]  // ["mcp:read", "mcp:write", "mcp:admin"]
+  
+  // Usage tracking
+  lastUsedAt  DateTime?
+  usageCount  Int       @default(0)
+  
+  // Lifecycle
+  expiresAt   DateTime? // Null = never expires
+  isActive    Boolean   @default(true)
+  revokedAt   DateTime?
+  revokedById String?   // User who revoked the key
+  
+  // Attribution
+  createdById String
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([keyHash])
+  @@index([orgId])
+  @@index([orgId, isActive])
+  @@index([keyPrefix])
+}
