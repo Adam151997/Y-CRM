@@ -42,7 +42,8 @@ export type AuditModule =
   // System
   | "SYSTEM"
   | "AUTH"
-  | "MCP_INTEGRATION";
+  | "MCP_INTEGRATION"
+  | "API_KEY";
 
 export type ActorType = "USER" | "AI_AGENT" | "SYSTEM" | "API";
 
