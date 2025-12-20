@@ -14,6 +14,7 @@ import { ServerConnection } from "./base";
  */
 export class SSEConnection implements ServerConnection {
   public readonly id: string;
+  public metadata: Record<string, unknown> = {};
   private encoder: TextEncoder;
   private controller: ReadableStreamDefaultController<Uint8Array> | null = null;
   private messageHandler: ((message: JSONRPCMessage) => void) | null = null;
