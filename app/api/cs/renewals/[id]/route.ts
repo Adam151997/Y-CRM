@@ -3,6 +3,7 @@ import { getAuthContext } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { createAuditLog } from "@/lib/audit";
 import { z } from "zod";
+import { checkRoutePermission } from "@/lib/api-permissions";
 
 // GET /api/cs/renewals/[id] - Get a single renewal
 export async function GET(
@@ -10,7 +11,12 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { orgId } = await getAuthContext();
+    const { orgId, userId } = await getAuthContext();
+    
+    // Check accounts permission (renewals are account-level data)
+    const permissionError = await checkRoutePermission(userId, orgId, "accounts", "view");
+    if (permissionError) return permissionError;
+
     const { id } = await params;
 
     const renewal = await prisma.renewal.findFirst({
@@ -71,6 +77,11 @@ export async function PUT(
 ) {
   try {
     const { orgId, userId } = await getAuthContext();
+    
+    // Check accounts permission (renewals are account-level data)
+    const permissionError = await checkRoutePermission(userId, orgId, "accounts", "edit");
+    if (permissionError) return permissionError;
+
     const { id } = await params;
     const body = await request.json();
 
@@ -161,6 +172,11 @@ export async function DELETE(
 ) {
   try {
     const { orgId, userId } = await getAuthContext();
+    
+    // Check accounts permission (renewals are account-level data)
+    const permissionError = await checkRoutePermission(userId, orgId, "accounts", "delete");
+    if (permissionError) return permissionError;
+
     const { id } = await params;
 
     // Check if renewal exists

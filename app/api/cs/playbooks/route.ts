@@ -1,8 +1,9 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getAuthContext } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { z } from "zod";
 import { createAuditLog } from "@/lib/audit";
+import { checkRoutePermission } from "@/lib/api-permissions";
 
 // Schema for playbook steps
 const stepSchema = z.object({
@@ -32,9 +33,14 @@ const playbookSchema = z.object({
 });
 
 // GET /api/cs/playbooks - List all playbooks
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
-    const { orgId } = await getAuthContext();
+    const { orgId, userId } = await getAuthContext();
+    
+    // Check settings permission (playbooks are admin configuration)
+    const permissionError = await checkRoutePermission(userId, orgId, "settings", "view");
+    if (permissionError) return permissionError;
+
     const { searchParams } = new URL(request.url);
 
     const isActive = searchParams.get("isActive");
@@ -89,9 +95,14 @@ export async function GET(request: Request) {
 }
 
 // POST /api/cs/playbooks - Create a new playbook
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     const { orgId, userId } = await getAuthContext();
+    
+    // Check settings permission (playbooks are admin configuration)
+    const permissionError = await checkRoutePermission(userId, orgId, "settings", "create");
+    if (permissionError) return permissionError;
+
     const body = await request.json();
 
     const data = playbookSchema.parse(body);

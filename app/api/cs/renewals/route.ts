@@ -1,8 +1,9 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getAuthContext } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { z } from "zod";
 import { createAuditLog } from "@/lib/audit";
+import { getRoutePermissionContext, checkRoutePermission } from "@/lib/api-permissions";
 
 // Schema for creating a renewal
 const renewalSchema = z.object({
@@ -21,9 +22,16 @@ const renewalSchema = z.object({
 });
 
 // GET /api/cs/renewals - List all renewals
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
-    const { orgId } = await getAuthContext();
+    const { orgId, userId } = await getAuthContext();
+    
+    // Check accounts permission (renewals are account-level data)
+    const permCtx = await getRoutePermissionContext(userId, orgId, "accounts", "view");
+    if (!permCtx.allowed) {
+      return NextResponse.json({ error: "You don't have permission to view renewals" }, { status: 403 });
+    }
+
     const { searchParams } = new URL(request.url);
 
     const status = searchParams.get("status");
@@ -101,9 +109,14 @@ export async function GET(request: Request) {
 }
 
 // POST /api/cs/renewals - Create a new renewal
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     const { orgId, userId } = await getAuthContext();
+    
+    // Check accounts permission (renewals are account-level data)
+    const permissionError = await checkRoutePermission(userId, orgId, "accounts", "create");
+    if (permissionError) return permissionError;
+
     const body = await request.json();
 
     const data = renewalSchema.parse(body);

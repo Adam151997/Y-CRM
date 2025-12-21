@@ -7,6 +7,7 @@ import { createNotification } from "@/lib/notifications";
 import { createActivity } from "@/lib/activity";
 import { createOpportunitySchema } from "@/lib/validation/schemas";
 import { validateCustomFields } from "@/lib/validation/custom-fields";
+import { getRoutePermissionContext, checkRoutePermission } from "@/lib/api-permissions";
 import { z } from "zod";
 
 // Filter schema
@@ -29,6 +30,12 @@ export async function GET(request: NextRequest) {
     const auth = await getApiAuthContext();
     if (!auth) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Check permission
+    const permCtx = await getRoutePermissionContext(auth.userId, auth.orgId, "opportunities", "view");
+    if (!permCtx.allowed) {
+      return NextResponse.json({ error: "You don't have permission to view opportunities" }, { status: 403 });
     }
 
     const { searchParams } = new URL(request.url);
@@ -56,8 +63,11 @@ export async function GET(request: NextRequest) {
       maxValue,
     } = filterResult.data;
 
-    // Build where clause
-    const where: Record<string, unknown> = { orgId: auth.orgId };
+    // Build where clause with visibility filter
+    const where: Record<string, unknown> = { 
+      orgId: auth.orgId,
+      ...permCtx.visibilityFilter,
+    };
 
     if (stageId) where.stageId = stageId;
     if (accountId) where.accountId = accountId;
@@ -127,6 +137,10 @@ export async function POST(request: NextRequest) {
     if (!auth) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    // Check permission
+    const permissionError = await checkRoutePermission(auth.userId, auth.orgId, "opportunities", "create");
+    if (permissionError) return permissionError;
 
     const body = await request.json();
 

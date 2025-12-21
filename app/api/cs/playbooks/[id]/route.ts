@@ -1,8 +1,9 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getAuthContext } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { z } from "zod";
 import { createAuditLog } from "@/lib/audit";
+import { checkRoutePermission } from "@/lib/api-permissions";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -25,9 +26,14 @@ const updateSchema = z.object({
 });
 
 // GET /api/cs/playbooks/[id] - Get a single playbook
-export async function GET(request: Request, { params }: RouteParams) {
+export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
-    const { orgId } = await getAuthContext();
+    const { orgId, userId } = await getAuthContext();
+    
+    // Check settings permission (playbooks are admin configuration)
+    const permissionError = await checkRoutePermission(userId, orgId, "settings", "view");
+    if (permissionError) return permissionError;
+
     const { id } = await params;
 
     const playbook = await prisma.playbook.findFirst({
@@ -58,9 +64,14 @@ export async function GET(request: Request, { params }: RouteParams) {
 }
 
 // PUT /api/cs/playbooks/[id] - Update a playbook
-export async function PUT(request: Request, { params }: RouteParams) {
+export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
     const { orgId, userId } = await getAuthContext();
+    
+    // Check settings permission (playbooks are admin configuration)
+    const permissionError = await checkRoutePermission(userId, orgId, "settings", "edit");
+    if (permissionError) return permissionError;
+
     const { id } = await params;
     const body = await request.json();
 
@@ -112,9 +123,14 @@ export async function PUT(request: Request, { params }: RouteParams) {
 }
 
 // DELETE /api/cs/playbooks/[id] - Delete a playbook
-export async function DELETE(request: Request, { params }: RouteParams) {
+export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     const { orgId, userId } = await getAuthContext();
+    
+    // Check settings permission (playbooks are admin configuration)
+    const permissionError = await checkRoutePermission(userId, orgId, "settings", "delete");
+    if (permissionError) return permissionError;
+
     const { id } = await params;
 
     const playbook = await prisma.playbook.findFirst({

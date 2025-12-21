@@ -3,6 +3,7 @@ import { getAuthContext } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { createAuditLog } from "@/lib/audit";
 import { z } from "zod";
+import { checkRoutePermission } from "@/lib/api-permissions";
 
 // GET /api/marketing/forms/[id] - Get a single form
 export async function GET(
@@ -10,7 +11,12 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { orgId } = await getAuthContext();
+    const { orgId, userId } = await getAuthContext();
+    
+    // Check campaigns permission (forms are part of marketing/campaigns)
+    const permissionError = await checkRoutePermission(userId, orgId, "campaigns", "view");
+    if (permissionError) return permissionError;
+
     const { id } = await params;
 
     const form = await prisma.form.findFirst({
@@ -74,6 +80,11 @@ export async function PUT(
 ) {
   try {
     const { orgId, userId } = await getAuthContext();
+    
+    // Check campaigns permission (forms are part of marketing/campaigns)
+    const permissionError = await checkRoutePermission(userId, orgId, "campaigns", "edit");
+    if (permissionError) return permissionError;
+
     const { id } = await params;
     const body = await request.json();
 
@@ -160,6 +171,11 @@ export async function DELETE(
 ) {
   try {
     const { orgId, userId } = await getAuthContext();
+    
+    // Check campaigns permission (forms are part of marketing/campaigns)
+    const permissionError = await checkRoutePermission(userId, orgId, "campaigns", "delete");
+    if (permissionError) return permissionError;
+
     const { id } = await params;
 
     // Check if form exists

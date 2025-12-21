@@ -3,11 +3,19 @@ import { getAuthContext } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { createAuditLog } from "@/lib/audit";
 import { z } from "zod";
+import { getRoutePermissionContext, checkRoutePermission } from "@/lib/api-permissions";
 
 // GET /api/marketing/forms - List all forms
 export async function GET(request: NextRequest) {
   try {
-    const { orgId } = await getAuthContext();
+    const { orgId, userId } = await getAuthContext();
+    
+    // Check campaigns permission (forms are part of marketing/campaigns)
+    const permCtx = await getRoutePermissionContext(userId, orgId, "campaigns", "view");
+    if (!permCtx.allowed) {
+      return NextResponse.json({ error: "You don't have permission to view forms" }, { status: 403 });
+    }
+
     const { searchParams } = new URL(request.url);
     
     const isActive = searchParams.get("isActive");
@@ -80,6 +88,11 @@ const createFormSchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     const { orgId, userId } = await getAuthContext();
+    
+    // Check campaigns permission (forms are part of marketing/campaigns)
+    const permissionError = await checkRoutePermission(userId, orgId, "campaigns", "create");
+    if (permissionError) return permissionError;
+
     const body = await request.json();
 
     // Validate request body

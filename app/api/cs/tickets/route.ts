@@ -3,6 +3,7 @@ import { getApiAuthContext } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { createAuditLog } from "@/lib/audit";
 import { z } from "zod";
+import { getRoutePermissionContext, checkRoutePermission } from "@/lib/api-permissions";
 
 // Validation schemas
 const createTicketSchema = z.object({
@@ -34,6 +35,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Check permission
+    const permCtx = await getRoutePermissionContext(auth.userId, auth.orgId, "tickets", "view");
+    if (!permCtx.allowed) {
+      return NextResponse.json({ error: "You don't have permission to view tickets" }, { status: 403 });
+    }
+
     const { searchParams } = new URL(request.url);
     const params = Object.fromEntries(searchParams.entries());
 
@@ -47,8 +54,11 @@ export async function GET(request: NextRequest) {
 
     const { page, limit, status, priority, category, accountId, assignedToId, query } = filterResult.data;
 
-    // Build where clause
-    const where: Record<string, unknown> = { orgId: auth.orgId };
+    // Build where clause with visibility filter
+    const where: Record<string, unknown> = { 
+      orgId: auth.orgId,
+      ...permCtx.visibilityFilter,
+    };
 
     if (status) where.status = status;
     if (priority) where.priority = priority;
@@ -103,6 +113,10 @@ export async function POST(request: NextRequest) {
     if (!auth) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    // Check permission
+    const permissionError = await checkRoutePermission(auth.userId, auth.orgId, "tickets", "create");
+    if (permissionError) return permissionError;
 
     const body = await request.json();
 

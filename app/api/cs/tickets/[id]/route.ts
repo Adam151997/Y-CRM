@@ -4,6 +4,7 @@ import prisma from "@/lib/db";
 import { createAuditLog } from "@/lib/audit";
 import { z } from "zod";
 import { triggerTicketEscalationPlaybooks } from "@/lib/playbook-triggers";
+import { checkRoutePermission } from "@/lib/api-permissions";
 
 const updateTicketSchema = z.object({
   subject: z.string().min(1).max(200).optional(),
@@ -30,6 +31,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     if (!auth) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    // Check permission
+    const permissionError = await checkRoutePermission(auth.userId, auth.orgId, "tickets", "view");
+    if (permissionError) return permissionError;
 
     const { id } = await params;
 
@@ -65,6 +70,10 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     if (!auth) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    // Check permission
+    const permissionError = await checkRoutePermission(auth.userId, auth.orgId, "tickets", "edit");
+    if (permissionError) return permissionError;
 
     const { id } = await params;
     const body = await request.json();
@@ -192,6 +201,10 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     if (!auth) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    // Check permission
+    const permissionError = await checkRoutePermission(auth.userId, auth.orgId, "tickets", "delete");
+    if (permissionError) return permissionError;
 
     const { id } = await params;
 

@@ -4,6 +4,7 @@ import prisma from "@/lib/db";
 import { createAuditLog } from "@/lib/audit";
 import { createNotification } from "@/lib/notifications";
 import { createTaskSchema } from "@/lib/validation/schemas";
+import { getRoutePermissionContext, checkRoutePermission } from "@/lib/api-permissions";
 
 // POST /api/tasks - Create a new task
 export async function POST(request: NextRequest) {
@@ -12,6 +13,10 @@ export async function POST(request: NextRequest) {
     if (!auth) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    // Check permission
+    const permissionError = await checkRoutePermission(auth.userId, auth.orgId, "tasks", "create");
+    if (permissionError) return permissionError;
 
     const body = await request.json();
 
@@ -100,6 +105,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Check permission
+    const permCtx = await getRoutePermissionContext(auth.userId, auth.orgId, "tasks", "view");
+    if (!permCtx.allowed) {
+      return NextResponse.json({ error: "You don't have permission to view tasks" }, { status: 403 });
+    }
+
     const { searchParams } = new URL(request.url);
     const leadId = searchParams.get("leadId");
     const contactId = searchParams.get("contactId");
@@ -108,7 +119,10 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get("status");
     const assignedToId = searchParams.get("assignedToId");
 
-    const where: Record<string, unknown> = { orgId: auth.orgId };
+    const where: Record<string, unknown> = { 
+      orgId: auth.orgId,
+      ...permCtx.visibilityFilter,
+    };
     if (leadId) where.leadId = leadId;
     if (contactId) where.contactId = contactId;
     if (accountId) where.accountId = accountId;
