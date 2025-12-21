@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getApiAuthContext } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { createAuditLog } from "@/lib/audit";
+import { checkRoutePermission } from "@/lib/api-permissions";
 
 // Validation schema for creating a custom module
 const createModuleSchema = z.object({
@@ -30,6 +31,10 @@ export async function GET(request: NextRequest) {
     if (!auth) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    // Check settings view permission
+    const permissionError = await checkRoutePermission(auth.userId, auth.orgId, "settings", "view");
+    if (permissionError) return permissionError;
 
     const { searchParams } = new URL(request.url);
     const activeOnly = searchParams.get("active") !== "false";
@@ -70,6 +75,10 @@ export async function POST(request: NextRequest) {
     if (!auth) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    // Check settings create permission
+    const permissionError = await checkRoutePermission(auth.userId, auth.orgId, "settings", "create");
+    if (permissionError) return permissionError;
 
     const body = await request.json();
     const validated = createModuleSchema.parse(body);

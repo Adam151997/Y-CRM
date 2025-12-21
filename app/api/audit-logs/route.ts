@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getApiAuthContext } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { z } from "zod";
+import { checkRoutePermission } from "@/lib/api-permissions";
 
 // Force dynamic rendering - this route uses auth headers
 export const dynamic = 'force-dynamic';
@@ -25,6 +26,10 @@ export async function GET(request: NextRequest) {
     if (!auth) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    // Check settings view permission (audit logs are admin-only)
+    const permissionError = await checkRoutePermission(auth.userId, auth.orgId, "settings", "view");
+    if (permissionError) return permissionError;
 
     const { searchParams } = new URL(request.url);
     const params = Object.fromEntries(searchParams.entries());

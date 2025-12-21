@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getApiAuthContext } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { createPipelineStageSchema } from "@/lib/validation/schemas";
+import { checkRoutePermission } from "@/lib/api-permissions";
 
 // GET /api/settings/pipeline-stages - List pipeline stages
 export async function GET(request: NextRequest) {
@@ -10,6 +11,10 @@ export async function GET(request: NextRequest) {
     if (!auth) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    // Check settings view permission
+    const permissionError = await checkRoutePermission(auth.userId, auth.orgId, "settings", "view");
+    if (permissionError) return permissionError;
 
     const { searchParams } = new URL(request.url);
     const module = searchParams.get("module");
@@ -46,6 +51,10 @@ export async function POST(request: NextRequest) {
     if (!auth) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    // Check settings create permission
+    const permissionError = await checkRoutePermission(auth.userId, auth.orgId, "settings", "create");
+    if (permissionError) return permissionError;
 
     const body = await request.json();
 

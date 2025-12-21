@@ -4,6 +4,7 @@ import { getApiAuthContext } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { createAuditLog } from "@/lib/audit";
 import { cleanupOrphanedRelationships } from "@/lib/relationships";
+import { checkRoutePermission } from "@/lib/api-permissions";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -32,6 +33,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     if (!auth) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    // Check settings view permission
+    const permissionError = await checkRoutePermission(auth.userId, auth.orgId, "settings", "view");
+    if (permissionError) return permissionError;
 
     const { id } = await params;
 
@@ -75,6 +80,10 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     if (!auth) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    // Check settings edit permission
+    const permissionError = await checkRoutePermission(auth.userId, auth.orgId, "settings", "edit");
+    if (permissionError) return permissionError;
 
     const { id } = await params;
     const body = await request.json();
@@ -137,6 +146,10 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     if (!auth) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    // Check settings delete permission
+    const permissionError = await checkRoutePermission(auth.userId, auth.orgId, "settings", "delete");
+    if (permissionError) return permissionError;
 
     const { id } = await params;
 

@@ -3,6 +3,7 @@ import { getApiAuthContext } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { Prisma } from "@prisma/client";
 import { z } from "zod";
+import { checkRoutePermission } from "@/lib/api-permissions";
 
 // Schema for creating custom fields (supports both built-in and custom modules)
 const createCustomFieldSchema = z.object({
@@ -50,6 +51,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Check settings view permission
+    const permissionError = await checkRoutePermission(auth.userId, auth.orgId, "settings", "view");
+    if (permissionError) return permissionError;
+
     const { searchParams } = new URL(request.url);
     const module = searchParams.get("module");
     const customModuleId = searchParams.get("customModuleId");
@@ -86,6 +91,10 @@ export async function POST(request: NextRequest) {
     if (!auth) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    // Check settings create permission
+    const permissionError = await checkRoutePermission(auth.userId, auth.orgId, "settings", "create");
+    if (permissionError) return permissionError;
 
     const body = await request.json();
 

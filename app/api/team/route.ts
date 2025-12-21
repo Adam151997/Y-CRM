@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getApiAuthContext } from "@/lib/auth";
 import { clerkClient } from "@clerk/nextjs/server";
 import prisma from "@/lib/db";
+import { checkRoutePermission } from "@/lib/api-permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +16,10 @@ export async function GET() {
     if (!auth) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    // Check settings view permission
+    const permissionError = await checkRoutePermission(auth.userId, auth.orgId, "settings", "view");
+    if (permissionError) return permissionError;
 
     const clerk = await clerkClient();
 

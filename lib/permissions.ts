@@ -40,7 +40,11 @@ export const BUILT_IN_MODULES = [
   "campaigns",
   "invoices",
   "reports",
+  "settings",
 ] as const;
+
+// Modules that require admin-level access by default
+export const ADMIN_ONLY_MODULES = ["settings"] as const;
 
 // All possible actions
 export const ALL_ACTIONS: ActionType[] = ["view", "create", "edit", "delete"];
@@ -383,10 +387,15 @@ export class PermissionError extends Error {
  * Create default roles for a new organization
  */
 export async function createDefaultRoles(orgId: string): Promise<void> {
+  // Modules accessible by non-admin roles (excludes settings)
+  const standardModules = BUILT_IN_MODULES.filter(
+    (m) => !(ADMIN_ONLY_MODULES as readonly string[]).includes(m)
+  );
+
   const defaultRoles = [
     {
       name: "Admin",
-      description: "Full access to all features",
+      description: "Full access to all features including settings",
       isSystem: true,
       isDefault: false,
       permissions: BUILT_IN_MODULES.map((module) => ({
@@ -398,10 +407,10 @@ export async function createDefaultRoles(orgId: string): Promise<void> {
     },
     {
       name: "Manager",
-      description: "Can manage team and all records",
+      description: "Can manage all records but not system settings",
       isSystem: false,
       isDefault: false,
-      permissions: BUILT_IN_MODULES.map((module) => ({
+      permissions: standardModules.map((module) => ({
         module,
         actions: ALL_ACTIONS as string[],
         fields: Prisma.JsonNull,
@@ -413,7 +422,7 @@ export async function createDefaultRoles(orgId: string): Promise<void> {
       description: "Standard access for sales team members",
       isSystem: false,
       isDefault: true,
-      permissions: BUILT_IN_MODULES.map((module) => ({
+      permissions: standardModules.map((module) => ({
         module,
         actions: ["view", "create", "edit"] as string[],
         fields: Prisma.JsonNull,
@@ -422,10 +431,10 @@ export async function createDefaultRoles(orgId: string): Promise<void> {
     },
     {
       name: "Read Only",
-      description: "View-only access",
+      description: "View-only access to records",
       isSystem: false,
       isDefault: false,
-      permissions: BUILT_IN_MODULES.map((module) => ({
+      permissions: standardModules.map((module) => ({
         module,
         actions: ["view"] as string[],
         fields: Prisma.JsonNull,

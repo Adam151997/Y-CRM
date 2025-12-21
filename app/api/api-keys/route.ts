@@ -13,6 +13,7 @@ import {
   API_KEY_SCOPES,
   DEFAULT_SCOPES,
 } from "@/lib/api-keys";
+import { checkRoutePermission } from "@/lib/api-permissions";
 
 // Force dynamic rendering
 export const dynamic = "force-dynamic";
@@ -41,6 +42,10 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Check settings view permission
+    const permissionError = await checkRoutePermission(userId, orgId, "settings", "view");
+    if (permissionError) return permissionError;
+
     const keys = await listAPIKeys(orgId);
 
     return NextResponse.json({
@@ -67,6 +72,10 @@ export async function POST(request: NextRequest) {
     if (!userId || !orgId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    // Check settings create permission
+    const permissionError = await checkRoutePermission(userId, orgId, "settings", "create");
+    if (permissionError) return permissionError;
 
     const body = await request.json();
     const validation = createKeySchema.safeParse(body);

@@ -11,6 +11,7 @@ import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { createAuditLog } from "@/lib/audit";
 import { encryptObject } from "@/lib/encryption";
+import { checkRoutePermission } from "@/lib/api-permissions";
 
 // Force dynamic rendering
 export const dynamic = "force-dynamic";
@@ -50,6 +51,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     if (!userId || !orgId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    // Check settings view permission
+    const permissionError = await checkRoutePermission(userId, orgId, "settings", "view");
+    if (permissionError) return permissionError;
 
     const integration = await prisma.mCPIntegration.findFirst({
       where: { id, orgId },
@@ -108,6 +113,10 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     if (!userId || !orgId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    // Check settings edit permission
+    const permissionError = await checkRoutePermission(userId, orgId, "settings", "edit");
+    if (permissionError) return permissionError;
 
     const existing = await prisma.mCPIntegration.findFirst({
       where: { id, orgId },
@@ -240,6 +249,10 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     if (!userId || !orgId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    // Check settings delete permission
+    const permissionError = await checkRoutePermission(userId, orgId, "settings", "delete");
+    if (permissionError) return permissionError;
 
     const existing = await prisma.mCPIntegration.findFirst({
       where: { id, orgId },

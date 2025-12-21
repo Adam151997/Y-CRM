@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthContext } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { createAuditLog, AuditModule } from "@/lib/audit";
+import { checkRoutePermission } from "@/lib/api-permissions";
 import Papa from "papaparse";
 
 export const runtime = "nodejs";
@@ -290,6 +291,10 @@ export async function POST(request: NextRequest) {
     if (!auth) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    // Check settings create permission (import is a bulk create operation, admin-only)
+    const permissionError = await checkRoutePermission(auth.userId, auth.orgId, "settings", "create");
+    if (permissionError) return permissionError;
 
     const formData = await request.formData();
     const file = formData.get("file") as File | null;

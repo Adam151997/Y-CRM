@@ -3,6 +3,7 @@ import { getApiAuthContext } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { Prisma } from "@prisma/client";
 import { z } from "zod";
+import { checkRoutePermission } from "@/lib/api-permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -32,6 +33,10 @@ export async function GET(
     if (!auth) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    // Check settings view permission
+    const permissionError = await checkRoutePermission(auth.userId, auth.orgId, "settings", "view");
+    if (permissionError) return permissionError;
 
     const { id } = await params;
 
@@ -87,6 +92,10 @@ export async function PUT(
     if (!auth) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    // Check settings edit permission
+    const permissionError = await checkRoutePermission(auth.userId, auth.orgId, "settings", "edit");
+    if (permissionError) return permissionError;
 
     const { id } = await params;
     const body = await request.json();
@@ -213,6 +222,10 @@ export async function DELETE(
     if (!auth) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    // Check settings delete permission
+    const permissionError = await checkRoutePermission(auth.userId, auth.orgId, "settings", "delete");
+    if (permissionError) return permissionError;
 
     const { id } = await params;
 

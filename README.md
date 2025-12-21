@@ -1,8 +1,8 @@
 # Y-CRM — AI-Powered CRM for SMBs
 
-A comprehensive, AI-native Customer Relationship Management platform with voice commands, intelligent assistants, full invoicing, custom modules, and multi-workspace architecture for Sales, Customer Success, and Marketing teams.
+A comprehensive, AI-native Customer Relationship Management platform with voice commands, intelligent assistants, full invoicing, custom modules, real-time notifications, and multi-workspace architecture for Sales, Customer Success, and Marketing teams.
 
-![Y CRM](https://img.shields.io/badge/version-2.0.0-blue.svg)
+![Y CRM](https://img.shields.io/badge/version-2.1.0-blue.svg)
 ![Next.js](https://img.shields.io/badge/Next.js-14-black.svg)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.6-blue.svg)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791.svg)
@@ -14,15 +14,18 @@ A comprehensive, AI-native Customer Relationship Management platform with voice 
 
 | Feature | Description |
 |---------|-------------|
-| **AI-Native** | Built-in AI assistant with 44+ tools for natural language CRM operations |
+| **AI-Native** | Built-in AI assistant with 47+ tools for natural language CRM operations |
 | **Voice Commands** | Whisper-powered voice input for hands-free data entry |
 | **Full Invoicing** | Complete invoice lifecycle with PDF generation & payment tracking |
 | **Custom Modules** | Create unlimited custom entities with relationship support |
 | **RBAC Permissions** | Granular role-based access control with 4 default roles |
 | **Multi-Workspace** | Dedicated workspaces for Sales, CS, and Marketing teams |
-| **Custom Fields** | Extend any module with 12+ field types including relationships |
+| **Custom Fields** | Extend any module with 13+ field types including relationships |
 | **Team Assignment** | Assign records to team members with searchable selector |
-| **MCP Integration** | Model Context Protocol server for external AI agents |
+| **MCP Integration** | Model Context Protocol server with API key authentication |
+| **Real-time Notifications** | SSE-powered instant notifications across the platform |
+| **Secure by Default** | AES-256-GCM encryption for tokens & API key authentication |
+| **Reports & Analytics** | 13+ chart types with export capabilities |
 
 ---
 
@@ -36,6 +39,12 @@ A comprehensive, AI-native Customer Relationship Management platform with voice 
 - [Invoicing System](#-invoicing-system)
 - [RBAC Permissions](#-rbac-permissions)
 - [AI Integration](#-ai-integration)
+- [MCP Server & API Keys](#-mcp-server--api-keys)
+- [Real-time Notifications](#-real-time-notifications)
+- [Reports & Analytics](#-reports--analytics)
+- [Public Forms](#-public-forms)
+- [Security & Encryption](#-security--encryption)
+- [Integrations](#-integrations)
 - [Database Schema](#-database-schema)
 - [API Reference](#-api-reference)
 - [Performance & Scalability](#-performance--scalability)
@@ -70,6 +79,10 @@ npm install
 cp .env.example .env.local
 # Edit .env.local with your credentials
 
+# Generate encryption key
+node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+# Add the output to ENCRYPTION_KEY in .env.local
+
 # Push database schema & run migrations
 npx prisma migrate deploy
 
@@ -99,10 +112,11 @@ Open [http://localhost:3000](http://localhost:3000)
 │ • Leads         │ • Tickets       │ • Campaigns             │
 │ • Contacts      │ • Health Scores │ • Segments              │
 │ • Accounts      │ • Playbooks     │ • Forms                 │
-│ • Opportunities │ • Renewals      │ • Analytics             │
-│ • Invoices      │ • At-Risk       │                         │
-│ • Pipeline      │                 │                         │
-│ • Tasks         │                 │                         │
+│ • Opportunities │ • Renewals      │ • Public Forms          │
+│ • Invoices      │ • At-Risk       │ • Analytics             │
+│ • Pipeline      │ • CS Accounts   │                         │
+│ • Tasks         │ • CS Tasks      │                         │
+│ • Reports       │ • CSAT          │                         │
 └─────────────────┴─────────────────┴─────────────────────────┘
 ```
 
@@ -121,6 +135,8 @@ Open [http://localhost:3000](http://localhost:3000)
 | **Caching** | Redis | Rate limiting & caching |
 | **Validation** | Zod | Schema validation |
 | **Storage** | Vercel Blob / Cloudflare R2 | File storage |
+| **Encryption** | AES-256-GCM | Token & secret encryption |
+| **Real-time** | Server-Sent Events (SSE) | Live notifications |
 
 ---
 
@@ -140,42 +156,55 @@ Open [http://localhost:3000](http://localhost:3000)
 | Notes | ✅ | Contextual notes on any entity |
 | Activities | ✅ | Complete timeline across modules |
 | Documents | ✅ | File upload, storage, viewer |
+| Reports | ✅ | 13+ chart types, export to CSV |
 
 ### Customer Success Module (100% Complete)
 
 | Feature | Status | Description |
 |---------|--------|-------------|
 | Support Tickets | ✅ | Full ticketing with priorities, categories, SLA |
-| Health Scores | ✅ | 5-component scoring system |
-| Playbooks | ✅ | Automated CS workflows |
-| Renewals | ✅ | Contract renewal tracking |
+| Internal Notes | ✅ | Private notes separate from customer messages |
+| CSAT Surveys | ✅ | Customer satisfaction tracking |
+| Health Scores | ✅ | 5-component automated scoring system |
+| Playbooks | ✅ | Automated CS workflows with triggers |
+| Renewals | ✅ | Contract renewal tracking & forecasting |
 | At-Risk Alerts | ✅ | Proactive churn prevention |
+| CS Accounts | ✅ | Customer-focused account views |
+| CS Tasks | ✅ | Workspace-specific task management |
+| CS AI Assistant | ✅ | Dedicated AI for customer success |
 
 ### Marketing Module (100% Complete)
 
 | Feature | Status | Description |
 |---------|--------|-------------|
 | Campaigns | ✅ | Multi-channel campaign management |
-| Segments | ✅ | Dynamic audience segmentation |
+| Segments | ✅ | Dynamic audience segmentation with rules |
+| Segment Calculator | ✅ | Automatic member calculation engine |
 | Forms | ✅ | Lead capture form builder |
+| Public Forms | ✅ | Embeddable forms at `/f/[slug]` |
+| Form Analytics | ✅ | Views, submissions, conversion rate |
+| Marketing Assistant | ✅ | Dedicated AI for marketing |
 
 ### Platform Features (100% Complete)
 
 | Feature | Status | Description |
 |---------|--------|-------------|
-| Custom Fields | ✅ | 12+ field types on all modules |
+| Custom Fields | ✅ | 13+ field types on all modules |
 | Custom Modules | ✅ | Create unlimited custom entities |
 | Relationship Fields | ✅ | Link records across modules |
 | Team Assignment | ✅ | Assign records to team members |
 | RBAC Permissions | ✅ | Role-based access control |
-| Dynamic Dashboards | ✅ | 15+ customizable widgets |
+| Dynamic Dashboards | ✅ | 14 customizable widgets |
 | AI Assistant | ✅ | Natural language CRM commands |
 | Voice Input | ✅ | Whisper-powered transcription |
 | MCP Server | ✅ | External AI agent integration |
+| API Key Auth | ✅ | Scoped API keys for MCP access |
+| Token Encryption | ✅ | AES-256-GCM for OAuth tokens |
 | Omni-Search | ✅ | Cross-entity search (Cmd+K) |
 | Audit Logging | ✅ | Complete activity trail |
-| Notifications | ✅ | In-app notification system |
+| Real-time Notifications | ✅ | SSE-powered instant updates |
 | Data Import/Export | ✅ | CSV import and bulk export |
+| Workspace Switcher | ✅ | Quick navigation between workspaces |
 
 ---
 
@@ -207,6 +236,7 @@ Individual person management linked to accounts.
 - Mark as primary contact
 - Activity timeline
 - Direct ticket creation
+- Invoice association
 
 ### Accounts
 
@@ -219,9 +249,11 @@ Company/organization management with health scoring.
 **Features:**
 - Related contacts list
 - Related opportunities
-- Health score tracking
+- Health score tracking (automated)
 - Invoice history
 - Renewal tracking
+- Support tickets
+- Document storage
 
 ### Opportunities
 
@@ -233,9 +265,10 @@ Deal tracking with sales pipeline.
 
 **Features:**
 - Pipeline stage progression
-- Win/loss tracking
+- Win/loss tracking with reasons
 - Revenue forecasting
 - Related invoices
+- Auto-close on stage change
 
 ---
 
@@ -265,6 +298,8 @@ DRAFT → SENT → VIEWED → PAID
 | **Discounts** | Fixed amount or percentage discounts |
 | **Payment Tracking** | Record multiple payments against single invoice |
 | **PDF Generation** | Professional PDF export with company branding |
+| **Bulk Export** | Export multiple invoices as ZIP |
+| **Duplication** | Clone existing invoices |
 | **16 Currencies** | Multi-currency support |
 | **Due Date Alerts** | Automatic overdue status |
 
@@ -307,7 +342,7 @@ CASH, CHECK, CREDIT_CARD, DEBIT_CARD, BANK_TRANSFER, PAYPAL, STRIPE, OTHER
 
 Extend any built-in module with custom fields.
 
-**Supported Field Types:**
+**Supported Field Types (13):**
 
 | Type | Description | Validation |
 |------|-------------|------------|
@@ -324,6 +359,7 @@ Extend any built-in module with custom fields.
 | `PHONE` | Phone number | Max 30 chars |
 | `URL` | Web link | Valid URL |
 | `RELATIONSHIP` | Link to another record | Valid UUID + exists check |
+| `FILE` | File attachment | Vercel Blob storage |
 
 **Custom Field Definition:**
 
@@ -380,20 +416,6 @@ Link records across modules with validated relationships.
 - ✅ Referential integrity (cleanup on delete)
 - ✅ Multi-level traversal (Account → Products → Warranties)
 - ✅ Reverse lookup (find all records linking to X)
-
-**Relationship Validation:**
-
-```typescript
-// Validates that relationship IDs exist before save
-const validation = await validateRelationships(orgId, fields, data);
-if (!validation.valid) {
-  // { account_link: "Account record not found: abc-123" }
-}
-```
-
-**Referential Integrity:**
-
-When a record is deleted, all relationship fields pointing to it are automatically set to `null` across all modules.
 
 ---
 
@@ -475,7 +497,7 @@ function MyComponent() {
 
 ### AI Assistant
 
-Natural language interface to CRM operations.
+Natural language interface to CRM operations with workspace-specific assistants.
 
 **Example Commands:**
 
@@ -486,9 +508,10 @@ Natural language interface to CRM operations.
 "Find all opportunities closing this month over $50k"
 "Create a follow-up task for tomorrow"
 "Send invoice INV-0042 to the client"
+"Calculate segment members for Enterprise Customers"
 ```
 
-### AI Tools (44 Total)
+### AI Tools (47+ Total)
 
 **Sales Tools (11):**
 - createLead, searchLeads, updateLead, deleteLead
@@ -500,18 +523,19 @@ Natural language interface to CRM operations.
 **Invoicing Tools (4):**
 - createInvoice, searchInvoices, updateInvoiceStatus, recordPayment
 
-**CS Tools (8):**
+**CS Tools (12):**
 - createTicket, searchTickets, updateTicket, addTicketMessage
-- getHealthScore, searchAtRiskAccounts
+- getHealthScore, searchAtRiskAccounts, calculateHealthScore
 - searchPlaybooks, runPlaybook
+- createRenewal, searchRenewals, getUpcomingRenewals
 
 **Marketing Tools (6):**
 - createCampaign, searchCampaigns
-- createSegment, searchSegments
+- createSegment, searchSegments, calculateSegmentMembers
 - createForm, searchForms
 
-**Task Tools (3):**
-- createTask, completeTask, searchTasks
+**Task Tools (4):**
+- createTask, completeTask, searchTasks, updateTask
 
 **Custom Module Tools (5):**
 - createCustomModule, createCustomField
@@ -521,29 +545,77 @@ Natural language interface to CRM operations.
 **Document Tools (3):**
 - searchDocuments, getDocumentStats, analyzeDocument
 
-**Integration Tools (6):**
-- getConnectedIntegrations, sendEmail
-- createCalendarEvent, sendSlackMessage
-- createGitHubIssue, executeExternalTool
+**Integration Tools (8):**
+- getConnectedIntegrations
+- sendEmail, searchEmails (Gmail)
+- createCalendarEvent, getUpcomingEvents, getTodayEvents (Google Calendar)
+- sendSlackMessage, listSlackChannels (Slack)
 
 **Utility Tools (2):**
-- getDashboardStats, searchActivities
+- getDashboardStats, semanticSearch
+
+---
+
+## 🔌 MCP Server & API Keys
 
 ### MCP Server
 
-External AI agents can connect via Model Context Protocol.
+External AI agents (Claude Desktop, Cursor, custom agents) can connect via Model Context Protocol.
 
-**Connection:**
+**Internal Tools Exposed (17):**
+- create_lead, search_leads
+- create_contact, create_account
+- create_opportunity, create_task
+- create_ticket, search_tickets
+- get_health_score, search_playbooks
+- create_campaign, search_campaigns
+- create_segment, create_form
+- list_custom_modules, create_custom_module
+- get_dashboard
+
+### API Key Authentication
+
+Create scoped API keys for secure MCP access.
+
+**Key Format:** `ycrm_[24 random chars]`  
+**Example:** `ycrm_jzZLiFi4g6PFF4RbdoZAP0b2sExyzK6H`
+
+**Scopes:**
+| Scope | Description |
+|-------|-------------|
+| `mcp:read` | Read CRM data via MCP tools |
+| `mcp:write` | Create and update records |
+| `mcp:admin` | Full access including destructive operations |
+
+### Managing API Keys
+
+Navigate to **Settings → AI Tools → API Keys** to:
+- Create new API keys with custom scopes
+- View usage statistics (last used, request count)
+- Revoke or delete keys
+- Set expiration dates
+
+### Connecting External Clients
+
+**SSE Connection:**
 
 ```bash
-# SSE Connection (for real-time streaming)
-GET /api/mcp/sse?token=<api_key>
+# Connect via SSE
+curl "https://your-domain.com/api/mcp/sse?token=ycrm_your_key_here"
 
-# JSON-RPC Messages
-POST /api/mcp
-Headers:
-  X-Session-ID: <session_id>
-  X-API-Key: <api_key>
+# Response:
+event: session
+data: {"sessionId":"uuid-here"}
+```
+
+**JSON-RPC Messages:**
+
+```bash
+curl -X POST "https://your-domain.com/api/mcp" \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: ycrm_your_key_here" \
+  -H "X-Session-ID: uuid-from-sse" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
 ```
 
 **Claude Desktop Configuration:**
@@ -552,12 +624,201 @@ Headers:
 {
   "mcpServers": {
     "y-crm": {
-      "url": "https://your-domain.com/api/mcp/sse",
-      "token": "your-mcp-api-key"
+      "url": "https://your-domain.com/api/mcp/sse?token=ycrm_your_key_here"
     }
   }
 }
 ```
+
+---
+
+## 🔔 Real-time Notifications
+
+### SSE-Powered Notifications
+
+Y-CRM uses Server-Sent Events for instant, real-time notifications.
+
+**Notification Types:**
+- `LEAD_CREATED` - New lead captured
+- `TASK_ASSIGNED` - Task assigned to user
+- `TASK_COMPLETED` - Task marked complete
+- `OPPORTUNITY_WON` - Deal closed won
+- `TICKET_CREATED` - New support ticket
+- `TICKET_RESOLVED` - Ticket resolved
+- `HEALTH_ALERT` - Account health dropped
+
+### Architecture
+
+```
+┌─────────────┐     SSE Stream      ┌─────────────────┐
+│   Browser   │◄────────────────────│  /api/notifications/stream  │
+└─────────────┘                     └─────────────────┘
+       ▲                                    ▲
+       │                                    │
+       │ Optimistic UI                      │ Push
+       │                                    │
+┌─────────────┐                     ┌─────────────────┐
+│ Notification│                     │  lib/notifications.ts  │
+│  Provider   │                     └─────────────────┘
+└─────────────┘
+```
+
+**Features:**
+- Auto-reconnect with exponential backoff
+- Fallback to polling (30-second intervals)
+- Connection status indicator
+- Mark as read (individual or bulk)
+- Optimistic UI updates
+
+### Usage
+
+Notifications appear in the header dropdown. Click to mark as read or navigate to the related entity.
+
+---
+
+## 📊 Reports & Analytics
+
+### Reports Dashboard
+
+Access via `/reports` - comprehensive analytics across all modules.
+
+**Available Charts (13):**
+
+| Chart | Description |
+|-------|-------------|
+| Sales Overview | KPIs: revenue, deals, conversion rate |
+| Pipeline Value | Value by stage visualization |
+| Pipeline Funnel | Conversion funnel chart |
+| Leads by Status | Status distribution pie chart |
+| Leads by Source | Source attribution |
+| Lead Conversion Funnel | Lead-to-customer journey |
+| Opportunities by Stage | Stage distribution |
+| Win Rate Trend | Historical win rate line chart |
+| Sales Velocity | Average deal cycle time |
+| Invoice Analytics | Revenue, outstanding, overdue |
+| Recent Activity | Activity feed |
+
+### Filters
+
+- **Date Range:** Last 7 days, 30 days, 90 days, custom
+- **Pipeline:** Filter by specific pipeline
+- **Assignee:** Filter by team member
+
+### Export
+
+Export report data to CSV for external analysis.
+
+---
+
+## 🌐 Public Forms
+
+### Lead Capture Forms
+
+Create embeddable forms for lead generation.
+
+**Features:**
+- Drag-and-drop form builder
+- 10+ field types
+- Custom styling options
+- Redirect after submission
+- Email notifications
+- Auto-create leads
+- Conversion tracking
+
+### Public URLs
+
+Forms are accessible at: `https://your-domain.com/f/[form-slug]`
+
+**Embed Example:**
+
+```html
+<iframe 
+  src="https://your-domain.com/f/contact-us"
+  width="100%"
+  height="600"
+  frameborder="0">
+</iframe>
+```
+
+### Form Analytics
+
+Track form performance:
+- **Views:** Total page views
+- **Submissions:** Completed submissions
+- **Conversion Rate:** Submissions / Views
+
+---
+
+## 🔒 Security & Encryption
+
+### Token Encryption
+
+All OAuth tokens and sensitive data are encrypted at rest using AES-256-GCM.
+
+**Encrypted Data:**
+- Google OAuth access & refresh tokens
+- Slack OAuth tokens
+- MCP integration auth configs
+- MCP integration environment variables
+
+**Implementation:**
+
+```typescript
+import { encrypt, decrypt } from "@/lib/encryption";
+
+// Encrypt sensitive data
+const encrypted = encrypt(accessToken);
+
+// Decrypt when needed
+const decrypted = decrypt(encrypted);
+```
+
+### API Key Security
+
+- Keys are never stored - only SHA-256 hashes
+- Key prefix stored for identification (`ycrm_abc123...`)
+- Scoped permissions (read/write/admin)
+- Usage tracking (last used, request count)
+- Expiration support
+- Revocation capability
+
+### Token Migration
+
+For existing deployments, run the migration script:
+
+```bash
+npx ts-node scripts/migrate-tokens.ts
+```
+
+This encrypts any legacy unencrypted tokens.
+
+---
+
+## 🔗 Integrations
+
+### Built-in Integrations
+
+| Integration | Features |
+|-------------|----------|
+| **Google Gmail** | Send emails, search inbox |
+| **Google Calendar** | Create events, view schedule |
+| **Google Drive** | File access |
+| **Slack** | Send messages, list channels |
+
+### OAuth Flow
+
+1. Navigate to **Settings → Integrations**
+2. Click "Connect" for desired integration
+3. Complete OAuth authorization
+4. Integration is now available to AI assistant
+
+### Composio (External Tools)
+
+Y-CRM supports Composio for additional integrations:
+- GitHub
+- Notion
+- Jira
+- And more...
 
 ---
 
@@ -586,37 +847,44 @@ Organization (tenant)
 │                 └── Invoice[]
 ├── Invoice ──┬── InvoiceItem[]
 │             └── Payment[]
-├── Ticket ──── TicketMessage[]
-├── Playbook ── PlaybookRun[]
-├── Campaign ── Segment (FK)
-├── Segment
-├── Form ────── FormSubmission[]
+├── Ticket ────── TicketMessage[]
+├── Playbook ──── PlaybookRun[]
+├── Campaign ──── Segment (FK)
+├── Segment ───── SegmentMember[]
+├── Form ──────── FormSubmission[]
 ├── CustomModule ──┬── CustomFieldDefinition[]
 │                  └── CustomModuleRecord[]
 ├── CustomFieldDefinition (for built-in modules)
 ├── DashboardConfig
 ├── Notification
 ├── AuditLog
+├── Integration
+├── MCPIntegration
+├── APIKey
 └── UsageRecord
 ```
 
 ### Key Tables
 
-| Table | Records | Purpose |
-|-------|---------|---------|
-| Organization | Multi-tenant root | Tenant isolation |
-| Lead | Sales leads | Lead management |
-| Contact | People | Contact management |
-| Account | Companies | Account management |
-| Opportunity | Deals | Pipeline tracking |
-| Invoice | Invoices | Billing |
-| InvoiceItem | Line items | Invoice details |
-| Payment | Payments | Payment tracking |
-| Ticket | Support tickets | CS ticketing |
-| CustomModule | Custom entities | Extensibility |
-| CustomModuleRecord | Custom data | Custom module records |
-| CustomFieldDefinition | Field schemas | Dynamic fields |
-| AuditLog | All changes | Compliance |
+| Table | Purpose |
+|-------|---------|
+| Organization | Multi-tenant root |
+| Lead, Contact, Account, Opportunity | Core CRM entities |
+| Invoice, InvoiceItem, Payment | Billing system |
+| Ticket, TicketMessage | Support ticketing |
+| AccountHealth | Health scoring |
+| Playbook, PlaybookRun | CS automation |
+| Renewal | Contract tracking |
+| Campaign, Segment, SegmentMember | Marketing |
+| Form, FormSubmission | Lead capture |
+| CustomModule, CustomModuleRecord | Extensibility |
+| CustomFieldDefinition | Dynamic fields |
+| Notification | Real-time alerts |
+| Integration | OAuth connections |
+| MCPIntegration | External MCP servers |
+| APIKey | MCP authentication |
+| AuditLog | Compliance trail |
+| Role, Permission, UserRole | RBAC |
 
 ---
 
@@ -625,6 +893,8 @@ Organization (tenant)
 ### Authentication
 
 All API routes require Clerk authentication. Organization context is determined by the user's active organization.
+
+MCP endpoints accept API key authentication via `X-API-Key` header.
 
 ### Core Endpoints
 
@@ -635,7 +905,6 @@ POST   /api/leads              # Create lead
 GET    /api/leads/:id          # Get lead
 PUT    /api/leads/:id          # Update lead
 DELETE /api/leads/:id          # Delete lead
-POST   /api/leads/:id/convert  # Convert to contact/account/opportunity
 ```
 
 **Contacts:**
@@ -663,19 +932,112 @@ POST   /api/opportunities      # Create opportunity
 GET    /api/opportunities/:id  # Get opportunity
 PUT    /api/opportunities/:id  # Update opportunity
 DELETE /api/opportunities/:id  # Delete opportunity
-POST   /api/opportunities/:id/close  # Close won/lost
 ```
 
 **Invoices:**
 ```
-GET    /api/invoices           # List invoices
-POST   /api/invoices           # Create invoice
-GET    /api/invoices/:id       # Get invoice
-PUT    /api/invoices/:id       # Update invoice
-DELETE /api/invoices/:id       # Delete invoice
-POST   /api/invoices/:id/send  # Mark as sent
-POST   /api/invoices/:id/payments  # Record payment
-GET    /api/invoices/:id/pdf   # Generate PDF
+GET    /api/invoices                    # List invoices
+POST   /api/invoices                    # Create invoice
+GET    /api/invoices/:id                # Get invoice
+PUT    /api/invoices/:id                # Update invoice
+DELETE /api/invoices/:id                # Delete invoice
+POST   /api/invoices/:id/send           # Mark as sent
+POST   /api/invoices/:id/payments       # Record payment
+GET    /api/invoices/:id/pdf            # Generate PDF
+POST   /api/invoices/:id/duplicate      # Duplicate invoice
+POST   /api/invoices/bulk-export        # Bulk PDF export
+```
+
+**Tasks:**
+```
+GET    /api/tasks              # List tasks
+POST   /api/tasks              # Create task
+GET    /api/tasks/:id          # Get task
+PUT    /api/tasks/:id          # Update task
+DELETE /api/tasks/:id          # Delete task
+```
+
+**Customer Success:**
+```
+GET    /api/cs/tickets                     # List tickets
+POST   /api/cs/tickets                     # Create ticket
+GET    /api/cs/tickets/:id                 # Get ticket
+PUT    /api/cs/tickets/:id                 # Update ticket
+POST   /api/cs/tickets/:id/messages        # Add message
+GET    /api/cs/health                      # List health scores
+GET    /api/cs/health/:accountId           # Get health score
+POST   /api/cs/health/:accountId           # Calculate health
+POST   /api/cs/health/recalculate          # Recalculate all
+GET    /api/cs/playbooks                   # List playbooks
+POST   /api/cs/playbooks                   # Create playbook
+POST   /api/cs/playbooks/:id/run           # Run playbook
+GET    /api/cs/renewals                    # List renewals
+POST   /api/cs/renewals                    # Create renewal
+PUT    /api/cs/renewals/:id                # Update renewal
+```
+
+**Marketing:**
+```
+GET    /api/marketing/campaigns            # List campaigns
+POST   /api/marketing/campaigns            # Create campaign
+GET    /api/marketing/campaigns/:id        # Get campaign
+PUT    /api/marketing/campaigns/:id        # Update campaign
+GET    /api/marketing/segments             # List segments
+POST   /api/marketing/segments             # Create segment
+GET    /api/marketing/segments/:id         # Get segment
+PUT    /api/marketing/segments/:id         # Update segment
+GET    /api/marketing/segments/fields      # Available fields
+POST   /api/marketing/segments/preview     # Preview members
+POST   /api/marketing/segments/:id/calculate  # Calculate members
+GET    /api/marketing/segments/:id/members    # List members
+GET    /api/marketing/forms                # List forms
+POST   /api/marketing/forms                # Create form
+GET    /api/marketing/forms/:id            # Get form
+PUT    /api/marketing/forms/:id            # Update form
+```
+
+**Public Forms:**
+```
+GET    /api/public/forms/:slug             # Get form (public)
+POST   /api/public/forms/:slug/submit      # Submit form (public)
+```
+
+**API Keys:**
+```
+GET    /api/api-keys           # List API keys
+POST   /api/api-keys           # Create API key
+GET    /api/api-keys/:id       # Get API key
+PUT    /api/api-keys/:id       # Update API key
+DELETE /api/api-keys/:id       # Delete API key
+PATCH  /api/api-keys/:id       # Revoke API key
+```
+
+**MCP Server:**
+```
+GET    /api/mcp                # Server info
+POST   /api/mcp                # JSON-RPC messages
+GET    /api/mcp/sse            # SSE connection
+GET    /api/mcp/integrations   # List MCP servers
+POST   /api/mcp/integrations   # Add MCP server
+PUT    /api/mcp/integrations/:id          # Update server
+DELETE /api/mcp/integrations/:id          # Delete server
+POST   /api/mcp/integrations/:id/connect  # Connect
+DELETE /api/mcp/integrations/:id/connect  # Disconnect
+GET    /api/mcp/integrations/:id/tools    # List tools
+```
+
+**Notifications:**
+```
+GET    /api/notifications          # List notifications
+POST   /api/notifications          # Create notification
+GET    /api/notifications/stream   # SSE stream
+PATCH  /api/notifications/:id      # Mark as read
+```
+
+**Reports:**
+```
+GET    /api/reports/stats          # Get statistics
+POST   /api/reports/export         # Export to CSV
 ```
 
 **Custom Modules:**
@@ -700,8 +1062,31 @@ PUT    /api/settings/custom-fields/:id  # Update custom field
 DELETE /api/settings/custom-fields/:id  # Delete custom field
 GET    /api/settings/pipeline-stages    # List pipeline stages
 POST   /api/settings/pipeline-stages    # Create stage
-GET    /api/team                        # List team members
-POST   /api/roles                       # Create role
+PUT    /api/settings/pipeline-stages/:id  # Update stage
+DELETE /api/settings/pipeline-stages/:id  # Delete stage
+```
+
+**Other:**
+```
+GET    /api/search                 # Omni-search
+GET    /api/lookup                 # Entity lookup
+GET    /api/team                   # List team members
+POST   /api/team/invite            # Invite member
+GET    /api/roles                  # List roles
+POST   /api/roles                  # Create role
+GET    /api/permissions/me         # Get my permissions
+GET    /api/audit-logs             # List audit logs
+POST   /api/import                 # Import CSV
+POST   /api/export                 # Export data
+POST   /api/upload                 # Upload file
+POST   /api/voice/transcribe       # Transcribe audio
+POST   /api/ai/chat                # AI chat
+GET    /api/dashboard/config       # Get dashboard config
+PUT    /api/dashboard/config       # Save dashboard config
+GET    /api/dashboard/widgets/:type  # Get widget data
+GET    /api/integrations           # List integrations
+POST   /api/integrations/:provider # Connect integration
+DELETE /api/integrations/disconnect  # Disconnect
 ```
 
 ### Response Format
@@ -740,7 +1125,6 @@ Y-CRM implements several performance optimizations for scale:
 
 **GIN Indexes on JSON Fields:**
 ```sql
--- Applied via migration 20251215000000
 CREATE INDEX idx_custom_record_data_gin ON "CustomModuleRecord" USING gin("data" jsonb_path_ops);
 CREATE INDEX idx_lead_custom_fields_gin ON "Lead" USING gin("customFields" jsonb_path_ops);
 CREATE INDEX idx_contact_custom_fields_gin ON "Contact" USING gin("customFields" jsonb_path_ops);
@@ -791,24 +1175,31 @@ y-crm/
 │   │   ├── contacts/              # Contacts module
 │   │   ├── leads/                 # Leads module
 │   │   ├── opportunities/         # Opportunities module
-│   │   ├── sales/
+│   │   ├── pipeline/              # Pipeline kanban view
+│   │   ├── reports/               # Reports & analytics
+│   │   ├── tasks/                 # Tasks module
+│   │   ├── documents/             # Documents
+│   │   ├── assistant/             # AI Assistant
+│   │   ├── dashboard/             # Main dashboard
+│   │   ├── sales/                 # Sales workspace
 │   │   │   ├── invoices/          # Invoicing module
-│   │   │   ├── pipeline/          # Pipeline views
-│   │   │   └── reports/           # Sales reports
-│   │   ├── cs/                    # Customer Success
+│   │   │   ├── pipeline/
+│   │   │   ├── reports/
+│   │   │   └── assistant/
+│   │   ├── cs/                    # Customer Success workspace
 │   │   │   ├── tickets/
 │   │   │   ├── health/
 │   │   │   ├── playbooks/
-│   │   │   └── renewals/
+│   │   │   ├── renewals/
+│   │   │   ├── accounts/
+│   │   │   ├── tasks/
+│   │   │   └── assistant/
 │   │   ├── marketing/             # Marketing workspace
 │   │   │   ├── campaigns/
 │   │   │   ├── segments/
-│   │   │   └── forms/
+│   │   │   ├── forms/
+│   │   │   └── assistant/
 │   │   ├── modules/               # Custom modules UI
-│   │   ├── assistant/             # AI Assistant
-│   │   ├── dashboard/             # Main dashboard
-│   │   ├── tasks/                 # Tasks module
-│   │   ├── documents/             # Documents
 │   │   └── settings/              # All settings
 │   │       ├── custom-fields/
 │   │       ├── modules/
@@ -817,61 +1208,111 @@ y-crm/
 │   │       ├── team/
 │   │       ├── branding/
 │   │       ├── data/
-│   │       └── integrations/
+│   │       ├── integrations/
+│   │       ├── ai-tools/          # MCP & API Keys
+│   │       ├── activity/
+│   │       └── organization/
+│   ├── (public)/                  # Public pages
+│   │   └── f/[slug]/              # Public forms
 │   ├── api/                       # API routes
 │   │   ├── accounts/
+│   │   ├── api-keys/              # API key management
 │   │   ├── contacts/
 │   │   ├── leads/
 │   │   ├── opportunities/
 │   │   ├── invoices/
+│   │   ├── tasks/
+│   │   ├── notes/
 │   │   ├── custom-modules/
 │   │   ├── modules/[slug]/records/
 │   │   ├── ai/
-│   │   ├── mcp/
+│   │   ├── mcp/                   # MCP server
+│   │   │   ├── sse/
+│   │   │   └── integrations/
 │   │   ├── voice/
 │   │   ├── search/
 │   │   ├── team/
 │   │   ├── roles/
 │   │   ├── permissions/
 │   │   ├── settings/
-│   │   ├── cs/
-│   │   ├── marketing/
-│   │   └── notifications/
+│   │   ├── cs/                    # Customer Success APIs
+│   │   │   ├── tickets/
+│   │   │   ├── health/
+│   │   │   ├── playbooks/
+│   │   │   └── renewals/
+│   │   ├── marketing/             # Marketing APIs
+│   │   │   ├── campaigns/
+│   │   │   ├── segments/
+│   │   │   └── forms/
+│   │   ├── public/forms/          # Public form APIs
+│   │   ├── notifications/         # Real-time notifications
+│   │   ├── reports/               # Report APIs
+│   │   ├── dashboard/
+│   │   ├── integrations/          # OAuth integrations
+│   │   ├── cron/                  # Scheduled jobs
+│   │   └── ...
 │   └── select-org/                # Organization selector
 ├── components/
-│   ├── ui/                        # Shadcn components
+│   ├── ui/                        # Shadcn components (30+)
 │   ├── forms/                     # Entity forms
 │   │   ├── custom-fields-renderer.tsx
-│   │   └── assignee-selector.tsx
-│   ├── dashboard/                 # Dashboard widgets
+│   │   ├── assignee-selector.tsx
+│   │   └── relationship-field-input.tsx
+│   ├── dashboard/                 # Dashboard widgets (14)
+│   │   └── widgets/
 │   ├── layout/                    # App shell
+│   │   ├── notification-dropdown.tsx
+│   │   ├── workspace-switcher.tsx
+│   │   └── omni-search.tsx
+│   ├── providers/                 # Context providers
+│   │   ├── notification-provider.tsx
+│   │   └── query-provider.tsx
+│   ├── marketing/                 # Marketing components
+│   │   └── public-form-renderer.tsx
 │   ├── can-access.tsx             # Permission gate
 │   └── voice/                     # Voice input
 ├── hooks/
 │   ├── use-permissions.tsx
 │   └── use-chat.ts
 ├── lib/
-│   ├── ai/                        # AI agent & tools
+│   ├── ai/                        # AI agent & tools (47+)
+│   ├── mcp/                       # MCP protocol implementation
+│   │   ├── client/                # Connect to external servers
+│   │   ├── server/                # Expose Y-CRM as server
+│   │   ├── protocol/              # JSON-RPC types
+│   │   └── registry/              # Tool registry
+│   ├── integrations/              # OAuth integrations
+│   │   ├── google/                # Gmail, Calendar, Drive
+│   │   └── slack/                 # Slack
+│   ├── composio/                  # Composio integration
 │   ├── relationships/             # Relationship system
-│   │   ├── index.ts               # Validation & integrity
-│   │   └── search-index.ts        # Search optimization
 │   ├── validation/                # Zod schemas
-│   │   ├── schemas.ts
-│   │   └── custom-fields.ts
-│   ├── constants/
-│   │   └── currencies.ts          # Currency list
-│   ├── mcp/                       # MCP server
+│   ├── marketing/                 # Marketing utilities
+│   │   ├── segment-calculator.ts
+│   │   └── form-submission.ts
+│   ├── invoices/                  # Invoice utilities
+│   ├── dashboard/                 # Widget registry
+│   ├── workspace/                 # Workspace system
+│   ├── voice/                     # Voice transcription
+│   ├── encryption.ts              # AES-256-GCM encryption
+│   ├── api-keys.ts                # API key management
+│   ├── notifications.ts           # Notification service
+│   ├── health-calculator.ts       # Health score engine
+│   ├── playbook-triggers.ts       # Playbook automation
 │   ├── auth.ts
 │   ├── db.ts
 │   ├── audit.ts
 │   ├── cache.ts
 │   ├── permissions.ts
 │   ├── api-permissions.ts
-│   ├── notifications.ts
 │   └── rate-limit.ts
 ├── prisma/
-│   ├── schema.prisma              # Database schema
+│   ├── schema.prisma              # Database schema (28 models)
 │   └── migrations/
+├── scripts/
+│   ├── migrate-tokens.ts          # Token encryption migration
+│   ├── mcp-server.ts              # Standalone MCP server
+│   └── enable-pgvector.ts         # Vector extension
 └── docs/
 ```
 
@@ -889,19 +1330,33 @@ y-crm/
 | `GOOGLE_GENERATIVE_AI_API_KEY` | Gemini API key | `AIza...` |
 | `OPENAI_API_KEY` | OpenAI key (Whisper) | `sk-...` |
 | `REDIS_URL` | Redis connection | `redis://...` |
+| `ENCRYPTION_KEY` | Token encryption key | Generate with script below |
 
-### Optional
+**Generate Encryption Key:**
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+```
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `NEXT_PUBLIC_APP_URL` | Application URL | `http://localhost:3000` |
-| `MCP_API_KEY` | MCP server auth key | — |
-| `BLOB_READ_WRITE_TOKEN` | Vercel Blob token | — |
-| `R2_ENDPOINT` | Cloudflare R2 URL | — |
-| `R2_ACCESS_KEY_ID` | R2 access key | — |
-| `R2_SECRET_ACCESS_KEY` | R2 secret | — |
-| `R2_BUCKET_NAME` | R2 bucket | — |
-| `COMPOSIO_API_KEY` | Composio integrations | — |
+### Optional - Integrations
+
+| Variable | Description |
+|----------|-------------|
+| `GOOGLE_CLIENT_ID` | Google OAuth client ID |
+| `GOOGLE_CLIENT_SECRET` | Google OAuth client secret |
+| `SLACK_CLIENT_ID` | Slack OAuth client ID |
+| `SLACK_CLIENT_SECRET` | Slack OAuth client secret |
+| `COMPOSIO_API_KEY` | Composio integrations |
+
+### Optional - Storage
+
+| Variable | Description |
+|----------|-------------|
+| `NEXT_PUBLIC_APP_URL` | Application URL |
+| `BLOB_READ_WRITE_TOKEN` | Vercel Blob token |
+| `R2_ENDPOINT` | Cloudflare R2 URL |
+| `R2_ACCESS_KEY_ID` | R2 access key |
+| `R2_SECRET_ACCESS_KEY` | R2 secret |
+| `R2_BUCKET_NAME` | R2 bucket |
 
 ---
 
@@ -911,7 +1366,7 @@ y-crm/
 
 1. Push repository to GitHub
 2. Import project in Vercel Dashboard
-3. Add environment variables
+3. Add environment variables (including `ENCRYPTION_KEY`)
 4. Deploy
 
 **Build Settings:**
@@ -938,6 +1393,13 @@ npx prisma migrate dev --name your_migration_name
 npx prisma migrate deploy
 ```
 
+### Post-Deployment
+
+**Migrate Legacy Tokens (if upgrading):**
+```bash
+npx ts-node scripts/migrate-tokens.ts
+```
+
 ---
 
 ## 🛠️ Scripts
@@ -953,6 +1415,9 @@ npx prisma migrate deploy
 | `npm run db:migrate` | Run migrations |
 | `npm run db:studio` | Open Prisma Studio |
 | `npm run db:seed` | Seed demo data |
+| `npx ts-node scripts/migrate-tokens.ts` | Encrypt legacy tokens |
+| `npx ts-node scripts/mcp-server.ts` | Run standalone MCP server |
+| `npx ts-node scripts/enable-pgvector.ts` | Enable vector extension |
 
 ---
 

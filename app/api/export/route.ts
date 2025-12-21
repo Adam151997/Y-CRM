@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthContext } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { createAuditLog, AuditModule } from "@/lib/audit";
+import { checkRoutePermission } from "@/lib/api-permissions";
 import Papa from "papaparse";
 
 // Force dynamic to prevent static generation error
@@ -136,6 +137,10 @@ export async function GET(request: NextRequest) {
     if (!auth) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    // Check settings view permission (export is an admin-only operation)
+    const permissionError = await checkRoutePermission(auth.userId, auth.orgId, "settings", "view");
+    if (permissionError) return permissionError;
 
     const { searchParams } = new URL(request.url);
     const module = searchParams.get("module") as ExportModule | null;

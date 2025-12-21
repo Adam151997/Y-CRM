@@ -15,6 +15,7 @@ import {
   revokeAPIKey,
   API_KEY_SCOPES,
 } from "@/lib/api-keys";
+import { checkRoutePermission } from "@/lib/api-permissions";
 
 // Force dynamic rendering
 export const dynamic = "force-dynamic";
@@ -47,6 +48,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Check settings view permission
+    const permissionError = await checkRoutePermission(userId, orgId, "settings", "view");
+    if (permissionError) return permissionError;
+
     const key = await getAPIKey(orgId, id);
 
     if (!key) {
@@ -78,6 +83,10 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     if (!userId || !orgId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    // Check settings edit permission
+    const permissionError = await checkRoutePermission(userId, orgId, "settings", "edit");
+    if (permissionError) return permissionError;
 
     const body = await request.json();
     const validation = updateKeySchema.safeParse(body);
@@ -125,6 +134,10 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Check settings delete permission
+    const permissionError = await checkRoutePermission(userId, orgId, "settings", "delete");
+    if (permissionError) return permissionError;
+
     const success = await deleteAPIKey(orgId, id, userId);
 
     if (!success) {
@@ -159,6 +172,10 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     if (!userId || !orgId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    // Check settings edit permission
+    const permissionError = await checkRoutePermission(userId, orgId, "settings", "edit");
+    if (permissionError) return permissionError;
 
     const body = await request.json();
 

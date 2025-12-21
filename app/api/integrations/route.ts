@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getApiAuthContext } from "@/lib/auth";
 import { getGoogleConnectionInfo } from "@/lib/integrations/google";
 import { getSlackConnectionInfo } from "@/lib/integrations/slack";
+import { checkRoutePermission } from "@/lib/api-permissions";
 
 /**
  * Available integrations with native OAuth
@@ -43,6 +44,10 @@ export async function GET() {
     if (!authContext) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    // Check settings view permission
+    const permissionError = await checkRoutePermission(authContext.userId, authContext.orgId, "settings", "view");
+    if (permissionError) return permissionError;
 
     // Get connection status for each integration
     const [googleInfo, slackInfo] = await Promise.all([
@@ -90,6 +95,10 @@ export async function POST(request: NextRequest) {
     if (!authContext) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    // Check settings create permission (connecting integration = creating a connection)
+    const permissionError = await checkRoutePermission(authContext.userId, authContext.orgId, "settings", "create");
+    if (permissionError) return permissionError;
 
     const body = await request.json();
     const { appKey } = body;

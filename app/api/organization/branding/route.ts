@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getApiAuthContext } from "@/lib/auth";
 import prisma from "@/lib/db";
+import { checkRoutePermission } from "@/lib/api-permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +15,10 @@ export async function GET() {
     if (!auth) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    // Check settings view permission
+    const permissionError = await checkRoutePermission(auth.userId, auth.orgId, "settings", "view");
+    if (permissionError) return permissionError;
 
     const org = await prisma.organization.findUnique({
       where: { id: auth.orgId },
@@ -55,6 +60,10 @@ export async function PUT(request: NextRequest) {
     if (!auth) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    // Check settings edit permission
+    const permissionError = await checkRoutePermission(auth.userId, auth.orgId, "settings", "edit");
+    if (permissionError) return permissionError;
 
     const body = await request.json();
     const { brandName, brandLogo } = body;

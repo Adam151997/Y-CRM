@@ -11,6 +11,7 @@ import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { createAuditLog } from "@/lib/audit";
 import { encryptObject } from "@/lib/encryption";
+import { checkRoutePermission } from "@/lib/api-permissions";
 
 // Force dynamic rendering
 export const dynamic = "force-dynamic";
@@ -83,6 +84,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Check settings view permission
+    const permissionError = await checkRoutePermission(userId, orgId, "settings", "view");
+    if (permissionError) return permissionError;
+
     const integrations = await prisma.mCPIntegration.findMany({
       where: { orgId },
       orderBy: { createdAt: "desc" },
@@ -132,6 +137,10 @@ export async function POST(request: NextRequest) {
     if (!userId || !orgId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    // Check settings create permission
+    const permissionError = await checkRoutePermission(userId, orgId, "settings", "create");
+    if (permissionError) return permissionError;
 
     const body = await request.json();
     const validationResult = createMCPIntegrationSchema.safeParse(body);
