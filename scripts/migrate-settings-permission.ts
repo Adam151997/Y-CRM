@@ -10,6 +10,7 @@
  */
 
 import prisma from "../lib/db";
+import { Prisma } from "@prisma/client";
 
 async function migrateSettingsPermissions() {
   console.log("🔄 Starting settings permission migration...\n");
@@ -42,7 +43,7 @@ async function migrateSettingsPermissions() {
               roleId: role.id,
               module: "settings",
               actions: ["view", "create", "edit", "delete"],
-              fields: null,
+              fields: Prisma.JsonNull,
               recordVisibility: "ALL",
             },
           });
