@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useChat } from "@/hooks/use-chat";
+import { usePermissions } from "@/hooks/use-permissions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -21,6 +22,8 @@ import {
   PanelRightClose,
   PanelRightOpen,
   History,
+  ShieldAlert,
+  Lock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
@@ -34,6 +37,7 @@ import {
 
 export default function AssistantPage() {
   const router = useRouter();
+  const { can, loading: permissionsLoading } = usePermissions();
   
   const {
     messages,
@@ -65,6 +69,9 @@ export default function AssistantPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Check if user has AI Assistant access
+  const hasAccess = can("ai_assistant", "view");
+
   // Load sidebar state from localStorage
   useEffect(() => {
     const savedState = localStorage.getItem("assistant-sidebar-open");
@@ -87,8 +94,10 @@ export default function AssistantPage() {
 
   // Focus input on mount
   useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
+    if (hasAccess) {
+      inputRef.current?.focus();
+    }
+  }, [hasAccess]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -122,6 +131,46 @@ export default function AssistantPage() {
   const handleVoiceError = (error: string) => {
     toast.error(`Voice error: ${error}`);
   };
+
+  // Show loading state while checking permissions
+  if (permissionsLoading) {
+    return (
+      <div className="flex h-[calc(100vh-8rem)] items-center justify-center">
+        <Card className="p-8 text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
+          <p className="text-muted-foreground">Loading...</p>
+        </Card>
+      </div>
+    );
+  }
+
+  // Show access denied if user doesn't have permission
+  if (!hasAccess) {
+    return (
+      <div className="flex h-[calc(100vh-8rem)] items-center justify-center">
+        <Card className="p-8 text-center max-w-md">
+          <div className="p-4 rounded-full bg-destructive/10 w-fit mx-auto mb-4">
+            <ShieldAlert className="h-8 w-8 text-destructive" />
+          </div>
+          <h2 className="text-xl font-semibold mb-2">Access Restricted</h2>
+          <p className="text-muted-foreground mb-4">
+            You don't have permission to access the AI Assistant. This feature is restricted to authorized users only.
+          </p>
+          <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+            <Lock className="h-4 w-4" />
+            <span>Contact your administrator for access</span>
+          </div>
+          <Button
+            variant="outline"
+            className="mt-6"
+            onClick={() => router.push("/dashboard")}
+          >
+            Go to Dashboard
+          </Button>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-[calc(100vh-8rem)] gap-4">

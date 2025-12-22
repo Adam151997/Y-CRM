@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getApiAuthContext } from "@/lib/auth";
 import { executeAgent } from "@/lib/ai/agent";
 import { checkRateLimit, incrementUsage } from "@/lib/rate-limit";
+import { checkRoutePermission } from "@/lib/api-permissions";
 import { CoreMessage } from "ai";
 
 export const runtime = "nodejs";
@@ -30,6 +31,10 @@ export async function POST(request: NextRequest) {
     if (!auth) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    // Check AI Assistant permission
+    const permissionError = await checkRoutePermission(auth.userId, auth.orgId, "ai_assistant", "view");
+    if (permissionError) return permissionError;
 
     // Check rate limit
     const rateLimit = await checkRateLimit(auth.orgId, "AI_CALL");

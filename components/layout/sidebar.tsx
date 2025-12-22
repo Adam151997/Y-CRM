@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { UserButton } from "@clerk/nextjs";
+import { usePermissions } from "@/hooks/use-permissions";
 import {
   LayoutDashboard,
   Users,
@@ -63,6 +64,7 @@ const navigation = [
     href: "/assistant",
     icon: Sparkles,
     highlight: true,
+    requiresPermission: "ai_assistant",
   },
   {
     name: "Leads",
@@ -134,9 +136,13 @@ interface SidebarProps {
 
 export function Sidebar({ onNavigate }: SidebarProps) {
   const pathname = usePathname();
+  const { can } = usePermissions();
   const [collapsed, setCollapsed] = useState(false);
   const [customModules, setCustomModules] = useState<CustomModule[]>([]);
   const [branding, setBranding] = useState<Branding>({ brandName: "Y CRM", brandLogo: null });
+
+  // Check AI Assistant permission
+  const hasAIAccess = can("ai_assistant", "view");
 
   // Fetch branding
   useEffect(() => {
@@ -203,6 +209,14 @@ export function Sidebar({ onNavigate }: SidebarProps) {
     }
   };
 
+  // Filter navigation items based on permissions
+  const filteredNavigation = navigation.filter((item) => {
+    if ("requiresPermission" in item && item.requiresPermission === "ai_assistant") {
+      return hasAIAccess;
+    }
+    return true;
+  });
+
   return (
     <div
       className={cn(
@@ -252,24 +266,26 @@ export function Sidebar({ onNavigate }: SidebarProps) {
         </Button>
       </div>
 
-      {/* Voice Command Button */}
-      <div className="p-4">
-        <Link href="/assistant" onClick={handleNavClick}>
-          <Button
-            className={cn(
-              "w-full bg-gradient-to-r from-[#FF5757] to-[#FF3D3D] hover:from-[#FF4040] hover:to-[#FF2020] text-white",
-              collapsed && "px-2"
-            )}
-          >
-            <Mic className="h-4 w-4" />
-            {!collapsed && <span className="ml-2">Voice Command</span>}
-          </Button>
-        </Link>
-      </div>
+      {/* Voice Command Button - Only show if user has AI access */}
+      {hasAIAccess && (
+        <div className="p-4">
+          <Link href="/assistant" onClick={handleNavClick}>
+            <Button
+              className={cn(
+                "w-full bg-gradient-to-r from-[#FF5757] to-[#FF3D3D] hover:from-[#FF4040] hover:to-[#FF2020] text-white",
+                collapsed && "px-2"
+              )}
+            >
+              <Mic className="h-4 w-4" />
+              {!collapsed && <span className="ml-2">Voice Command</span>}
+            </Button>
+          </Link>
+        </div>
+      )}
 
       {/* Main Navigation */}
       <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
-        {navigation.map((item) => {
+        {filteredNavigation.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
           const isHighlight = "highlight" in item && item.highlight;
           

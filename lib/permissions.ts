@@ -41,10 +41,11 @@ export const BUILT_IN_MODULES = [
   "invoices",
   "reports",
   "settings",
+  "ai_assistant",
 ] as const;
 
 // Modules that require admin-level access by default
-export const ADMIN_ONLY_MODULES = ["settings"] as const;
+export const ADMIN_ONLY_MODULES = ["settings", "ai_assistant"] as const;
 
 // All possible actions
 export const ALL_ACTIONS: ActionType[] = ["view", "create", "edit", "delete"];
