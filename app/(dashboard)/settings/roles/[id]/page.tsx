@@ -39,6 +39,7 @@ import {
   Box,
   Eye,
   EyeOff,
+  Sparkles,
 } from "lucide-react";
 
 // Built-in modules with icons
@@ -59,6 +60,7 @@ const BUILT_IN_MODULES = [
   { slug: "campaigns", name: "Campaigns", icon: Megaphone, hasOwnership: false },
   { slug: "segments", name: "Segments", icon: Users, hasOwnership: false },
   { slug: "forms", name: "Forms", icon: FileText, hasOwnership: false },
+  { slug: "ai_assistant", name: "AI Assistant", icon: Sparkles, hasOwnership: false },
   { slug: "settings", name: "Settings", icon: Shield, hasOwnership: false },
 ];
 
