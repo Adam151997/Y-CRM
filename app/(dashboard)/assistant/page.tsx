@@ -18,6 +18,9 @@ import {
   MessageSquare,
   Loader2,
   CheckCircle2,
+  PanelRightClose,
+  PanelRightOpen,
+  History,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
@@ -58,8 +61,24 @@ export default function AssistantPage() {
   });
 
   const [input, setInput] = useState("");
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Load sidebar state from localStorage
+  useEffect(() => {
+    const savedState = localStorage.getItem("assistant-sidebar-open");
+    if (savedState !== null) {
+      setSidebarOpen(JSON.parse(savedState));
+    }
+  }, []);
+
+  // Save sidebar state to localStorage
+  const toggleSidebar = () => {
+    const newState = !sidebarOpen;
+    setSidebarOpen(newState);
+    localStorage.setItem("assistant-sidebar-open", JSON.stringify(newState));
+  };
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -106,64 +125,6 @@ export default function AssistantPage() {
 
   return (
     <div className="flex h-[calc(100vh-8rem)] gap-4">
-      {/* Sidebar - Chat History */}
-      <Card className="w-72 flex-shrink-0 flex flex-col">
-        <div className="p-3 border-b">
-          <Button
-            onClick={() => createSession()}
-            className="w-full"
-            variant="outline"
-            size="sm"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            New Chat
-          </Button>
-        </div>
-        <ScrollArea className="flex-1">
-          <div className="p-2 space-y-1">
-            {sessions.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                No conversations yet
-              </p>
-            ) : (
-              <TooltipProvider delayDuration={300}>
-                {sessions.map((session) => (
-                  <Tooltip key={session.id}>
-                    <TooltipTrigger asChild>
-                      <button
-                        onClick={() => setCurrentSession(session.id)}
-                        className={cn(
-                          "w-full text-left p-2.5 rounded-lg transition-colors group",
-                          "hover:bg-muted/50",
-                          session.id === currentSessionId && "bg-muted"
-                        )}
-                      >
-                        <div className="flex items-start gap-2">
-                          <MessageSquare className="h-4 w-4 mt-0.5 flex-shrink-0 text-muted-foreground" />
-                          <div className="flex-1 min-w-0 overflow-hidden">
-                            <p className="text-sm font-medium leading-snug line-clamp-2">
-                              {session.title}
-                            </p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              {formatDistanceToNow(new Date(session.updatedAt), {
-                                addSuffix: true,
-                              })}
-                            </p>
-                          </div>
-                        </div>
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent side="right" className="max-w-xs">
-                      <p className="text-sm">{session.title}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                ))}
-              </TooltipProvider>
-            )}
-          </div>
-        </ScrollArea>
-      </Card>
-
       {/* Main Chat Area */}
       <Card className="flex-1 flex flex-col">
         {/* Header */}
@@ -180,6 +141,28 @@ export default function AssistantPage() {
             </div>
           </div>
           
+          {/* Sidebar Toggle Button */}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={toggleSidebar}
+                  className="h-9 w-9"
+                >
+                  {sidebarOpen ? (
+                    <PanelRightClose className="h-5 w-5" />
+                  ) : (
+                    <PanelRightOpen className="h-5 w-5" />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="left">
+                {sidebarOpen ? "Hide chat history" : "Show chat history"}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
 
         {/* Messages */}
@@ -307,9 +290,82 @@ export default function AssistantPage() {
               </Button>
             )}
           </form>
-          
         </div>
       </Card>
+
+      {/* Right Sidebar - Chat History (Collapsible) */}
+      <div
+        className={cn(
+          "flex-shrink-0 transition-all duration-300 ease-in-out overflow-hidden",
+          sidebarOpen ? "w-72 opacity-100" : "w-0 opacity-0"
+        )}
+      >
+        <Card className="w-72 h-full flex flex-col">
+          {/* Sidebar Header */}
+          <div className="p-3 border-b">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                <History className="h-4 w-4" />
+                Chat History
+              </div>
+            </div>
+            <Button
+              onClick={() => createSession()}
+              className="w-full"
+              variant="outline"
+              size="sm"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              New Chat
+            </Button>
+          </div>
+
+          {/* Chat Sessions List */}
+          <ScrollArea className="flex-1">
+            <div className="p-2 space-y-1">
+              {sessions.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  No conversations yet
+                </p>
+              ) : (
+                <TooltipProvider delayDuration={300}>
+                  {sessions.map((session) => (
+                    <Tooltip key={session.id}>
+                      <TooltipTrigger asChild>
+                        <button
+                          onClick={() => setCurrentSession(session.id)}
+                          className={cn(
+                            "w-full text-left p-2.5 rounded-lg transition-colors group",
+                            "hover:bg-muted/50",
+                            session.id === currentSessionId && "bg-muted"
+                          )}
+                        >
+                          <div className="flex items-start gap-2">
+                            <MessageSquare className="h-4 w-4 mt-0.5 flex-shrink-0 text-muted-foreground" />
+                            <div className="flex-1 min-w-0 overflow-hidden">
+                              <p className="text-sm font-medium leading-snug line-clamp-2">
+                                {session.title}
+                              </p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {formatDistanceToNow(new Date(session.updatedAt), {
+                                  addSuffix: true,
+                                })}
+                              </p>
+                            </div>
+                          </div>
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="left" className="max-w-xs">
+                        <p className="text-sm">{session.title}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  ))}
+                </TooltipProvider>
+              )}
+            </div>
+          </ScrollArea>
+        </Card>
+      </div>
     </div>
   );
 }
