@@ -1,7 +1,7 @@
 import { generateText, CoreMessage } from "ai";
-import { 
+import {
   geminiPro,
-  CRM_SYSTEM_PROMPT, 
+  CRM_SYSTEM_PROMPT,
   isAIConfigured,
 } from "./providers";
 import {
@@ -11,77 +11,13 @@ import {
   buildContextSummary,
   ToolCallRecord,
 } from "@/lib/conversation-memory";
+// New modular tool imports
 import {
-  // Lead tools
-  createLeadTool,
-  searchLeadsTool,
-  updateLeadTool,
-  // Contact tools
-  createContactTool,
-  searchContactsTool,
-  // Account tools
-  createAccountTool,
-  searchAccountsTool,
-  // Task tools
-  createTaskTool,
-  completeTaskTool,
-  searchTasksTool,
-  // Opportunity tools
-  createOpportunityTool,
-  searchOpportunitiesTool,
-  // Note tools
-  createNoteTool,
-  // Dashboard tools
-  getDashboardStatsTool,
-  // Semantic search
-  semanticSearchTool,
-  // Document tools
-  searchDocumentsTool,
-  getDocumentStatsTool,
-  analyzeDocumentTool,
-  // CS Workspace - Tickets
-  createTicketTool,
-  searchTicketsTool,
-  updateTicketTool,
-  addTicketMessageTool,
-  // CS Workspace - Health
-  getHealthScoreTool,
-  searchAtRiskAccountsTool,
-  // CS Workspace - Playbooks
-  searchPlaybooksTool,
-  runPlaybookTool,
-  // CS Workspace - Renewals
-  createRenewalTool,
-  searchRenewalsTool,
-  updateRenewalTool,
-  getUpcomingRenewalsTool,
-  // Marketing Workspace - Campaigns
-  createCampaignTool,
-  searchCampaignsTool,
-  // Marketing Workspace - Segments
-  createSegmentTool,
-  searchSegmentsTool,
-  // Marketing Workspace - Forms
-  createFormTool,
-  searchFormsTool,
-  // Custom Modules
-  createCustomModuleTool,
-  createCustomFieldTool,
-  createCustomModuleRecordTool,
-  searchCustomModuleRecordsTool,
-  listCustomModulesTool,
-  // Native Integration Tools (Google & Slack)
-  getConnectedIntegrationsTool,
-  sendEmailTool,
-  searchEmailsTool,
-  createCalendarEventTool,
-  getUpcomingEventsTool,
-  getTodayEventsTool,
-  sendSlackMessageTool,
-  listSlackChannelsTool,
-  // Report Generation
-  createReportTool,
-} from "./tools";
+  getToolsForIntent,
+  getAllTools,
+  type PrimaryAction
+} from "./tools/index";
+import { analyzeIntentComplexity } from "./complexity-analyzer";
 import { createAuditLog } from "@/lib/audit";
 import { createNotification, NotificationType } from "@/lib/notifications";
 
@@ -103,82 +39,12 @@ export interface AgentResult {
   errorCode?: string; // SCHEMA_COMPLEXITY, RATE_LIMIT, AUTH_ERROR, TIMEOUT, etc.
 }
 
-// Primary action types
-type PrimaryAction = 
-  | "task" | "lead" | "contact" | "account" | "opportunity" 
-  | "ticket" | "note" | "campaign" | "segment" | "form" | "renewal"
-  | "search" | "stats" | "email" | "calendar" | "slack" | "report" | null;
-
 /**
  * Get all available tools for the CRM agent
+ * Now uses modular tool loading for better schema management
  */
 export function getCRMTools(orgId: string, userId: string) {
-  return {
-    // SALES WORKSPACE TOOLS
-    createLead: createLeadTool(orgId, userId),
-    searchLeads: searchLeadsTool(orgId),
-    updateLead: updateLeadTool(orgId, userId),
-    createContact: createContactTool(orgId, userId),
-    searchContacts: searchContactsTool(orgId),
-    createAccount: createAccountTool(orgId, userId),
-    searchAccounts: searchAccountsTool(orgId),
-    createOpportunity: createOpportunityTool(orgId, userId),
-    searchOpportunities: searchOpportunitiesTool(orgId),
-
-    // CS WORKSPACE TOOLS
-    createTicket: createTicketTool(orgId, userId),
-    searchTickets: searchTicketsTool(orgId),
-    updateTicket: updateTicketTool(orgId, userId),
-    addTicketMessage: addTicketMessageTool(orgId, userId),
-    getHealthScore: getHealthScoreTool(orgId),
-    searchAtRiskAccounts: searchAtRiskAccountsTool(orgId),
-    searchPlaybooks: searchPlaybooksTool(orgId),
-    runPlaybook: runPlaybookTool(orgId, userId),
-    // CS Workspace - Renewals
-    createRenewal: createRenewalTool(orgId, userId),
-    searchRenewals: searchRenewalsTool(orgId),
-    updateRenewal: updateRenewalTool(orgId, userId),
-    getUpcomingRenewals: getUpcomingRenewalsTool(orgId),
-
-    // MARKETING WORKSPACE TOOLS
-    createCampaign: createCampaignTool(orgId, userId),
-    searchCampaigns: searchCampaignsTool(orgId),
-    createSegment: createSegmentTool(orgId, userId),
-    searchSegments: searchSegmentsTool(orgId),
-    createForm: createFormTool(orgId, userId),
-    searchForms: searchFormsTool(orgId),
-
-    // GLOBAL TOOLS (All Workspaces)
-    createTask: createTaskTool(orgId, userId),
-    completeTask: completeTaskTool(orgId, userId),
-    searchTasks: searchTasksTool(orgId),
-    createNote: createNoteTool(orgId, userId),
-    getDashboardStats: getDashboardStatsTool(orgId),
-    semanticSearch: semanticSearchTool(orgId),
-    searchDocuments: searchDocumentsTool(orgId),
-    getDocumentStats: getDocumentStatsTool(orgId),
-    analyzeDocument: analyzeDocumentTool(orgId),
-
-    // CUSTOM MODULE TOOLS
-    createCustomModule: createCustomModuleTool(orgId, userId),
-    createCustomField: createCustomFieldTool(orgId, userId),
-    createCustomModuleRecord: createCustomModuleRecordTool(orgId, userId),
-    searchCustomModuleRecords: searchCustomModuleRecordsTool(orgId),
-    listCustomModules: listCustomModulesTool(orgId),
-
-    // NATIVE INTEGRATION TOOLS (Google & Slack)
-    getConnectedIntegrations: getConnectedIntegrationsTool(orgId),
-    sendEmail: sendEmailTool(orgId),
-    searchEmails: searchEmailsTool(orgId),
-    createCalendarEvent: createCalendarEventTool(orgId),
-    getUpcomingEvents: getUpcomingEventsTool(orgId),
-    getTodayEvents: getTodayEventsTool(orgId),
-    sendSlackMessage: sendSlackMessageTool(orgId),
-    listSlackChannels: listSlackChannelsTool(orgId),
-
-    // REPORT GENERATION
-    createReport: createReportTool(orgId, userId),
-  };
+  return getAllTools(orgId, userId);
 }
 
 /**
@@ -253,147 +119,16 @@ function detectPrimaryAction(message: string): PrimaryAction {
 
 /**
  * Get filtered tools based on PRIMARY action
- * Only includes the CREATE tool for the primary action
- * Other entities get SEARCH tools only (for entity resolution)
+ * Now uses modular tool loading for better schema management
  */
 export function getFilteredTools(
-  orgId: string, 
-  userId: string, 
+  orgId: string,
+  userId: string,
   message: string,
   primaryAction: PrimaryAction
 ): Record<string, unknown> {
-  const allTools = getCRMTools(orgId, userId);
-  const filtered: Record<string, unknown> = {};
-  
-  // Based on primary action, add the CREATE tool and relevant SEARCH tools
-  switch (primaryAction) {
-    case "task":
-      filtered.createTask = allTools.createTask;
-      filtered.completeTask = allTools.completeTask;
-      filtered.searchTasks = allTools.searchTasks;
-      // Search tools for entity resolution (NO create tools for other entities)
-      filtered.searchLeads = allTools.searchLeads;
-      filtered.searchContacts = allTools.searchContacts;
-      filtered.searchAccounts = allTools.searchAccounts;
-      filtered.searchOpportunities = allTools.searchOpportunities;
-      break;
-      
-    case "lead":
-      filtered.createLead = allTools.createLead;
-      filtered.searchLeads = allTools.searchLeads;
-      filtered.updateLead = allTools.updateLead;
-      // Removed createTask - only add if explicitly requested
-      break;
-      
-    case "contact":
-      filtered.createContact = allTools.createContact;
-      filtered.searchContacts = allTools.searchContacts;
-      filtered.searchAccounts = allTools.searchAccounts; // For linking
-      break;
-      
-    case "account":
-      filtered.createAccount = allTools.createAccount;
-      filtered.searchAccounts = allTools.searchAccounts;
-      break;
-      
-    case "opportunity":
-      filtered.createOpportunity = allTools.createOpportunity;
-      filtered.searchOpportunities = allTools.searchOpportunities;
-      filtered.searchAccounts = allTools.searchAccounts; // Required for accountId
-      break;
-      
-    case "ticket":
-      filtered.createTicket = allTools.createTicket;
-      filtered.searchTickets = allTools.searchTickets;
-      filtered.updateTicket = allTools.updateTicket;
-      filtered.addTicketMessage = allTools.addTicketMessage;
-      filtered.searchAccounts = allTools.searchAccounts; // Required for accountId
-      filtered.searchContacts = allTools.searchContacts; // Optional for contactId
-      break;
-      
-    case "note":
-      filtered.createNote = allTools.createNote;
-      // Search tools for entity resolution
-      filtered.searchLeads = allTools.searchLeads;
-      filtered.searchContacts = allTools.searchContacts;
-      filtered.searchAccounts = allTools.searchAccounts;
-      filtered.searchOpportunities = allTools.searchOpportunities;
-      break;
-      
-    case "campaign":
-      filtered.createCampaign = allTools.createCampaign;
-      filtered.searchCampaigns = allTools.searchCampaigns;
-      filtered.searchSegments = allTools.searchSegments;
-      break;
-      
-    case "segment":
-      filtered.createSegment = allTools.createSegment;
-      filtered.searchSegments = allTools.searchSegments;
-      break;
-      
-    case "form":
-      filtered.createForm = allTools.createForm;
-      filtered.searchForms = allTools.searchForms;
-      break;
-      
-    case "renewal":
-      filtered.createRenewal = allTools.createRenewal;
-      filtered.searchRenewals = allTools.searchRenewals;
-      filtered.updateRenewal = allTools.updateRenewal;
-      filtered.getUpcomingRenewals = allTools.getUpcomingRenewals;
-      filtered.searchAccounts = allTools.searchAccounts; // Required for accountId
-      break;
-      
-    case "search":
-      filtered.searchLeads = allTools.searchLeads;
-      filtered.searchContacts = allTools.searchContacts;
-      filtered.searchAccounts = allTools.searchAccounts;
-      filtered.searchTasks = allTools.searchTasks;
-      filtered.searchOpportunities = allTools.searchOpportunities;
-      filtered.searchTickets = allTools.searchTickets;
-      filtered.searchRenewals = allTools.searchRenewals;
-      filtered.semanticSearch = allTools.semanticSearch;
-      break;
-      
-    case "stats":
-      filtered.getDashboardStats = allTools.getDashboardStats;
-      break;
-      
-    case "email":
-      filtered.sendEmail = allTools.sendEmail;
-      filtered.searchEmails = allTools.searchEmails;
-      filtered.searchContacts = allTools.searchContacts;
-      filtered.searchLeads = allTools.searchLeads;
-      break;
-      
-    case "calendar":
-      filtered.createCalendarEvent = allTools.createCalendarEvent;
-      filtered.getUpcomingEvents = allTools.getUpcomingEvents;
-      filtered.getTodayEvents = allTools.getTodayEvents;
-      filtered.searchContacts = allTools.searchContacts;
-      break;
-      
-    case "slack":
-      filtered.sendSlackMessage = allTools.sendSlackMessage;
-      filtered.listSlackChannels = allTools.listSlackChannels;
-      break;
-      
-    case "report":
-      filtered.createReport = allTools.createReport;
-      filtered.getDashboardStats = allTools.getDashboardStats;
-      break;
-      
-    default:
-      // Default set for unknown intents
-      filtered.getDashboardStats = allTools.getDashboardStats;
-      filtered.searchLeads = allTools.searchLeads;
-      filtered.searchContacts = allTools.searchContacts;
-      filtered.searchAccounts = allTools.searchAccounts;
-      filtered.searchTasks = allTools.searchTasks;
-      break;
-  }
-  
-  return filtered;
+  // Use the new modular tool registry
+  return getToolsForIntent(primaryAction, orgId, userId);
 }
 
 /**
@@ -652,9 +387,13 @@ export async function executeAgent(
   }
 
   // Build enhanced system prompt with conversation context
-  const enhancedSystemPrompt = contextSummary 
+  const enhancedSystemPrompt = contextSummary
     ? `${CRM_SYSTEM_PROMPT}\n\n## CONVERSATION CONTEXT\n${contextSummary}`
     : CRM_SYSTEM_PROMPT;
+
+  // Analyze intent complexity for adaptive maxSteps
+  const complexityAnalysis = analyzeIntentComplexity(userContent);
+  console.log(`[Agent] Complexity analysis: ${complexityAnalysis.complexity} (maxSteps: ${complexityAnalysis.maxSteps}, actions: ${complexityAnalysis.detectedActions.join(", ") || "none"})`);
 
   try {
     // Get filtered tools based on primary action
@@ -672,7 +411,7 @@ export async function executeAgent(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       tools: tools as any,
       toolChoice: toolChoiceMode as "auto" | "required",
-      maxSteps: 1, // Single step - tool-level resolution handles entity lookups internally
+      maxSteps: complexityAnalysis.maxSteps, // Adaptive: 1-5 based on intent complexity
       onStepFinish: ({ toolCalls, toolResults: stepToolResults }) => {
         if (toolCalls && toolCalls.length > 0) {
           toolCalls.forEach((tc) => {
@@ -770,6 +509,9 @@ export async function executeAgent(
         toolsCalled,
         messageCount: messages.length,
         finishReason: result.finishReason,
+        complexity: complexityAnalysis.complexity,
+        maxStepsUsed: complexityAnalysis.maxSteps,
+        detectedActions: complexityAnalysis.detectedActions,
       },
     }).catch(() => {}); // Silent fail for audit
 
