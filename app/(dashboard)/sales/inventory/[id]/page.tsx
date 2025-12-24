@@ -24,6 +24,8 @@ import {
   AlertTriangle,
   CheckCircle,
   XCircle,
+  Plus,
+  Minus,
 } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
@@ -67,6 +69,7 @@ export default function InventoryDetailPage() {
   const [movements, setMovements] = useState<StockMovement[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMovements, setIsLoadingMovements] = useState(true);
+  const [adjustmentType, setAdjustmentType] = useState<"add" | "remove" | null>(null);
 
   const fetchItem = async () => {
     try {
@@ -209,16 +212,14 @@ export default function InventoryDetailPage() {
           </div>
         </div>
         <div className="flex gap-2">
-          <StockAdjustmentDialog
-            itemId={item.id}
-            itemName={item.name}
-            currentStock={item.stockLevel}
-            unit={item.unit}
-            onSuccess={() => {
-              fetchItem();
-              fetchMovements();
-            }}
-          />
+          <Button variant="outline" onClick={() => setAdjustmentType("add")}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Stock
+          </Button>
+          <Button variant="outline" onClick={() => setAdjustmentType("remove")}>
+            <Minus className="h-4 w-4 mr-2" />
+            Remove Stock
+          </Button>
           <Button asChild>
             <Link href={`/sales/inventory/${item.id}/edit`}>
               <Edit className="h-4 w-4 mr-2" />
@@ -399,6 +400,20 @@ export default function InventoryDetailPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Stock Adjustment Dialog */}
+      {adjustmentType && (
+        <StockAdjustmentDialog
+          item={{ id: item.id, name: item.name, sku: item.sku, stockLevel: item.stockLevel, unit: item.unit }}
+          type={adjustmentType}
+          onClose={() => setAdjustmentType(null)}
+          onSuccess={() => {
+            setAdjustmentType(null);
+            fetchItem();
+            fetchMovements();
+          }}
+        />
+      )}
     </div>
   );
 }
