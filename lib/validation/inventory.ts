@@ -62,7 +62,7 @@ export const createInventoryItemSchema = z.object({
 
   // Pricing
   unitPrice: z.number().min(0, "Unit price must be 0 or greater"),
-  costPrice: z.number().min(0, "Cost price must be 0 or greater").optional(),
+  costPrice: z.number().min(0, "Cost price must be 0 or greater").nullable().optional(),
 
   // Organization
   category: z.string().max(100).optional(),
