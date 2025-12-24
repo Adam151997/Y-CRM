@@ -101,6 +101,7 @@ export type PrimaryAction =
   | "segment"
   | "form"
   | "renewal"
+  | "inventory"
   | "search"
   | "stats"
   | "email"
@@ -205,6 +206,15 @@ export function getToolsForIntent(
       filtered.searchAccounts = salesTools.searchAccounts;
       break;
 
+    case "inventory":
+      filtered.createInventoryItem = salesTools.createInventoryItem;
+      filtered.searchInventory = salesTools.searchInventory;
+      filtered.checkStock = salesTools.checkStock;
+      filtered.adjustStock = salesTools.adjustStock;
+      filtered.getLowStockItems = salesTools.getLowStockItems;
+      filtered.getInventoryStats = salesTools.getInventoryStats;
+      break;
+
     case "search":
       filtered.searchLeads = salesTools.searchLeads;
       filtered.searchContacts = salesTools.searchContacts;
@@ -213,6 +223,7 @@ export function getToolsForIntent(
       filtered.searchOpportunities = salesTools.searchOpportunities;
       filtered.searchTickets = csTools.searchTickets;
       filtered.searchRenewals = csTools.searchRenewals;
+      filtered.searchInventory = salesTools.searchInventory;
       filtered.semanticSearch = globalTools.semanticSearch;
       break;
 

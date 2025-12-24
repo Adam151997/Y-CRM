@@ -63,6 +63,9 @@ export const invoiceItemSchema = z.object({
   unitPrice: z.number().min(0, "Unit price must be 0 or greater"),
   itemCode: z.string().optional(),
   sortOrder: z.number().optional(),
+  // Inventory integration fields
+  inventoryItemId: z.string().optional(), // Link to inventory item (optional)
+  deductFromStock: z.boolean().default(true), // Whether to deduct from inventory stock
 });
 
 export type InvoiceItemInput = z.infer<typeof invoiceItemSchema>;

@@ -39,6 +39,7 @@ export const BUILT_IN_MODULES = [
   "tickets",
   "campaigns",
   "invoices",
+  "inventory",
   "reports",
   "settings",
   "ai_assistant",
