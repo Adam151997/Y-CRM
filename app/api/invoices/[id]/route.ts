@@ -1,8 +1,8 @@
 /**
  * Single Invoice API
  * GET - Get invoice details
- * PUT - Update invoice
- * DELETE - Delete invoice
+ * PUT - Update invoice (with stock restoration on cancellation/void)
+ * DELETE - Delete invoice (with stock restoration)
  */
 
 export const dynamic = 'force-dynamic';
@@ -18,6 +18,7 @@ import {
   calculateInvoiceTotals,
   calculateItemAmount,
 } from "@/lib/invoices";
+import { restoreStockAtomic } from "@/lib/inventory/transactions";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -166,21 +167,39 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
             { status: 400 }
           );
         }
-        
-        const updateData: Record<string, unknown> = { status: body.status };
-        
-        // Set paidAt timestamp and update amounts when marking as PAID
-        if (body.status === "PAID") {
-          updateData.paidAt = new Date();
-          updateData.amountPaid = existingInvoice.total; // Mark full amount as paid
-          updateData.amountDue = 0; // Nothing left to pay
-        }
-        
-        const updated = await prisma.invoice.update({
-          where: { id },
-          data: updateData,
+
+        // Execute status change with potential stock restoration in a transaction
+        const result = await prisma.$transaction(async (tx) => {
+          const updateData: Record<string, unknown> = { status: body.status };
+
+          // Set paidAt timestamp and update amounts when marking as PAID
+          if (body.status === "PAID") {
+            updateData.paidAt = new Date();
+            updateData.amountPaid = existingInvoice.total;
+            updateData.amountDue = 0;
+          }
+
+          // Restore stock when cancelling or voiding invoice
+          if (body.status === "CANCELLED" || body.status === "VOID") {
+            const stockResult = await restoreStockAtomic(
+              tx,
+              authContext.orgId,
+              id,
+              authContext.userId,
+              "USER"
+            );
+
+            if (!stockResult.success) {
+              throw new Error(stockResult.error || "Failed to restore stock");
+            }
+          }
+
+          return tx.invoice.update({
+            where: { id },
+            data: updateData,
+          });
         });
-        
+
         await createAuditLog({
           orgId: authContext.orgId,
           action: "UPDATE",
@@ -189,11 +208,15 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
           actorType: "USER",
           actorId: authContext.userId,
           previousState: existingInvoice,
-          newState: updated,
+          newState: result,
+          metadata: {
+            statusChange: `${existingInvoice.status} -> ${body.status}`,
+            stockRestored: body.status === "CANCELLED" || body.status === "VOID",
+          },
         });
-        
+
         revalidateInvoiceCaches();
-        return NextResponse.json(updated);
+        return NextResponse.json(result);
       }
       
       return NextResponse.json(
@@ -401,9 +424,23 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Delete invoice (items will cascade)
-    await prisma.invoice.delete({
-      where: { id },
+    // Delete invoice and restore stock in a transaction
+    const deleteResult = await prisma.$transaction(async (tx) => {
+      // Restore stock for any inventory-linked items
+      const stockResult = await restoreStockAtomic(
+        tx,
+        authContext.orgId,
+        id,
+        authContext.userId,
+        "USER"
+      );
+
+      // Delete invoice (items will cascade)
+      await tx.invoice.delete({
+        where: { id },
+      });
+
+      return { stockRestored: stockResult.restoredItems };
     });
 
     // Create audit log
@@ -415,11 +452,17 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       actorType: "USER",
       actorId: authContext.userId,
       previousState: existingInvoice,
+      metadata: {
+        stockItemsRestored: deleteResult.stockRestored,
+      },
     });
 
     revalidateInvoiceCaches();
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({
+      success: true,
+      stockItemsRestored: deleteResult.stockRestored,
+    });
   } catch (error) {
     console.error("[Invoice DELETE] Error:", error);
     

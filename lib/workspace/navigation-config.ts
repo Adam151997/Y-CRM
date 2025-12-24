@@ -16,6 +16,7 @@ import {
   FileInput,
   FileText,
   RefreshCw,
+  Package,
   LucideIcon,
 } from "lucide-react";
 import { WorkspaceType } from "./workspace-context";
@@ -45,6 +46,7 @@ const salesNavigation: NavSection[] = [
       { name: "Contacts", href: "/sales/contacts", icon: UserCircle },
       { name: "Accounts", href: "/sales/accounts", icon: Building2 },
       { name: "Invoices", href: "/sales/invoices", icon: FileText },
+      { name: "Inventory", href: "/sales/inventory", icon: Package },
       { name: "Tasks", href: "/sales/tasks", icon: CheckSquare },
     ],
   },

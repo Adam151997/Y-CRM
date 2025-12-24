@@ -93,7 +93,15 @@ function detectPrimaryAction(message: string): PrimaryAction {
   if (lower.match(/\b(update|edit|modify)\s+(the\s+)?(renewal)/)) return "renewal";
   if (lower.match(/\b(upcoming|expiring)\s+(renewal|contract)/)) return "renewal";
   if (lower.includes("renewal") && !lower.includes("playbook")) return "renewal";
-  
+
+  // Inventory patterns
+  if (lower.match(/\b(create|add|make|new)\s+(a\s+)?(inventory|product|item|sku)/)) return "inventory";
+  if (lower.match(/\b(check|view|show)\s+(the\s+)?(stock|inventory)/)) return "inventory";
+  if (lower.match(/\b(adjust|update|restock|add)\s+(the\s+)?(stock|inventory)/)) return "inventory";
+  if (lower.match(/\b(low|out\s+of)\s+stock/)) return "inventory";
+  if (lower.match(/\b(restock|reorder|stock\s+level)/)) return "inventory";
+  if (lower.includes("inventory") || lower.includes("stock level")) return "inventory";
+
   // Search patterns
   if (lower.match(/\b(search|find|show|list|get)\s/)) return "search";
   
