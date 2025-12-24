@@ -53,7 +53,7 @@ export const createInventoryItemSchema = z.object({
     .min(1, "SKU is required")
     .max(100, "SKU too long")
     .regex(/^[A-Za-z0-9_-]+$/, "SKU can only contain letters, numbers, hyphens and underscores"),
-  description: z.string().optional(),
+  description: z.string().nullable().optional(),
 
   // Stock Management
   stockLevel: z.number().int().min(0, "Stock level cannot be negative").default(0),
@@ -65,7 +65,7 @@ export const createInventoryItemSchema = z.object({
   costPrice: z.number().min(0, "Cost price must be 0 or greater").nullable().optional(),
 
   // Organization
-  category: z.string().max(100).optional(),
+  category: z.string().max(100).nullable().optional(),
   tags: z.array(z.string().max(50)).max(10).optional(),
 
   // Status
