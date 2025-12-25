@@ -55,10 +55,10 @@ const createEmployeeTool = (orgId: string, userId: string) =>
           };
         }
 
-        // Parse hire date
-        let hireDate: Date | undefined;
+        // Parse join date
+        let joinDate: Date | undefined;
         if (params.hireDate) {
-          hireDate = params.hireDate === "today" ? new Date() : new Date(params.hireDate);
+          joinDate = params.hireDate === "today" ? new Date() : new Date(params.hireDate);
         }
 
         const employee = await prisma.employee.create({
@@ -74,7 +74,7 @@ const createEmployeeTool = (orgId: string, userId: string) =>
             salary: params.salary,
             salaryType: (params.salaryType as "HOURLY" | "MONTHLY" | "ANNUAL") || "MONTHLY",
             currency: params.currency || "USD",
-            hireDate,
+            joinDate,
             managerId: params.managerId,
             status: "ACTIVE",
             createdById: userId,
@@ -147,14 +147,14 @@ const searchEmployeesTool = (orgId: string) =>
             position: true,
             status: true,
             employmentType: true,
-            hireDate: true,
+            joinDate: true,
           },
         });
 
         return {
           success: true,
           count: employees.length,
-          employees: employees.map((e) => ({
+          employees: employees.map((e: { id: string; employeeId: string; firstName: string; lastName: string; email: string; department: string | null; position: string | null; status: string; employmentType: string; joinDate: Date | null }) => ({
             id: e.id,
             employeeNumber: e.employeeId,
             name: `${e.firstName} ${e.lastName}`,
@@ -163,7 +163,7 @@ const searchEmployeesTool = (orgId: string) =>
             position: e.position,
             status: e.status,
             employmentType: e.employmentType,
-            hireDate: e.hireDate?.toISOString(),
+            hireDate: e.joinDate?.toISOString(),
           })),
         };
       } catch (error) {
@@ -271,7 +271,7 @@ const getEmployeeTool = (orgId: string) =>
             position: employee.position,
             status: employee.status,
             employmentType: employee.employmentType,
-            hireDate: employee.hireDate?.toISOString(),
+            hireDate: employee.joinDate?.toISOString(),
             salary: employee.salary ? Number(employee.salary) : null,
             salaryType: employee.salaryType,
             currency: employee.currency,
