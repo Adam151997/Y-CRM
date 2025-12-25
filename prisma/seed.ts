@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 // All CRM modules that need permission configuration
 const ALL_MODULES = [
   "leads",
-  "contacts", 
+  "contacts",
   "accounts",
   "opportunities",
   "tasks",
@@ -20,6 +20,7 @@ const ALL_MODULES = [
   "segments",
   "forms",
   "invoices",
+  "inventory",
   "settings",
 ];
 
@@ -137,6 +138,190 @@ async function assignAdminRole(orgId: string, clerkUserId: string) {
   }
 }
 
+// Sample inventory items for testing
+const SAMPLE_INVENTORY = [
+  {
+    name: "Laptop Pro 15\"",
+    sku: "TECH-LP15",
+    description: "High-performance laptop with 15\" display, 16GB RAM, 512GB SSD",
+    stockLevel: 25,
+    reorderLevel: 5,
+    unit: "pcs",
+    unitPrice: 1299.99,
+    costPrice: 899.99,
+    category: "Electronics",
+    tags: ["laptop", "computer", "tech"],
+  },
+  {
+    name: "Wireless Mouse",
+    sku: "TECH-WM01",
+    description: "Ergonomic wireless mouse with long battery life",
+    stockLevel: 150,
+    reorderLevel: 30,
+    unit: "pcs",
+    unitPrice: 29.99,
+    costPrice: 12.50,
+    category: "Electronics",
+    tags: ["mouse", "accessories", "wireless"],
+  },
+  {
+    name: "USB-C Hub",
+    sku: "TECH-HUB7",
+    description: "7-in-1 USB-C hub with HDMI, USB-A, SD card reader",
+    stockLevel: 75,
+    reorderLevel: 15,
+    unit: "pcs",
+    unitPrice: 49.99,
+    costPrice: 22.00,
+    category: "Electronics",
+    tags: ["hub", "usb-c", "accessories"],
+  },
+  {
+    name: "Office Chair Premium",
+    sku: "FURN-OC01",
+    description: "Ergonomic office chair with lumbar support and adjustable armrests",
+    stockLevel: 12,
+    reorderLevel: 3,
+    unit: "pcs",
+    unitPrice: 349.99,
+    costPrice: 175.00,
+    category: "Furniture",
+    tags: ["chair", "office", "ergonomic"],
+  },
+  {
+    name: "Standing Desk 60\"",
+    sku: "FURN-SD60",
+    description: "Electric height-adjustable standing desk, 60\" wide",
+    stockLevel: 8,
+    reorderLevel: 2,
+    unit: "pcs",
+    unitPrice: 599.99,
+    costPrice: 320.00,
+    category: "Furniture",
+    tags: ["desk", "standing", "adjustable"],
+  },
+  {
+    name: "Notebook Pack (50)",
+    sku: "SUPP-NB50",
+    description: "Pack of 50 lined notebooks, A5 size",
+    stockLevel: 200,
+    reorderLevel: 50,
+    unit: "pack",
+    unitPrice: 89.99,
+    costPrice: 35.00,
+    category: "Office Supplies",
+    tags: ["notebook", "stationery", "paper"],
+  },
+  {
+    name: "Printer Paper (500 sheets)",
+    sku: "SUPP-PP500",
+    description: "Premium A4 printer paper, 500 sheets per ream",
+    stockLevel: 3,
+    reorderLevel: 20,
+    unit: "box",
+    unitPrice: 12.99,
+    costPrice: 6.50,
+    category: "Office Supplies",
+    tags: ["paper", "printer", "a4"],
+  },
+  {
+    name: "Consulting Hour",
+    sku: "SVC-CON01",
+    description: "One hour of professional consulting services",
+    stockLevel: 999,
+    reorderLevel: 0,
+    unit: "hours",
+    unitPrice: 150.00,
+    costPrice: 50.00,
+    category: "Services",
+    tags: ["consulting", "service", "hourly"],
+  },
+  {
+    name: "Training Session",
+    sku: "SVC-TRN01",
+    description: "Full-day training session (up to 10 participants)",
+    stockLevel: 999,
+    reorderLevel: 0,
+    unit: "days",
+    unitPrice: 2500.00,
+    costPrice: 800.00,
+    category: "Services",
+    tags: ["training", "service", "education"],
+  },
+  {
+    name: "Webcam HD",
+    sku: "TECH-WC01",
+    description: "1080p HD webcam with built-in microphone",
+    stockLevel: 0,
+    reorderLevel: 10,
+    unit: "pcs",
+    unitPrice: 79.99,
+    costPrice: 35.00,
+    category: "Electronics",
+    tags: ["webcam", "camera", "video"],
+  },
+];
+
+async function seedInventory(orgId: string, userId: string) {
+  console.log(`\n📦 Seeding inventory items for organization: ${orgId}`);
+
+  let created = 0;
+  let skipped = 0;
+
+  for (const item of SAMPLE_INVENTORY) {
+    const existing = await prisma.inventoryItem.findFirst({
+      where: { orgId, sku: item.sku },
+    });
+
+    if (existing) {
+      console.log(`  ⏭️  SKU "${item.sku}" already exists, skipping...`);
+      skipped++;
+      continue;
+    }
+
+    const newItem = await prisma.inventoryItem.create({
+      data: {
+        orgId,
+        name: item.name,
+        sku: item.sku,
+        description: item.description,
+        stockLevel: item.stockLevel,
+        reorderLevel: item.reorderLevel,
+        unit: item.unit,
+        unitPrice: item.unitPrice,
+        costPrice: item.costPrice,
+        category: item.category,
+        tags: item.tags,
+        createdById: userId,
+        createdByType: "SYSTEM",
+        isActive: true,
+      },
+    });
+
+    // Create initial stock movement if stock > 0
+    if (item.stockLevel > 0) {
+      await prisma.stockMovement.create({
+        data: {
+          orgId,
+          inventoryItemId: newItem.id,
+          type: "INITIAL",
+          quantity: item.stockLevel,
+          previousLevel: 0,
+          newLevel: item.stockLevel,
+          reason: "Initial inventory setup",
+          createdById: userId,
+          createdByType: "SYSTEM",
+        },
+      });
+    }
+
+    console.log(`  ✅ Created: ${item.name} (${item.sku}) - ${item.stockLevel} ${item.unit}`);
+    created++;
+  }
+
+  console.log(`\n  📊 Summary: ${created} created, ${skipped} skipped`);
+}
+
 async function main() {
   console.log("🌱 Starting Y CRM seed...\n");
 
@@ -183,6 +368,9 @@ async function main() {
 
   // Assign admin role to the specified user
   await assignAdminRole(ORG_ID, ADMIN_USER_ID);
+
+  // Seed inventory items
+  await seedInventory(ORG_ID, ADMIN_USER_ID);
 
   console.log("\n🎉 Seed completed successfully!\n");
 }

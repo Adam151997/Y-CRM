@@ -24,6 +24,7 @@ export type AuditModule =
   | "ACTIVITY"
   | "DOCUMENT"
   | "INVOICE"
+  | "INVENTORY"
   | "CUSTOM_MODULE"
   | "CUSTOM_MODULE_RECORD"
   | "CUSTOM_FIELD"

@@ -1,7 +1,7 @@
 /**
  * Invoices API
  * GET - List invoices with filters
- * POST - Create new invoice
+ * POST - Create new invoice (with atomic inventory deduction)
  */
 
 export const dynamic = 'force-dynamic';
@@ -22,6 +22,10 @@ import {
   calculateInvoiceTotals,
   calculateItemAmount,
 } from "@/lib/invoices";
+import {
+  validateStockForInvoice,
+  deductStockAtomic,
+} from "@/lib/inventory/transactions";
 
 /**
  * GET /api/invoices
@@ -143,7 +147,15 @@ export async function GET(request: NextRequest) {
 
 /**
  * POST /api/invoices
- * Create a new invoice
+ * Create a new invoice with atomic inventory deduction
+ *
+ * ATOMIC TRANSACTION FLOW:
+ * 1. Pre-validate stock availability (before transaction)
+ * 2. Start transaction
+ *    a. Create Invoice with InvoiceItems
+ *    b. Deduct stock from InventoryItems
+ *    c. Create StockMovement records
+ * 3. If any step fails, entire transaction is rolled back
  */
 export async function POST(request: NextRequest) {
   try {
@@ -184,111 +196,178 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate invoice number
-    const invoiceNumber = await generateInvoiceNumber(authContext.orgId);
-
-    // Calculate item amounts
-    const itemsWithAmounts = data.items.map((item, index) => ({
-      description: item.description,
-      quantity: item.quantity,
-      unitPrice: item.unitPrice,
-      amount: calculateItemAmount(item.quantity, item.unitPrice),
-      itemCode: item.itemCode,
-      sortOrder: item.sortOrder ?? index,
-    }));
-
-    // Calculate totals
-    const totals = calculateInvoiceTotals(
-      itemsWithAmounts,
-      data.taxRate,
-      data.discountType,
-      data.discountValue
+    // STEP 1: Pre-validate stock availability for inventory-linked items
+    const inventoryItems = data.items.filter(
+      (item) => item.inventoryItemId && item.deductFromStock !== false
     );
 
-    // Prepare billing address (use account address if not provided)
-    const billingAddress = data.billingAddress || {
-      name: account.name,
-      ...(account.address as Record<string, unknown> || {}),
-    };
+    if (inventoryItems.length > 0) {
+      const stockValidation = await validateStockForInvoice(
+        authContext.orgId,
+        inventoryItems.map((item) => ({
+          inventoryItemId: item.inventoryItemId,
+          quantity: item.quantity,
+        }))
+      );
 
-    // Create invoice with items
-    const invoice = await prisma.invoice.create({
-      data: {
-        orgId: authContext.orgId,
-        invoiceNumber,
-        status: data.status || "DRAFT",
-        accountId: data.accountId,
-        contactId: data.contactId || account.contacts[0]?.id,
-        opportunityId: data.opportunityId,
-        issueDate: data.issueDate || new Date(),
-        dueDate: data.dueDate,
-        currency: data.currency || "USD",
-        taxRate: data.taxRate,
-        discountType: data.discountType,
-        discountValue: data.discountValue,
-        subtotal: totals.subtotal,
-        taxAmount: totals.taxAmount,
-        discountAmount: totals.discountAmount,
-        total: totals.total,
-        amountPaid: 0,
-        amountDue: totals.total,
-        notes: data.notes,
-        terms: data.terms,
-        footer: data.footer,
-        billingAddress: billingAddress as Prisma.InputJsonValue,
-        customFields: (data.customFields || {}) as Prisma.InputJsonValue,
-        createdById: authContext.userId,
-        createdByType: "USER",
-        items: {
-          create: itemsWithAmounts,
-        },
-      },
-      include: {
-        account: {
-          select: {
-            id: true,
-            name: true,
+      if (!stockValidation.valid) {
+        return NextResponse.json(
+          {
+            error: "Insufficient stock",
+            details: stockValidation.errors,
+          },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Generate invoice number before transaction
+    const invoiceNumber = await generateInvoiceNumber(authContext.orgId);
+
+    // STEP 2: Execute atomic transaction
+    const result = await prisma.$transaction(async (tx) => {
+      // Calculate item amounts and prepare for creation
+      const itemsWithAmounts = data.items.map((item, index) => ({
+        description: item.description,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        amount: calculateItemAmount(item.quantity, item.unitPrice),
+        itemCode: item.itemCode,
+        sortOrder: item.sortOrder ?? index,
+        inventoryItemId: item.inventoryItemId || null,
+        priceAtSale: item.inventoryItemId ? item.unitPrice : null,
+      }));
+
+      // Calculate totals
+      const totals = calculateInvoiceTotals(
+        itemsWithAmounts,
+        data.taxRate,
+        data.discountType,
+        data.discountValue
+      );
+
+      // Prepare billing address
+      const billingAddress = data.billingAddress || {
+        name: account.name,
+        ...(account.address as Record<string, unknown> || {}),
+      };
+
+      // STEP 2a: Create invoice with items
+      const invoice = await tx.invoice.create({
+        data: {
+          orgId: authContext.orgId,
+          invoiceNumber,
+          status: data.status || "DRAFT",
+          accountId: data.accountId,
+          contactId: data.contactId || account.contacts[0]?.id,
+          opportunityId: data.opportunityId,
+          issueDate: data.issueDate || new Date(),
+          dueDate: data.dueDate,
+          currency: data.currency || "USD",
+          taxRate: data.taxRate,
+          discountType: data.discountType,
+          discountValue: data.discountValue,
+          subtotal: totals.subtotal,
+          taxAmount: totals.taxAmount,
+          discountAmount: totals.discountAmount,
+          total: totals.total,
+          amountPaid: 0,
+          amountDue: totals.total,
+          notes: data.notes,
+          terms: data.terms,
+          footer: data.footer,
+          billingAddress: billingAddress as Prisma.InputJsonValue,
+          customFields: (data.customFields || {}) as Prisma.InputJsonValue,
+          createdById: authContext.userId,
+          createdByType: "USER",
+          items: {
+            create: itemsWithAmounts,
           },
         },
-        contact: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
+        include: {
+          account: {
+            select: {
+              id: true,
+              name: true,
+            },
           },
+          contact: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+            },
+          },
+          items: true,
         },
-        items: true,
-      },
+      });
+
+      // STEP 2b & 2c: Deduct stock atomically for inventory-linked items
+      const itemsToDeduct = data.items
+        .filter((item) => item.inventoryItemId && item.deductFromStock !== false)
+        .map((item) => ({
+          inventoryItemId: item.inventoryItemId!,
+          quantity: Math.floor(item.quantity), // Stock levels are integers
+        }));
+
+      if (itemsToDeduct.length > 0) {
+        const deductionResult = await deductStockAtomic(
+          tx,
+          authContext.orgId,
+          itemsToDeduct,
+          invoice.id,
+          authContext.userId,
+          "USER"
+        );
+
+        if (!deductionResult.success) {
+          // This will cause the transaction to roll back
+          throw new Error(deductionResult.error || "Stock deduction failed");
+        }
+      }
+
+      return invoice;
     });
 
-    // Create audit log
+    // STEP 3: Post-transaction actions (outside transaction)
     await createAuditLog({
       orgId: authContext.orgId,
       action: "CREATE",
       module: "INVOICE",
-      recordId: invoice.id,
+      recordId: result.id,
       actorType: "USER",
       actorId: authContext.userId,
-      newState: invoice,
+      newState: result,
+      metadata: {
+        inventoryItemsDeducted: inventoryItems.length,
+      },
     });
 
     revalidateInvoiceCaches();
 
-    return NextResponse.json(invoice, { status: 201 });
+    return NextResponse.json(result, { status: 201 });
   } catch (error) {
     console.error("[Invoices POST] Error:", error);
-    
+
     if (error instanceof PermissionError) {
       return NextResponse.json(
         { error: error.message },
         { status: error.status }
       );
     }
-    
+
     if (error instanceof Error && error.name === "ZodError") {
       return NextResponse.json(
         { error: "Invalid input", details: error },
+        { status: 400 }
+      );
+    }
+
+    // Handle stock-related errors
+    if (error instanceof Error && error.message.includes("Insufficient stock")) {
+      return NextResponse.json(
+        { error: error.message },
         { status: 400 }
       );
     }

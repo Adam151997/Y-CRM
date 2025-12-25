@@ -88,6 +88,7 @@ model Organization {
   activities          Activity[]
   documents           Document[]
   invoices            Invoice[]
+  inventoryItems      InventoryItem[]
   
   // Relations - RBAC
   roles               Role[]
@@ -399,24 +400,30 @@ model InvoiceItem {
   id                  String    @id @default(uuid())
   invoiceId           String
   invoice             Invoice   @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-  
+
   // Item details
   description         String
   quantity            Decimal   @db.Decimal(10, 2) @default(1)
   unitPrice           Decimal   @db.Decimal(15, 2)
   amount              Decimal   @db.Decimal(15, 2) // quantity * unitPrice
-  
-  // Optional: item code or SKU
+
+  // Optional: item code or SKU (for non-inventory items)
   itemCode            String?
-  
+
+  // Inventory Integration (optional - for inventory-linked items)
+  inventoryItemId     String?
+  inventoryItem       InventoryItem? @relation(fields: [inventoryItemId], references: [id])
+  priceAtSale         Decimal?  @db.Decimal(15, 2)  // Snapshot of inventory price at time of sale
+
   // Ordering
   sortOrder           Int       @default(0)
-  
+
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
 
   @@index([invoiceId])
   @@index([invoiceId, sortOrder])
+  @@index([inventoryItemId])
 }
 
 model Payment {
@@ -445,6 +452,88 @@ model Payment {
   @@index([orgId])
   @@index([invoiceId])
   @@index([invoiceId, paymentDate])
+}
+
+// =============================================================================
+// INVENTORY MODULE
+// =============================================================================
+
+model InventoryItem {
+  id              String    @id @default(uuid())
+  orgId           String
+  org             Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  // Core Fields
+  name            String
+  sku             String
+  description     String?   @db.Text
+
+  // Stock Management
+  stockLevel      Int       @default(0)
+  reorderLevel    Int       @default(0)    // Alert threshold for low stock
+  unit            String    @default("pcs") // pcs, kg, liters, hours, etc.
+
+  // Pricing
+  unitPrice       Decimal   @db.Decimal(15, 2)
+  costPrice       Decimal?  @db.Decimal(15, 2)  // For margin calculation
+
+  // Organization
+  category        String?
+  tags            String[]  @default([])
+
+  // Status
+  isActive        Boolean   @default(true)
+
+  // Attribution
+  createdById     String
+  createdByType   String    @default("USER") // USER, AI_AGENT
+
+  // Timestamps
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  invoiceItems    InvoiceItem[]
+  stockMovements  StockMovement[]
+
+  @@unique([orgId, sku])
+  @@index([orgId, isActive])
+  @@index([orgId, category])
+  @@index([orgId, stockLevel])  // For low stock queries
+  @@index([orgId, name])
+}
+
+model StockMovement {
+  id              String    @id @default(uuid())
+  orgId           String
+
+  inventoryItemId String
+  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
+
+  // Movement Details
+  type            String    // SALE, RESTOCK, ADJUSTMENT, RETURN, INITIAL, DAMAGE
+  quantity        Int       // Positive for additions, negative for deductions
+  previousLevel   Int       // Stock level before this movement
+  newLevel        Int       // Stock level after this movement
+
+  // Reference to related entity (if applicable)
+  referenceType   String?   // INVOICE, MANUAL, IMPORT
+  referenceId     String?   // Invoice ID if from sale
+
+  // Details
+  notes           String?   @db.Text
+  reason          String?   // Reason for adjustment (e.g., "Damaged goods", "Inventory count correction")
+
+  // Attribution
+  createdById     String
+  createdByType   String    @default("USER") // USER, AI_AGENT, SYSTEM
+
+  createdAt       DateTime  @default(now())
+
+  @@index([orgId, inventoryItemId])
+  @@index([orgId, createdAt])
+  @@index([orgId, type])
+  @@index([referenceType, referenceId])
 }
 
 // =============================================================================

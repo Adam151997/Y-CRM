@@ -1,7 +1,7 @@
 /**
  * Sales Workspace Tools
  *
- * Tools for managing leads, contacts, accounts, and opportunities
+ * Tools for managing leads, contacts, accounts, opportunities, and inventory
  */
 
 import { createLeadTools } from "./leads";
@@ -20,6 +20,7 @@ export function createSalesTools(orgId: string, userId: string) {
     ...createAccountTools(orgId, userId),
     ...createOpportunityTools(orgId, userId),
     ...createBulkTools(orgId, userId),
+    ...createInventoryTools(orgId, userId),
   };
 }
 
@@ -29,3 +30,4 @@ export { createContactTools } from "./contacts";
 export { createAccountTools } from "./accounts";
 export { createOpportunityTools } from "./opportunities";
 export { createBulkTools } from "./bulk";
+export { createInventoryTools } from "./inventory";
