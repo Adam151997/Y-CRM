@@ -60,12 +60,12 @@ Example: Link contact to their new company
 
         await createAuditLog({
           orgId,
-          action: "LINK",
+          action: "UPDATE",
           module: "CONTACT",
           recordId: contactId,
           actorType: "AI_AGENT",
           actorId: userId,
-          metadata: { linkedTo: accountId, accountName: account.name },
+          metadata: { action: "link", linkedTo: accountId, accountName: account.name },
         });
 
         return {
@@ -111,12 +111,12 @@ const unlinkContactFromAccountTool = (orgId: string, userId: string) =>
 
         await createAuditLog({
           orgId,
-          action: "UNLINK",
+          action: "UPDATE",
           module: "CONTACT",
           recordId: contactId,
           actorType: "AI_AGENT",
           actorId: userId,
-          metadata: { unlinkedFrom: previousAccount },
+          metadata: { action: "unlink", unlinkedFrom: previousAccount },
         });
 
         return {
@@ -285,12 +285,13 @@ Example: Merge two duplicate leads
 
         await createAuditLog({
           orgId,
-          action: "MERGE",
+          action: "UPDATE",
           module: "LEAD",
           recordId: primaryLeadId,
           actorType: "AI_AGENT",
           actorId: userId,
           metadata: {
+            action: "merge",
             mergedFrom: duplicateLeadIds,
             mergedCount: duplicates.length,
           },
@@ -353,12 +354,13 @@ Example: Merge two duplicate contacts
 
         await createAuditLog({
           orgId,
-          action: "MERGE",
+          action: "UPDATE",
           module: "CONTACT",
           recordId: primaryContactId,
           actorType: "AI_AGENT",
           actorId: userId,
           metadata: {
+            action: "merge",
             mergedFrom: duplicateContactIds,
             mergedCount: duplicates.length,
           },
