@@ -168,5 +168,237 @@ export function createDuplicateResult<T extends { id: string }>(
   };
 }
 
+/**
+ * Validate email format
+ */
+export function validateEmail(email: string): { valid: boolean; normalized?: string; error?: string } {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const normalized = email.toLowerCase().trim();
+
+  if (!emailRegex.test(normalized)) {
+    return { valid: false, error: `Invalid email format: "${email}". Expected format: name@domain.com` };
+  }
+
+  return { valid: true, normalized };
+}
+
+/**
+ * Normalize phone number (remove formatting, keep digits and +)
+ */
+export function normalizePhone(phone: string): { valid: boolean; normalized?: string; error?: string } {
+  // Remove all non-digit characters except +
+  const normalized = phone.replace(/[^\d+]/g, "");
+
+  // Must have at least 7 digits
+  const digits = normalized.replace(/\D/g, "");
+  if (digits.length < 7) {
+    return { valid: false, error: `Invalid phone number: "${phone}". Must have at least 7 digits.` };
+  }
+
+  if (digits.length > 15) {
+    return { valid: false, error: `Invalid phone number: "${phone}". Too many digits.` };
+  }
+
+  return { valid: true, normalized };
+}
+
+/**
+ * Validate URL format
+ */
+export function validateUrl(url: string): { valid: boolean; normalized?: string; error?: string } {
+  try {
+    const parsed = new URL(url);
+    if (!["http:", "https:"].includes(parsed.protocol)) {
+      return { valid: false, error: `Invalid URL: "${url}". Must use http or https.` };
+    }
+    return { valid: true, normalized: parsed.toString() };
+  } catch {
+    return { valid: false, error: `Invalid URL format: "${url}". Expected format: https://example.com` };
+  }
+}
+
+/**
+ * Batch fetch entities by IDs to avoid N+1 queries
+ */
+export async function batchFetchByIds<T>(
+  model: { findMany: (args: { where: { id: { in: string[] } } }) => Promise<T[]> },
+  ids: string[]
+): Promise<Map<string, T>> {
+  if (ids.length === 0) return new Map();
+
+  const uniqueIds = [...new Set(ids)];
+  const results = await model.findMany({
+    where: { id: { in: uniqueIds } },
+  });
+
+  return new Map((results as Array<T & { id: string }>).map(r => [r.id, r]));
+}
+
+/**
+ * Process bulk operations with transaction support
+ */
+export async function processBulkOperation<T, R>(
+  items: T[],
+  processor: (item: T, index: number) => Promise<{ success: boolean; id?: string; error?: string }>,
+  options: { maxBatchSize?: number; stopOnError?: boolean } = {}
+): Promise<{
+  totalRequested: number;
+  successCount: number;
+  failureCount: number;
+  results: Array<{ index: number; success: boolean; id?: string; error?: string }>;
+}> {
+  const { maxBatchSize = 50, stopOnError = false } = options;
+  const results: Array<{ index: number; success: boolean; id?: string; error?: string }> = [];
+  let successCount = 0;
+  let failureCount = 0;
+
+  // Limit batch size
+  const processItems = items.slice(0, maxBatchSize);
+
+  for (let i = 0; i < processItems.length; i++) {
+    try {
+      const result = await processor(processItems[i], i);
+      results.push({ index: i, ...result });
+
+      if (result.success) {
+        successCount++;
+      } else {
+        failureCount++;
+        if (stopOnError) break;
+      }
+    } catch (error) {
+      failureCount++;
+      results.push({
+        index: i,
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+      if (stopOnError) break;
+    }
+  }
+
+  return {
+    totalRequested: items.length,
+    successCount,
+    failureCount,
+    results,
+  };
+}
+
+/**
+ * Find similar records for deduplication suggestions
+ */
+export async function findSimilarRecords(
+  orgId: string,
+  entityType: "lead" | "contact" | "account",
+  searchFields: { name?: string; email?: string; company?: string }
+): Promise<Array<{ id: string; name: string; email?: string; similarity: "exact" | "partial" }>> {
+  const results: Array<{ id: string; name: string; email?: string; similarity: "exact" | "partial" }> = [];
+
+  if (entityType === "lead") {
+    // Search by email first (exact match)
+    if (searchFields.email) {
+      const emailMatch = await prisma.lead.findFirst({
+        where: { orgId, email: searchFields.email.toLowerCase() },
+        select: { id: true, firstName: true, lastName: true, email: true },
+      });
+      if (emailMatch) {
+        results.push({
+          id: emailMatch.id,
+          name: `${emailMatch.firstName} ${emailMatch.lastName}`,
+          email: emailMatch.email || undefined,
+          similarity: "exact",
+        });
+      }
+    }
+
+    // Search by name (partial match)
+    if (searchFields.name && results.length === 0) {
+      const nameMatches = await prisma.lead.findMany({
+        where: {
+          orgId,
+          OR: [
+            { firstName: { contains: searchFields.name, mode: "insensitive" } },
+            { lastName: { contains: searchFields.name, mode: "insensitive" } },
+          ],
+        },
+        select: { id: true, firstName: true, lastName: true, email: true },
+        take: 3,
+      });
+
+      nameMatches.forEach(m => {
+        results.push({
+          id: m.id,
+          name: `${m.firstName} ${m.lastName}`,
+          email: m.email || undefined,
+          similarity: "partial",
+        });
+      });
+    }
+  } else if (entityType === "contact") {
+    if (searchFields.email) {
+      const emailMatch = await prisma.contact.findFirst({
+        where: { orgId, email: searchFields.email.toLowerCase() },
+        select: { id: true, firstName: true, lastName: true, email: true },
+      });
+      if (emailMatch) {
+        results.push({
+          id: emailMatch.id,
+          name: `${emailMatch.firstName} ${emailMatch.lastName}`,
+          email: emailMatch.email || undefined,
+          similarity: "exact",
+        });
+      }
+    }
+  } else if (entityType === "account") {
+    if (searchFields.company) {
+      const matches = await prisma.account.findMany({
+        where: {
+          orgId,
+          name: { contains: searchFields.company, mode: "insensitive" },
+        },
+        select: { id: true, name: true },
+        take: 3,
+      });
+
+      matches.forEach(m => {
+        results.push({
+          id: m.id,
+          name: m.name,
+          similarity: m.name.toLowerCase() === searchFields.company?.toLowerCase() ? "exact" : "partial",
+        });
+      });
+    }
+  }
+
+  return results;
+}
+
+/**
+ * Generate CSV content from records
+ */
+export function generateCSV(
+  records: Record<string, unknown>[],
+  columns: { key: string; header: string }[]
+): string {
+  if (records.length === 0) return "";
+
+  // Header row
+  const header = columns.map(c => `"${c.header}"`).join(",");
+
+  // Data rows
+  const rows = records.map(record => {
+    return columns.map(col => {
+      const value = record[col.key];
+      if (value === null || value === undefined) return '""';
+      if (typeof value === "string") return `"${value.replace(/"/g, '""')}"`;
+      if (value instanceof Date) return `"${value.toISOString()}"`;
+      return `"${String(value)}"`;
+    }).join(",");
+  });
+
+  return [header, ...rows].join("\n");
+}
+
 // Re-export prisma for convenience
 export { prisma };

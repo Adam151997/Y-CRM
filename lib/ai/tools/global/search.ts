@@ -43,51 +43,78 @@ const semanticSearchTool = (orgId: string) =>
           };
         }
 
-        const enrichedResults = await Promise.all(
-          results.map(async (r) => {
-            let details = "";
-            switch (r.entityType) {
-              case "LEAD": {
-                const lead = await prisma.lead.findUnique({
-                  where: { id: r.entityId },
-                  select: { firstName: true, lastName: true, company: true, status: true },
-                });
-                if (lead) details = `${lead.firstName} ${lead.lastName}${lead.company ? ` at ${lead.company}` : ""} (${lead.status})`;
-                break;
-              }
-              case "CONTACT": {
-                const contact = await prisma.contact.findUnique({
-                  where: { id: r.entityId },
-                  select: { firstName: true, lastName: true, email: true },
-                });
-                if (contact) details = `${contact.firstName} ${contact.lastName}${contact.email ? ` <${contact.email}>` : ""}`;
-                break;
-              }
-              case "ACCOUNT": {
-                const account = await prisma.account.findUnique({
-                  where: { id: r.entityId },
-                  select: { name: true, industry: true },
-                });
-                if (account) details = `${account.name}${account.industry ? ` (${account.industry})` : ""}`;
-                break;
-              }
-              case "NOTE": {
-                const note = await prisma.note.findUnique({
-                  where: { id: r.entityId },
-                  select: { content: true },
-                });
-                if (note) details = note.content.substring(0, 100) + (note.content.length > 100 ? "..." : "");
-                break;
-              }
+        // Batch fetch entities by type to avoid N+1 queries
+        const leadIds = results.filter(r => r.entityType === "LEAD").map(r => r.entityId);
+        const contactIds = results.filter(r => r.entityType === "CONTACT").map(r => r.entityId);
+        const accountIds = results.filter(r => r.entityType === "ACCOUNT").map(r => r.entityId);
+        const noteIds = results.filter(r => r.entityType === "NOTE").map(r => r.entityId);
+
+        // Fetch all entities in parallel batches
+        const [leads, contacts, accounts, notes] = await Promise.all([
+          leadIds.length > 0
+            ? prisma.lead.findMany({
+                where: { id: { in: leadIds } },
+                select: { id: true, firstName: true, lastName: true, company: true, status: true },
+              })
+            : [],
+          contactIds.length > 0
+            ? prisma.contact.findMany({
+                where: { id: { in: contactIds } },
+                select: { id: true, firstName: true, lastName: true, email: true },
+              })
+            : [],
+          accountIds.length > 0
+            ? prisma.account.findMany({
+                where: { id: { in: accountIds } },
+                select: { id: true, name: true, industry: true },
+              })
+            : [],
+          noteIds.length > 0
+            ? prisma.note.findMany({
+                where: { id: { in: noteIds } },
+                select: { id: true, content: true },
+              })
+            : [],
+        ]);
+
+        // Create lookup maps for O(1) access
+        const leadMap = new Map(leads.map(l => [l.id, l]));
+        const contactMap = new Map(contacts.map(c => [c.id, c]));
+        const accountMap = new Map(accounts.map(a => [a.id, a]));
+        const noteMap = new Map(notes.map(n => [n.id, n]));
+
+        // Enrich results using maps (no additional queries)
+        const enrichedResults = results.map((r) => {
+          let details = "";
+          switch (r.entityType) {
+            case "LEAD": {
+              const lead = leadMap.get(r.entityId);
+              if (lead) details = `${lead.firstName} ${lead.lastName}${lead.company ? ` at ${lead.company}` : ""} (${lead.status})`;
+              break;
             }
-            return {
-              type: r.entityType,
-              id: r.entityId,
-              similarity: Math.round(r.similarity * 100) + "%",
-              details,
-            };
-          })
-        );
+            case "CONTACT": {
+              const contact = contactMap.get(r.entityId);
+              if (contact) details = `${contact.firstName} ${contact.lastName}${contact.email ? ` <${contact.email}>` : ""}`;
+              break;
+            }
+            case "ACCOUNT": {
+              const account = accountMap.get(r.entityId);
+              if (account) details = `${account.name}${account.industry ? ` (${account.industry})` : ""}`;
+              break;
+            }
+            case "NOTE": {
+              const note = noteMap.get(r.entityId);
+              if (note) details = note.content.substring(0, 100) + (note.content.length > 100 ? "..." : "");
+              break;
+            }
+          }
+          return {
+            type: r.entityType,
+            id: r.entityId,
+            similarity: Math.round(r.similarity * 100) + "%",
+            details,
+          };
+        });
 
         return {
           success: true,
