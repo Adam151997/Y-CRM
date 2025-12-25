@@ -226,6 +226,7 @@ Example: "Qualify lead and assign to John for follow-up tomorrow"`,
               leadId,
               assignedToId: assignToId,
               createdById: userId,
+              createdByType: "AI_AGENT",
             },
           });
 
@@ -361,6 +362,7 @@ Example: "Close opportunity as won for Acme Corp"`,
               accountId: opportunity.accountId,
               assignedToId: opportunity.assignedToId,
               createdById: userId,
+              createdByType: "AI_AGENT",
             },
           });
 
@@ -471,6 +473,7 @@ Example: "Escalate ticket for Acme Corp - they're very unhappy"`,
               accountId: ticket.accountId,
               assignedToId: assignToId || ticket.assignedToId,
               createdById: userId,
+              createdByType: "AI_AGENT",
             },
           });
 
@@ -599,6 +602,7 @@ Example: "Onboard Acme Corp as new customer with $50k ARR"`,
                 accountId,
                 assignedToId: csManagerId || account.assignedToId,
                 createdById: userId,
+                createdByType: "AI_AGENT",
               },
             });
             tasks.push(task);
