@@ -89,7 +89,12 @@ model Organization {
   documents           Document[]
   invoices            Invoice[]
   inventoryItems      InventoryItem[]
-  
+
+  // Relations - HR
+  employees           Employee[]
+  leaves              Leave[]
+  payrolls            Payroll[]
+
   // Relations - RBAC
   roles               Role[]
   userRoles           UserRole[]
@@ -780,10 +785,10 @@ model Note {
   org             Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
   content         String   @db.Text
-  
+
   // Attachments as JSON array: [{ name, url, size, type }]
   attachments     Json     @default("[]")
-  
+
   // Polymorphic relation (only one should be set)
   leadId          String?
   lead            Lead?    @relation(fields: [leadId], references: [id], onDelete: Cascade)
@@ -793,6 +798,8 @@ model Note {
   account         Account? @relation(fields: [accountId], references: [id], onDelete: Cascade)
   opportunityId   String?
   opportunity     Opportunity? @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  employeeId      String?
+  employee        Employee? @relation("EmployeeNotes", fields: [employeeId], references: [id], onDelete: Cascade)
 
   // Attribution
   createdById     String   // Clerk user ID or "AI_AGENT"
@@ -806,6 +813,7 @@ model Note {
   @@index([contactId])
   @@index([accountId])
   @@index([opportunityId])
+  @@index([employeeId])
 }
 
 model Task {
@@ -818,12 +826,12 @@ model Task {
   dueDate         DateTime?
   priority        String    @default("MEDIUM") // LOW, MEDIUM, HIGH, URGENT
   status          String    @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED, CANCELLED
-  
+
   // Task type
   taskType        String?   // CALL, EMAIL, MEETING, FOLLOW_UP, ONBOARDING, RENEWAL, OTHER
-  
+
   // Workspace context
-  workspace       String    @default("sales") // sales, cs, marketing
+  workspace       String    @default("sales") // sales, cs, marketing, hr
 
   // Polymorphic relation
   leadId          String?
@@ -834,6 +842,8 @@ model Task {
   account         Account?  @relation(fields: [accountId], references: [id], onDelete: Cascade)
   opportunityId   String?
   opportunity     Opportunity? @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  employeeId      String?
+  employee        Employee? @relation("EmployeeTasks", fields: [employeeId], references: [id], onDelete: Cascade)
 
   assignedToId    String?
   createdById     String
@@ -850,6 +860,7 @@ model Task {
   @@index([leadId])
   @@index([contactId])
   @@index([accountId])
+  @@index([employeeId])
 }
 
 model Activity {
@@ -1374,6 +1385,174 @@ model MCPIntegration {
   @@index([orgId])
   @@index([orgId, isEnabled])
   @@index([orgId, status])
+}
+
+// =============================================================================
+// HUMAN RESOURCES MODULES
+// =============================================================================
+
+model Employee {
+  id              String    @id @default(uuid())
+  orgId           String
+  org             Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  // Personal Information
+  firstName       String
+  lastName        String
+  email           String
+  phone           String?
+  dateOfBirth     DateTime?
+
+  // Address
+  address         Json?     // { street, city, state, zip, country }
+
+  // Employment Details
+  employeeId      String    // Employee ID (e.g., EMP-001)
+  department      String?
+  position        String?
+  employmentType  String    @default("FULL_TIME") // FULL_TIME, PART_TIME, CONTRACT, INTERN
+  status          String    @default("ACTIVE") // ACTIVE, ON_LEAVE, TERMINATED, RESIGNED
+
+  // Dates
+  joinDate        DateTime
+  terminationDate DateTime?
+
+  // Compensation
+  salary          Decimal?  @db.Decimal(15, 2)
+  salaryType      String    @default("MONTHLY") // HOURLY, WEEKLY, BIWEEKLY, MONTHLY, ANNUAL
+  currency        String    @default("USD")
+
+  // Documents & Custom Fields
+  customFields    Json      @default("{}")
+  documents       Json      @default("[]") // [{ name, url, type, uploadedAt }]
+
+  // Hierarchy & Assignment
+  managerId       String?   // Reference to another employee (manager)
+  assignedToId    String?   // HR personnel responsible for this employee
+
+  // Attribution
+  createdById     String
+  createdByType   String    @default("USER") // USER, AI_AGENT
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  leaves          Leave[]
+  payrolls        Payroll[]
+  tasks           Task[]    @relation("EmployeeTasks")
+  notes           Note[]    @relation("EmployeeNotes")
+
+  @@unique([orgId, employeeId])
+  @@unique([orgId, email])
+  @@index([orgId, status])
+  @@index([orgId, department])
+  @@index([orgId, assignedToId])
+  @@index([orgId, createdAt])
+}
+
+model Leave {
+  id              String    @id @default(uuid())
+  orgId           String
+  org             Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  // Employee Reference
+  employeeId      String
+  employee        Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  // Leave Details
+  type            String    // ANNUAL, SICK, UNPAID, MATERNITY, PATERNITY, EMERGENCY, BEREAVEMENT, OTHER
+  status          String    @default("PENDING") // PENDING, APPROVED, REJECTED, CANCELLED
+
+  // Dates
+  startDate       DateTime
+  endDate         DateTime
+  days            Decimal   @db.Decimal(5, 2) // Total days (can be half days)
+
+  // Reason & Notes
+  reason          String?   @db.Text
+
+  // Approval Workflow
+  approvedById    String?   // User who approved/rejected
+  approvedAt      DateTime?
+  rejectionReason String?
+
+  // Custom Fields
+  customFields    Json      @default("{}")
+
+  // Attribution
+  createdById     String
+  createdByType   String    @default("USER") // USER, AI_AGENT
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([orgId, status])
+  @@index([orgId, employeeId])
+  @@index([orgId, startDate])
+  @@index([orgId, type])
+  @@index([employeeId, status])
+}
+
+model Payroll {
+  id              String    @id @default(uuid())
+  orgId           String
+  org             Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  // Employee Reference
+  employeeId      String
+  employee        Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  // Pay Period
+  payPeriod       String    // e.g., "2024-01", "2024-W01", etc.
+  startDate       DateTime
+  endDate         DateTime
+
+  // Compensation Breakdown
+  baseSalary      Decimal   @db.Decimal(15, 2)
+  overtime        Decimal   @db.Decimal(15, 2) @default(0)
+  bonus           Decimal   @db.Decimal(15, 2) @default(0)
+  commission      Decimal   @db.Decimal(15, 2) @default(0)
+  allowances      Decimal   @db.Decimal(15, 2) @default(0) // Housing, transport, etc.
+  grossPay        Decimal   @db.Decimal(15, 2)
+
+  // Deductions
+  taxDeduction    Decimal   @db.Decimal(15, 2) @default(0)
+  insuranceDeduction Decimal @db.Decimal(15, 2) @default(0)
+  retirementDeduction Decimal @db.Decimal(15, 2) @default(0)
+  otherDeductions Decimal   @db.Decimal(15, 2) @default(0)
+  totalDeductions Decimal   @db.Decimal(15, 2) @default(0)
+
+  // Net Pay
+  netPay          Decimal   @db.Decimal(15, 2)
+  currency        String    @default("USD")
+
+  // Status & Payment
+  status          String    @default("DRAFT") // DRAFT, PENDING, APPROVED, PROCESSED, PAID
+  paymentDate     DateTime?
+  paymentMethod   String?   // BANK_TRANSFER, CHECK, CASH
+
+  // Bank Details (snapshot for this payroll)
+  bankDetails     Json?     // { bankName, accountNumber, routingNumber }
+
+  // Notes
+  notes           String?   @db.Text
+  customFields    Json      @default("{}")
+
+  // Attribution
+  createdById     String
+  createdByType   String    @default("USER") // USER, AI_AGENT
+  approvedById    String?
+  approvedAt      DateTime?
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([orgId, employeeId, payPeriod])
+  @@index([orgId, status])
+  @@index([orgId, payPeriod])
+  @@index([orgId, paymentDate])
+  @@index([employeeId, payPeriod])
 }
 
 // =============================================================================

@@ -19,11 +19,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { 
-  ArrowLeft, 
-  Shield, 
-  Loader2, 
-  Save, 
+import {
+  ArrowLeft,
+  Shield,
+  Loader2,
+  Save,
   Lock,
   Users,
   Building,
@@ -41,6 +41,8 @@ import {
   Eye,
   EyeOff,
   Sparkles,
+  Calendar,
+  DollarSign,
 } from "lucide-react";
 
 // Built-in modules with icons
@@ -64,6 +66,10 @@ const BUILT_IN_MODULES = [
   { slug: "forms", name: "Forms", icon: FileText, hasOwnership: false },
   { slug: "ai_assistant", name: "AI Assistant", icon: Sparkles, hasOwnership: false },
   { slug: "settings", name: "Settings", icon: Shield, hasOwnership: false },
+  // HR modules
+  { slug: "employees", name: "Employees", icon: Users, hasOwnership: true },
+  { slug: "leaves", name: "Leaves", icon: Calendar, hasOwnership: true },
+  { slug: "payroll", name: "Payroll", icon: DollarSign, hasOwnership: false },
 ];
 
 const ACTIONS = ["view", "create", "edit", "delete"] as const;

@@ -248,4 +248,9 @@ export const DEFAULT_LAYOUTS: Record<WorkspaceType, { i: string; x: number; y: n
     { i: "tasks-due-today", x: 6, y: 2, w: 3, h: 3 },
     { i: "recent-activity", x: 0, y: 5, w: 6, h: 4 },
   ],
+  hr: [
+    { i: "quick-stats", x: 0, y: 0, w: 6, h: 2 },
+    { i: "tasks-due-today", x: 6, y: 0, w: 6, h: 3 },
+    { i: "recent-activity", x: 0, y: 2, w: 6, h: 4 },
+  ],
 };

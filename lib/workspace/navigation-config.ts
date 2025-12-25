@@ -18,6 +18,8 @@ import {
   RefreshCw,
   Package,
   LucideIcon,
+  Calendar,
+  DollarSign,
 } from "lucide-react";
 import { WorkspaceType } from "./workspace-context";
 
@@ -82,11 +84,26 @@ const marketingNavigation: NavSection[] = [
   },
 ];
 
+// Human Resources workspace navigation - flat list without section headers
+const hrNavigation: NavSection[] = [
+  {
+    items: [
+      { name: "Dashboard", href: "/hr", icon: LayoutDashboard },
+      { name: "AI Assistant", href: "/hr/assistant", icon: Sparkles, highlight: true },
+      { name: "Employees", href: "/hr/employees", icon: Users, requiresPermission: "employees" },
+      { name: "Leaves", href: "/hr/leaves", icon: Calendar, requiresPermission: "leaves" },
+      { name: "Payroll", href: "/hr/payroll", icon: DollarSign, requiresPermission: "payroll" },
+      { name: "Tasks", href: "/hr/tasks", icon: CheckSquare, requiresPermission: "tasks" },
+    ],
+  },
+];
+
 // Export navigation by workspace
 export const WORKSPACE_NAVIGATION: Record<WorkspaceType, NavSection[]> = {
   sales: salesNavigation,
   cs: csNavigation,
   marketing: marketingNavigation,
+  hr: hrNavigation,
 };
 
 // Get navigation for a workspace
