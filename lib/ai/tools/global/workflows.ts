@@ -239,6 +239,7 @@ Example: "Qualify lead and assign to John for follow-up tomorrow"`,
                 content: `Qualification Notes: ${notes}`,
                 leadId,
                 createdById: userId,
+                createdByType: "AI_AGENT",
               },
             });
           }
@@ -374,6 +375,7 @@ Example: "Close opportunity as won for Acme Corp"`,
                 content: `Deal Won: ${notes}`,
                 accountId: opportunity.accountId,
                 createdById: userId,
+                createdByType: "AI_AGENT",
               },
             });
           }
