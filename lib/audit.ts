@@ -12,7 +12,10 @@ export type AuditAction =
   | "LOGIN"
   | "LOGOUT"
   | "IMPORT"
-  | "EXPORT";
+  | "EXPORT"
+  // HR actions
+  | "LEAVE_APPROVED"
+  | "LEAVE_REJECTED";
 
 export type AuditModule =
   | "LEAD"
@@ -40,6 +43,10 @@ export type AuditModule =
   | "SEGMENT"
   | "FORM"
   | "FORM_SUBMISSION"
+  // Human Resources
+  | "EMPLOYEE"
+  | "LEAVE"
+  | "PAYROLL"
   // System
   | "SYSTEM"
   | "AUTH"

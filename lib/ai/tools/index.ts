@@ -11,6 +11,7 @@ import type { ToolCategory } from "./types";
 import { createSalesTools } from "./sales";
 import { createCSTools } from "./cs";
 import { createMarketingTools } from "./marketing";
+import { createHRTools } from "./hr";
 import { createGlobalTools } from "./global";
 import { createCustomModuleTools } from "./custom-modules";
 import { createIntegrationTools } from "./integrations";
@@ -22,6 +23,7 @@ const toolModules: Record<ToolCategory, (orgId: string, userId: string) => Recor
   sales: createSalesTools,
   cs: createCSTools,
   marketing: createMarketingTools,
+  hr: createHRTools,
   global: createGlobalTools,
   "custom-modules": createCustomModuleTools,
   integrations: createIntegrationTools,
@@ -52,7 +54,7 @@ export function loadTools(
  */
 export function getAllTools(orgId: string, userId: string): Record<string, unknown> {
   return loadTools(
-    ["sales", "cs", "marketing", "global", "custom-modules", "integrations"],
+    ["sales", "cs", "marketing", "hr", "global", "custom-modules", "integrations"],
     orgId,
     userId
   );
@@ -62,7 +64,7 @@ export function getAllTools(orgId: string, userId: string): Record<string, unkno
  * Get tools for a specific workspace
  */
 export function getToolsForWorkspace(
-  workspace: "sales" | "cs" | "marketing" | undefined,
+  workspace: "sales" | "cs" | "marketing" | "hr" | undefined,
   orgId: string,
   userId: string
 ): Record<string, unknown> {
@@ -78,9 +80,12 @@ export function getToolsForWorkspace(
     case "marketing":
       categories.push("marketing");
       break;
+    case "hr":
+      categories.push("hr");
+      break;
     default:
       // No specific workspace, include all main categories
-      categories.push("sales", "cs", "marketing");
+      categories.push("sales", "cs", "marketing", "hr");
   }
 
   return loadTools(categories, orgId, userId);
@@ -102,6 +107,9 @@ export type PrimaryAction =
   | "form"
   | "renewal"
   | "inventory"
+  | "employee"
+  | "leave"
+  | "payroll"
   | "search"
   | "stats"
   | "email"
@@ -124,6 +132,7 @@ export function getToolsForIntent(
   const salesTools = createSalesTools(orgId, userId);
   const csTools = createCSTools(orgId, userId);
   const marketingTools = createMarketingTools(orgId, userId);
+  const hrTools = createHRTools(orgId, userId);
   const globalTools = createGlobalTools(orgId, userId);
   const customModuleTools = createCustomModuleTools(orgId, userId);
   const integrationTools = createIntegrationTools(orgId, userId);
@@ -215,6 +224,31 @@ export function getToolsForIntent(
       filtered.getInventoryStats = salesTools.getInventoryStats;
       break;
 
+    case "employee":
+      filtered.createEmployee = hrTools.createEmployee;
+      filtered.searchEmployees = hrTools.searchEmployees;
+      filtered.updateEmployee = hrTools.updateEmployee;
+      filtered.getEmployee = hrTools.getEmployee;
+      break;
+
+    case "leave":
+      filtered.createLeave = hrTools.createLeave;
+      filtered.searchLeaves = hrTools.searchLeaves;
+      filtered.approveLeave = hrTools.approveLeave;
+      filtered.getLeaveBalance = hrTools.getLeaveBalance;
+      filtered.getPendingLeaves = hrTools.getPendingLeaves;
+      filtered.searchEmployees = hrTools.searchEmployees;
+      break;
+
+    case "payroll":
+      filtered.createPayroll = hrTools.createPayroll;
+      filtered.searchPayrolls = hrTools.searchPayrolls;
+      filtered.updatePayrollStatus = hrTools.updatePayrollStatus;
+      filtered.getPayrollSummary = hrTools.getPayrollSummary;
+      filtered.generatePayrollRun = hrTools.generatePayrollRun;
+      filtered.searchEmployees = hrTools.searchEmployees;
+      break;
+
     case "search":
       filtered.searchLeads = salesTools.searchLeads;
       filtered.searchContacts = salesTools.searchContacts;
@@ -224,6 +258,9 @@ export function getToolsForIntent(
       filtered.searchTickets = csTools.searchTickets;
       filtered.searchRenewals = csTools.searchRenewals;
       filtered.searchInventory = salesTools.searchInventory;
+      filtered.searchEmployees = hrTools.searchEmployees;
+      filtered.searchLeaves = hrTools.searchLeaves;
+      filtered.searchPayrolls = hrTools.searchPayrolls;
       filtered.semanticSearch = globalTools.semanticSearch;
       break;
 

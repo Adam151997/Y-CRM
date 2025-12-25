@@ -49,6 +49,7 @@ export type ToolCategory =
   | "sales"
   | "cs"
   | "marketing"
+  | "hr"
   | "global"
   | "custom-modules"
   | "integrations";

@@ -43,6 +43,10 @@ export const BUILT_IN_MODULES = [
   "reports",
   "settings",
   "ai_assistant",
+  // HR modules
+  "employees",
+  "leaves",
+  "payroll",
 ] as const;
 
 // Modules that require admin-level access by default

@@ -4,7 +4,7 @@ import { createContext, useContext, ReactNode, useEffect, useState } from "react
 import { usePathname } from "next/navigation";
 
 // Workspace types
-export type WorkspaceType = "sales" | "cs" | "marketing";
+export type WorkspaceType = "sales" | "cs" | "marketing" | "hr";
 
 export interface WorkspaceConfig {
   key: WorkspaceType;
@@ -45,6 +45,15 @@ export const WORKSPACES: Record<WorkspaceType, WorkspaceConfig> = {
     textColor: "text-orange-600",
     description: "Campaigns, segments, and lead generation",
   },
+  hr: {
+    key: "hr",
+    name: "Human Resources",
+    shortName: "HR",
+    color: "#10b981",
+    bgColor: "bg-emerald-500",
+    textColor: "text-emerald-600",
+    description: "Employee management, leaves, and payroll",
+  },
 };
 
 // Global routes that should preserve current workspace
@@ -74,6 +83,7 @@ export function detectWorkspaceFromPath(pathname: string): WorkspaceType | null 
   if (pathname.startsWith("/cs")) return "cs";
   if (pathname.startsWith("/marketing")) return "marketing";
   if (pathname.startsWith("/sales")) return "sales";
+  if (pathname.startsWith("/hr")) return "hr";
   return null;
 }
 
@@ -82,7 +92,7 @@ function getStoredWorkspace(): WorkspaceType | null {
   if (typeof window === "undefined") return null;
   try {
     const stored = localStorage.getItem(WORKSPACE_STORAGE_KEY);
-    if (stored && (stored === "sales" || stored === "cs" || stored === "marketing")) {
+    if (stored && (stored === "sales" || stored === "cs" || stored === "marketing" || stored === "hr")) {
       return stored as WorkspaceType;
     }
   } catch {
