@@ -72,7 +72,7 @@ const listCustomModulesTool = (orgId: string) =>
   tool({
     description: `List all custom modules configured for this organization.
 
-Returns module names, API names, and field counts.`,
+Returns module names, slugs, and field counts.`,
     parameters: z.object({
       includeFields: z.boolean().optional().describe("Include field definitions (default: false)"),
     }),
@@ -86,10 +86,10 @@ Returns module names, API names, and field counts.`,
             fields: includeFields ? {
               select: {
                 id: true,
-                name: true,
-                apiName: true,
+                fieldName: true,
+                fieldKey: true,
                 fieldType: true,
-                isRequired: true,
+                required: true,
               },
             } : false,
             _count: {
@@ -104,7 +104,7 @@ Returns module names, API names, and field counts.`,
           modules: modules.map(m => ({
             id: m.id,
             name: m.name,
-            apiName: m.apiName,
+            slug: m.slug,
             description: m.description,
             fieldCount: m._count.fields,
             recordCount: m._count.records,
