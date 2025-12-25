@@ -207,7 +207,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     }
     if (data.paymentDate !== undefined) updateData.paymentDate = data.paymentDate ? new Date(data.paymentDate) : null;
     if (data.paymentMethod !== undefined) updateData.paymentMethod = data.paymentMethod;
-    if (data.bankDetails !== undefined) updateData.bankDetails = data.bankDetails as Prisma.InputJsonValue;
+    if (data.bankDetails !== undefined) updateData.bankDetails = data.bankDetails ? (data.bankDetails as Prisma.InputJsonValue) : Prisma.JsonNull;
     if (data.notes !== undefined) updateData.notes = data.notes;
 
     // Handle customFields merge

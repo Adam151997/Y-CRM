@@ -233,7 +233,7 @@ export async function POST(request: NextRequest) {
         currency: data.currency,
         status: "DRAFT",
         paymentMethod: data.paymentMethod,
-        bankDetails: data.bankDetails ? (data.bankDetails as Prisma.InputJsonValue) : null,
+        bankDetails: data.bankDetails ? (data.bankDetails as Prisma.InputJsonValue) : Prisma.JsonNull,
         notes: data.notes,
         customFields: data.customFields ? (data.customFields as Prisma.InputJsonValue) : {},
         createdById: auth.userId,

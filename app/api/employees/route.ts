@@ -230,7 +230,7 @@ export async function POST(request: NextRequest) {
         email: data.email,
         phone: data.phone,
         dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : null,
-        address: data.address ? (data.address as Prisma.InputJsonValue) : null,
+        address: data.address ? (data.address as Prisma.InputJsonValue) : Prisma.JsonNull,
         employeeId: data.employeeId,
         department: data.department,
         position: data.position,

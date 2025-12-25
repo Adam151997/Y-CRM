@@ -224,7 +224,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     if (data.email !== undefined) updateData.email = data.email;
     if (data.phone !== undefined) updateData.phone = data.phone;
     if (data.dateOfBirth !== undefined) updateData.dateOfBirth = data.dateOfBirth ? new Date(data.dateOfBirth) : null;
-    if (data.address !== undefined) updateData.address = data.address as Prisma.InputJsonValue;
+    if (data.address !== undefined) updateData.address = data.address ? (data.address as Prisma.InputJsonValue) : Prisma.JsonNull;
     if (data.employeeId !== undefined) updateData.employeeId = data.employeeId;
     if (data.department !== undefined) updateData.department = data.department;
     if (data.position !== undefined) updateData.position = data.position;
