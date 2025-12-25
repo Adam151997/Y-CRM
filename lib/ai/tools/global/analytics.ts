@@ -167,8 +167,8 @@ Examples:
           const upcomingRenewals = await prisma.renewal.findMany({
             where: {
               orgId,
-              status: { in: ["PENDING", "IN_PROGRESS"] },
-              renewalDate: { lte: thirtyDaysFromNow, gte: now },
+              status: { in: ["UPCOMING", "IN_PROGRESS"] },
+              endDate: { lte: thirtyDaysFromNow, gte: now },
             },
             include: {
               account: { select: { id: true, name: true } },
@@ -177,7 +177,7 @@ Examples:
           });
 
           upcomingRenewals.forEach(renewal => {
-            const daysUntil = Math.ceil((renewal.renewalDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+            const daysUntil = Math.ceil((renewal.endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
             suggestions.push({
               type: "upcoming_renewal",
               priority: daysUntil <= 7 ? "high" : "medium",
