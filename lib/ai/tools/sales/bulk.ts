@@ -177,7 +177,7 @@ Example: Create contacts for an account:
 
         try {
           // Pre-resolve all account names to IDs
-          const accountNames = [...new Set(contacts.map(c => c.accountName).filter(Boolean))] as string[];
+          const accountNames = Array.from(new Set(contacts.map(c => c.accountName).filter(Boolean))) as string[];
           const accountMap = new Map<string, string>();
 
           if (accountNames.length > 0) {

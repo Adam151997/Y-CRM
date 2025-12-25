@@ -226,7 +226,7 @@ export async function batchFetchByIds<T>(
 ): Promise<Map<string, T>> {
   if (ids.length === 0) return new Map();
 
-  const uniqueIds = [...new Set(ids)];
+  const uniqueIds = Array.from(new Set(ids));
   const results = await model.findMany({
     where: { id: { in: uniqueIds } },
   });
