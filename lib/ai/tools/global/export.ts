@@ -32,7 +32,7 @@ Example: Export all qualified leads
         .describe("Filter by source"),
       columns: z.array(z.enum([
         "firstName", "lastName", "email", "phone", "company", "title",
-        "status", "source", "createdAt", "assignedTo"
+        "status", "source", "createdAt"
       ])).optional().describe("Columns to include (default: all)"),
       limit: z.number().min(1).max(1000).default(100).describe("Maximum records (1-1000)"),
     }),
@@ -47,7 +47,6 @@ Example: Export all qualified leads
           where,
           take: limit,
           orderBy: { createdAt: "desc" },
-          include: { assignedTo: { select: { name: true } } },
         });
 
         const allColumns = [
@@ -60,17 +59,13 @@ Example: Export all qualified leads
           { key: "status", header: "Status" },
           { key: "source", header: "Source" },
           { key: "createdAt", header: "Created At" },
-          { key: "assignedToName", header: "Assigned To" },
         ];
 
         const selectedColumns = columns
-          ? allColumns.filter(c => columns.includes(c.key as typeof columns[number]) || c.key === "assignedToName" && columns.includes("assignedTo"))
+          ? allColumns.filter(c => columns.includes(c.key as typeof columns[number]))
           : allColumns;
 
-        const records = leads.map(l => ({
-          ...l,
-          assignedToName: l.assignedTo?.name || "",
-        }));
+        const records = leads;
 
         const csv = generateCSV(records as Record<string, unknown>[], selectedColumns);
 

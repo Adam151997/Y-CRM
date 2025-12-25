@@ -13,7 +13,7 @@ import {
   normalizePhone,
   resolveAssignment,
 } from "../helpers";
-import { revalidateLeadCaches, revalidateContactCaches, revalidateAccountCaches } from "@/lib/cache";
+import { revalidateLeadCaches, revalidateContactCaches, revalidateAccountCaches } from "@/lib/cache-utils";
 import type { BulkOperationResult } from "../types";
 
 /**
