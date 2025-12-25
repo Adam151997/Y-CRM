@@ -7,6 +7,7 @@ import { z } from "zod";
 import { tool } from "ai";
 import prisma from "@/lib/db";
 import { createAuditLog } from "@/lib/audit";
+import { checkPermission } from "@/lib/permissions";
 import { logToolExecution, handleToolError } from "../helpers";
 import {
   formatInventoryItem,
@@ -18,11 +19,11 @@ import { adjustStock, createInitialStockMovement } from "@/lib/inventory/transac
 export function createInventoryTools(orgId: string, userId: string) {
   return {
     createInventoryItem: createInventoryItemTool(orgId, userId),
-    searchInventory: searchInventoryTool(orgId),
-    checkStock: checkStockTool(orgId),
+    searchInventory: searchInventoryTool(orgId, userId),
+    checkStock: checkStockTool(orgId, userId),
     adjustStock: adjustStockTool(orgId, userId),
-    getLowStockItems: getLowStockItemsTool(orgId),
-    getInventoryStats: getInventoryStatsTool(orgId),
+    getLowStockItems: getLowStockItemsTool(orgId, userId),
+    getInventoryStats: getInventoryStatsTool(orgId, userId),
   };
 }
 
@@ -47,6 +48,16 @@ const createInventoryItemTool = (orgId: string, userId: string) =>
     execute: async (params) => {
       logToolExecution("createInventoryItem", params);
       try {
+        // Check permission
+        const hasPermission = await checkPermission(userId, orgId, "inventory", "create");
+        if (!hasPermission) {
+          return {
+            success: false,
+            errorCode: "PERMISSION_DENIED",
+            message: "You don't have permission to create inventory items.",
+          };
+        }
+
         // Check for duplicate SKU
         const existingSku = await prisma.inventoryItem.findFirst({
           where: {
@@ -126,7 +137,7 @@ const createInventoryItemTool = (orgId: string, userId: string) =>
 /**
  * Search inventory items
  */
-const searchInventoryTool = (orgId: string) =>
+const searchInventoryTool = (orgId: string, userId: string) =>
   tool({
     description:
       "Search for inventory items by name, SKU, or category. Use this to find products in inventory.",
@@ -139,6 +150,16 @@ const searchInventoryTool = (orgId: string) =>
     execute: async ({ query, category, stockStatus, limit = 10 }) => {
       logToolExecution("searchInventory", { query, category, stockStatus, limit });
       try {
+        // Check permission
+        const hasPermission = await checkPermission(userId, orgId, "inventory", "view");
+        if (!hasPermission) {
+          return {
+            success: false,
+            errorCode: "PERMISSION_DENIED",
+            message: "You don't have permission to view inventory.",
+          };
+        }
+
         const where: Record<string, unknown> = {
           orgId,
           isActive: true,
@@ -202,7 +223,7 @@ const searchInventoryTool = (orgId: string) =>
 /**
  * Check stock level for specific items
  */
-const checkStockTool = (orgId: string) =>
+const checkStockTool = (orgId: string, userId: string) =>
   tool({
     description:
       "Check the current stock level for one or more inventory items. Use this before creating invoices to verify availability.",
@@ -214,6 +235,16 @@ const checkStockTool = (orgId: string) =>
     execute: async ({ skus, itemIds, name }) => {
       logToolExecution("checkStock", { skus, itemIds, name });
       try {
+        // Check permission
+        const hasPermission = await checkPermission(userId, orgId, "inventory", "view");
+        if (!hasPermission) {
+          return {
+            success: false,
+            errorCode: "PERMISSION_DENIED",
+            message: "You don't have permission to view inventory.",
+          };
+        }
+
         const where: Record<string, unknown> = {
           orgId,
           isActive: true,
@@ -311,6 +342,16 @@ const adjustStockTool = (orgId: string, userId: string) =>
     execute: async ({ sku, itemId, quantity, type, reason, notes }) => {
       logToolExecution("adjustStock", { sku, itemId, quantity, type, reason });
       try {
+        // Check permission
+        const hasPermission = await checkPermission(userId, orgId, "inventory", "edit");
+        if (!hasPermission) {
+          return {
+            success: false,
+            errorCode: "PERMISSION_DENIED",
+            message: "You don't have permission to adjust inventory stock.",
+          };
+        }
+
         // Find the inventory item
         let item;
         if (itemId) {
@@ -379,7 +420,7 @@ const adjustStockTool = (orgId: string, userId: string) =>
 /**
  * Get items with low stock
  */
-const getLowStockItemsTool = (orgId: string) =>
+const getLowStockItemsTool = (orgId: string, userId: string) =>
   tool({
     description:
       "Get a list of inventory items that are low on stock or out of stock. Useful for reordering decisions.",
@@ -390,6 +431,16 @@ const getLowStockItemsTool = (orgId: string) =>
     execute: async ({ includeOutOfStock = true, limit = 20 }) => {
       logToolExecution("getLowStockItems", { includeOutOfStock, limit });
       try {
+        // Check permission
+        const hasPermission = await checkPermission(userId, orgId, "inventory", "view");
+        if (!hasPermission) {
+          return {
+            success: false,
+            errorCode: "PERMISSION_DENIED",
+            message: "You don't have permission to view inventory.",
+          };
+        }
+
         // Get items at or below reorder level
         const items = await prisma.$queryRaw<
           Array<{
@@ -453,7 +504,7 @@ const getLowStockItemsTool = (orgId: string) =>
 /**
  * Get inventory statistics
  */
-const getInventoryStatsTool = (orgId: string) =>
+const getInventoryStatsTool = (orgId: string, userId: string) =>
   tool({
     description:
       "Get overall inventory statistics including total items, stock status breakdown, and total inventory value.",
@@ -461,6 +512,16 @@ const getInventoryStatsTool = (orgId: string) =>
     execute: async () => {
       logToolExecution("getInventoryStats", {});
       try {
+        // Check permission
+        const hasPermission = await checkPermission(userId, orgId, "inventory", "view");
+        if (!hasPermission) {
+          return {
+            success: false,
+            errorCode: "PERMISSION_DENIED",
+            message: "You don't have permission to view inventory.",
+          };
+        }
+
         const stats = await getInventoryStats(orgId);
 
         return {

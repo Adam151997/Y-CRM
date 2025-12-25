@@ -25,10 +25,11 @@ import {
   LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Logo } from "@/components/ui/logo";
-import { 
-  useWorkspace, 
+import { usePermissions } from "@/hooks/use-permissions";
+import {
+  useWorkspace,
   getWorkspaceNavigation,
   GLOBAL_NAVIGATION,
 } from "@/lib/workspace";
@@ -71,11 +72,28 @@ interface DynamicSidebarProps {
 export function DynamicSidebar({ onNavigate }: DynamicSidebarProps) {
   const pathname = usePathname();
   const { workspace } = useWorkspace();
+  const { can, loading: permissionsLoading } = usePermissions();
   const [collapsed, setCollapsed] = useState(false);
   const [customModules, setCustomModules] = useState<CustomModule[]>([]);
   const [branding, setBranding] = useState<Branding>({ brandName: "Y CRM", brandLogo: null });
 
   const navigation = getWorkspaceNavigation(workspace);
+
+  // Filter navigation items based on permissions
+  const filteredNavigation = useMemo(() => {
+    // While loading, show all items to avoid flash
+    if (permissionsLoading) return navigation;
+
+    return navigation.map(section => ({
+      ...section,
+      items: section.items.filter(item => {
+        // If no permission required, always show
+        if (!item.requiresPermission) return true;
+        // Check if user has view permission for the module
+        return can(item.requiresPermission, "view");
+      })
+    }));
+  }, [navigation, can, permissionsLoading]);
 
   // Fetch branding
   useEffect(() => {
@@ -225,7 +243,7 @@ export function DynamicSidebar({ onNavigate }: DynamicSidebarProps) {
 
       {/* Main Navigation */}
       <nav className="flex-1 px-2 py-2 space-y-0.5 overflow-y-auto">
-        {navigation.map((section, sectionIndex) => (
+        {filteredNavigation.map((section, sectionIndex) => (
           <div key={sectionIndex}>
             {section.items.map((item) => {
               const active = isActive(item.href);
