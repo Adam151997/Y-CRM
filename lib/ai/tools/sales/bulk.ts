@@ -129,7 +129,6 @@ Example: Create 3 leads from a conference:
                 source: lead.source || "OTHER",
                 status: lead.status || "NEW",
                 assignedToId: assignee?.id,
-                createdById: userId,
               },
             });
 
@@ -245,7 +244,6 @@ Example: Create contacts for an account:
                 phone: contact.phone,
                 title: contact.title,
                 accountId,
-                createdById: userId,
               },
             });
 
@@ -332,8 +330,7 @@ Example: Create accounts from a list:
                 industry: account.industry,
                 type: account.type || "PROSPECT",
                 rating: account.rating,
-                ownerId: assignee?.id || userId,
-                createdById: userId,
+                assignedToId: assignee?.id,
               },
             });
 
