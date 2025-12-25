@@ -86,13 +86,29 @@ Example: "Convert lead John Smith to an opportunity worth $50,000"`,
             },
           });
 
-          // 3. Create opportunity
+          // 3. Find or create pipeline stage
+          const stageName = opportunityStage || "QUALIFICATION";
+          let stage = await tx.pipelineStage.findFirst({
+            where: { orgId, name: stageName },
+          });
+          if (!stage) {
+            stage = await tx.pipelineStage.create({
+              data: {
+                orgId,
+                name: stageName,
+                order: 1,
+                probability: 20,
+              },
+            });
+          }
+
+          // 4. Create opportunity
           const opportunity = await tx.opportunity.create({
             data: {
               orgId,
               name: opportunityName || `${lead.company || lead.firstName} - New Opportunity`,
               accountId: account?.id || "",
-              stage: opportunityStage || "QUALIFICATION",
+              stageId: stage.id,
               value: opportunityValue,
               probability: 20,
               assignedToId: lead.assignedToId,
@@ -278,28 +294,44 @@ Example: "Close opportunity as won for Acme Corp"`,
       try {
         const opportunity = await prisma.opportunity.findFirst({
           where: { id: opportunityId, orgId },
-          include: { account: true },
+          include: { account: true, stage: true },
         });
 
         if (!opportunity) {
           return { success: false, message: "Opportunity not found", errorCode: "NOT_FOUND" as const };
         }
 
-        if (opportunity.stage === "CLOSED_WON") {
+        if (opportunity.stage.name === "CLOSED_WON") {
           return { success: false, message: "Opportunity is already closed won", errorCode: "VALIDATION" as const };
         }
 
         const parsedCloseDate = closeDate ? new Date(closeDate) : new Date();
 
         const result = await prisma.$transaction(async (tx) => {
+          // Find or create CLOSED_WON stage
+          let closedWonStage = await tx.pipelineStage.findFirst({
+            where: { orgId, name: "CLOSED_WON" },
+          });
+          if (!closedWonStage) {
+            closedWonStage = await tx.pipelineStage.create({
+              data: {
+                orgId,
+                name: "CLOSED_WON",
+                order: 100,
+                probability: 100,
+              },
+            });
+          }
+
           // 1. Update opportunity
           const updatedOpp = await tx.opportunity.update({
             where: { id: opportunityId },
             data: {
-              stage: "CLOSED_WON",
+              stageId: closedWonStage.id,
               probability: 100,
               value: finalValue ?? opportunity.value,
-              closeDate: parsedCloseDate,
+              actualCloseDate: parsedCloseDate,
+              closedWon: true,
             },
           });
 
