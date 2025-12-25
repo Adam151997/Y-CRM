@@ -278,7 +278,6 @@ Example: Merge two duplicate leads
             where: { id: { in: duplicateLeadIds } },
             data: {
               status: "LOST",
-              lostReason: `Merged into lead ${primaryLeadId}`,
             },
           }),
         ]);
