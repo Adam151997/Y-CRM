@@ -27,6 +27,7 @@ export interface NavItem {
   icon: LucideIcon;
   highlight?: boolean;
   badge?: string;
+  requiresPermission?: string; // Module name for permission check
 }
 
 export interface NavSection {
@@ -45,9 +46,9 @@ const salesNavigation: NavSection[] = [
       { name: "Pipeline Board", href: "/sales/pipeline", icon: FolderKanban },
       { name: "Contacts", href: "/sales/contacts", icon: UserCircle },
       { name: "Accounts", href: "/sales/accounts", icon: Building2 },
-      { name: "Invoices", href: "/sales/invoices", icon: FileText },
-      { name: "Inventory", href: "/sales/inventory", icon: Package },
-      { name: "Tasks", href: "/sales/tasks", icon: CheckSquare },
+      { name: "Invoices", href: "/sales/invoices", icon: FileText, requiresPermission: "invoices" },
+      { name: "Inventory", href: "/sales/inventory", icon: Package, requiresPermission: "inventory" },
+      { name: "Tasks", href: "/sales/tasks", icon: CheckSquare, requiresPermission: "tasks" },
     ],
   },
 ];

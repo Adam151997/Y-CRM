@@ -46,6 +46,7 @@ import { Plus, Trash2, Loader2, Package, AlertTriangle, Check, ChevronsUpDown } 
 import { CURRENCIES } from "@/lib/constants/currencies";
 import { cn } from "@/lib/utils";
 import { useDebouncedCallback } from "use-debounce";
+import { usePermissions } from "@/hooks/use-permissions";
 
 // Form schema with inventory support
 const formSchema = z.object({
@@ -98,6 +99,8 @@ interface InvoiceFormProps {
 
 export function InvoiceForm({ accounts, defaultAccountId }: InvoiceFormProps) {
   const router = useRouter();
+  const { can } = usePermissions();
+  const canViewInventory = can("inventory", "view");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
@@ -155,10 +158,12 @@ export function InvoiceForm({ accounts, defaultAccountId }: InvoiceFormProps) {
     fetchInventory(query);
   }, 300);
 
-  // Load inventory on mount
+  // Load inventory on mount (only if user has permission)
   useEffect(() => {
-    fetchInventory();
-  }, [fetchInventory]);
+    if (canViewInventory) {
+      fetchInventory();
+    }
+  }, [fetchInventory, canViewInventory]);
 
   // Watch for account changes to update contacts
   const watchAccountId = form.watch("accountId");
@@ -404,22 +409,29 @@ export function InvoiceForm({ accounts, defaultAccountId }: InvoiceFormProps) {
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               Line Items
-              <Badge variant="secondary" className="font-normal">
-                <Package className="h-3 w-3 mr-1" />
-                Inventory Integration
-              </Badge>
+              {canViewInventory && (
+                <Badge variant="secondary" className="font-normal">
+                  <Package className="h-3 w-3 mr-1" />
+                  Inventory Integration
+                </Badge>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               {/* Header */}
-              <div className="grid grid-cols-12 gap-4 text-sm font-medium text-muted-foreground">
-                <div className="col-span-4">Description / Inventory Item</div>
+              <div className={cn(
+                "grid gap-4 text-sm font-medium text-muted-foreground",
+                canViewInventory ? "grid-cols-12" : "grid-cols-10"
+              )}>
+                <div className={canViewInventory ? "col-span-4" : "col-span-4"}>
+                  {canViewInventory ? "Description / Inventory Item" : "Description"}
+                </div>
                 <div className="col-span-2">Quantity</div>
                 <div className="col-span-2">Unit Price</div>
                 <div className="col-span-2 text-right">Amount</div>
-                <div className="col-span-1 text-center">Stock</div>
-                <div className="col-span-1"></div>
+                {canViewInventory && <div className="col-span-1 text-center">Stock</div>}
+                <div className={canViewInventory ? "col-span-1" : ""}></div>
               </div>
 
               {/* Items */}
@@ -434,9 +446,13 @@ export function InvoiceForm({ accounts, defaultAccountId }: InvoiceFormProps) {
 
                 return (
                   <div key={field.id} className="space-y-2">
-                    <div className="grid grid-cols-12 gap-4 items-start">
-                      <div className="col-span-4">
-                        {/* Inventory item selector */}
+                    <div className={cn(
+                      "grid gap-4 items-start",
+                      canViewInventory ? "grid-cols-12" : "grid-cols-10"
+                    )}>
+                      <div className={canViewInventory ? "col-span-4" : "col-span-4"}>
+                        {/* Inventory item selector - only show if user has permission */}
+                        {canViewInventory && (
                         <Popover
                           open={openInventoryPopovers[index]}
                           onOpenChange={(open) => setOpenInventoryPopovers(prev => ({ ...prev, [index]: open }))}
@@ -521,6 +537,7 @@ export function InvoiceForm({ accounts, defaultAccountId }: InvoiceFormProps) {
                             </Command>
                           </PopoverContent>
                         </Popover>
+                        )}
 
                         <FormField
                           control={form.control}
@@ -566,6 +583,7 @@ export function InvoiceForm({ accounts, defaultAccountId }: InvoiceFormProps) {
                       <div className="col-span-2 text-right pt-2 font-medium">
                         {formatCurrency(amount)}
                       </div>
+                      {canViewInventory && (
                       <div className="col-span-1 text-center pt-2">
                         {stockInfo && (
                           <div className="flex flex-col items-center">
@@ -586,7 +604,8 @@ export function InvoiceForm({ accounts, defaultAccountId }: InvoiceFormProps) {
                           </div>
                         )}
                       </div>
-                      <div className="col-span-1">
+                      )}
+                      <div className={canViewInventory ? "col-span-1" : ""}>
                         {fields.length > 1 && (
                           <Button
                             type="button"
@@ -600,8 +619,8 @@ export function InvoiceForm({ accounts, defaultAccountId }: InvoiceFormProps) {
                       </div>
                     </div>
 
-                    {/* Deduct from stock checkbox */}
-                    {inventoryItemId && (
+                    {/* Deduct from stock checkbox - only if user has inventory permission */}
+                    {canViewInventory && inventoryItemId && (
                       <div className="ml-0 flex items-center space-x-2 text-sm">
                         <Checkbox
                           id={`deduct-${index}`}
