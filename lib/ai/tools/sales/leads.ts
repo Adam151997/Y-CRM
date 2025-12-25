@@ -20,16 +20,21 @@ export function createLeadTools(orgId: string, userId: string) {
 
 const createLeadTool = (orgId: string, userId: string) =>
   tool({
-    description: "Create a new lead in the CRM. Use this when the user wants to add a new lead or prospect. Can optionally assign to a team member.",
+    description: `Create a new lead in the CRM.
+
+Examples:
+- "Add lead John Smith from Acme Corp" → firstName: "John", lastName: "Smith", company: "Acme Corp"
+- "Create lead jane@tech.io, VP of Sales at TechCo" → firstName: "Jane", email: "jane@tech.io", title: "VP of Sales", company: "TechCo"
+- "New lead from LinkedIn: Bob Johnson, assign to me" → source: "LINKEDIN", assignTo: "me"`,
     parameters: z.object({
-      firstName: z.string().describe("Lead's first name (required)"),
-      lastName: z.string().describe("Lead's last name (required)"),
-      email: z.string().optional().describe("Lead's email address"),
-      phone: z.string().optional().describe("Lead's phone number"),
-      company: z.string().optional().describe("Company name"),
-      title: z.string().optional().describe("Job title"),
+      firstName: z.string().describe("Lead's first name (required). Example: 'John'"),
+      lastName: z.string().describe("Lead's last name (required). Example: 'Smith'"),
+      email: z.string().optional().describe("Lead's email address. Example: 'john@acme.com'"),
+      phone: z.string().optional().describe("Lead's phone number. Example: '+1-555-123-4567'"),
+      company: z.string().optional().describe("Company name. Example: 'Acme Corporation'"),
+      title: z.string().optional().describe("Job title. Example: 'VP of Sales'"),
       source: z.string().optional().describe("Lead source: REFERRAL, WEBSITE, COLD_CALL, LINKEDIN, TRADE_SHOW, ADVERTISEMENT, EMAIL_CAMPAIGN, or OTHER"),
-      assignTo: z.string().optional().describe("Assign to team member by name, email, or 'me' (e.g., 'Mike', 'sarah@company.com', 'me')"),
+      assignTo: z.string().optional().describe("Assign to team member by name, email, or 'me'. Example: 'Mike', 'sarah@company.com', 'me'"),
     }),
     execute: async (params) => {
       logToolExecution("createLead", params);
@@ -105,11 +110,17 @@ const createLeadTool = (orgId: string, userId: string) =>
 
 const searchLeadsTool = (orgId: string) =>
   tool({
-    description: "Search for leads in the CRM. Use this to find existing leads by name, email, company, or status.",
+    description: `Search for leads in the CRM by name, email, company, or status.
+
+Examples:
+- "Find lead John" → query: "John"
+- "Search for Acme leads" → query: "Acme"
+- "Show all qualified leads" → status: "QUALIFIED"
+- "Find leads from TechCorp, show 10" → query: "TechCorp", limit: 10`,
     parameters: z.object({
-      query: z.string().optional().describe("Search term to match against name, email, or company"),
+      query: z.string().optional().describe("Search term to match against name, email, or company. Example: 'John', 'acme.com'"),
       status: z.string().optional().describe("Filter by lead status: NEW, CONTACTED, QUALIFIED, CONVERTED, or LOST"),
-      limit: z.number().optional().describe("Maximum number of results to return (1-20, default 5)"),
+      limit: z.number().optional().describe("Maximum number of results (1-20, default: 5). Example: 10"),
     }),
     execute: async ({ query, status, limit = 5 }) => {
       logToolExecution("searchLeads", { query, status, limit });

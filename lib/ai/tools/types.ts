@@ -10,9 +10,30 @@ import { z } from "zod";
 export interface ToolResult {
   success: boolean;
   message?: string;
-  errorCode?: "NOT_FOUND" | "DUPLICATE" | "VALIDATION" | "PERMISSION" | "INTEGRATION_NOT_CONNECTED";
+  errorCode?: ToolErrorCode;
   [key: string]: unknown;
 }
+
+/**
+ * Expanded error codes for better error handling
+ */
+export type ToolErrorCode =
+  | "NOT_FOUND"           // Entity not found
+  | "DUPLICATE"           // Duplicate entry detected
+  | "VALIDATION"          // General validation error
+  | "PERMISSION"          // User lacks permission
+  | "INTEGRATION_NOT_CONNECTED"  // External integration not connected
+  | "INVALID_EMAIL"       // Email format validation failed
+  | "INVALID_PHONE"       // Phone format validation failed
+  | "INVALID_URL"         // URL format validation failed
+  | "INVALID_DATE"        // Date parsing/validation failed
+  | "MISSING_REQUIRED"    // Required field missing
+  | "CONSTRAINT_VIOLATION" // Database constraint violated
+  | "RATE_LIMIT"          // Rate limit exceeded
+  | "TIMEOUT"             // Operation timed out
+  | "BULK_PARTIAL"        // Bulk operation partially succeeded
+  | "AMBIGUOUS_MATCH"     // Multiple matches found, need clarification
+  | "INVALID_STATUS_TRANSITION"; // Invalid status change
 
 /**
  * Tool module interface - each category exports this
@@ -146,3 +167,107 @@ export const builtInModuleSchema = z.enum(["LEAD", "CONTACT", "ACCOUNT", "OPPORT
 export const playbookTriggerSchema = z.enum([
   "MANUAL", "NEW_CUSTOMER", "RENEWAL_APPROACHING", "HEALTH_DROP", "TICKET_ESCALATION"
 ]).optional();
+
+/**
+ * Email validation schema with helpful error message
+ */
+export const emailSchema = z.string().email("Invalid email format (e.g., 'john@company.com')").optional();
+
+/**
+ * URL validation schema
+ */
+export const urlSchema = z.string().url("Invalid URL format (e.g., 'https://example.com')").optional();
+
+/**
+ * Phone validation schema (flexible format)
+ */
+export const phoneSchema = z.string()
+  .regex(/^[\d\s\-\+\(\)\.]+$/, "Invalid phone format (e.g., '+1 555-123-4567')")
+  .optional();
+
+/**
+ * Standardized search limit with better default
+ */
+export const searchLimitSchema = z.number()
+  .min(1)
+  .max(50)
+  .default(10)
+  .describe("Maximum results to return (1-50, default 10)");
+
+/**
+ * Bulk operation result for individual records
+ */
+export interface BulkRecordResult {
+  index: number;
+  success: boolean;
+  id?: string;
+  error?: string;
+  errorCode?: ToolErrorCode;
+}
+
+/**
+ * Bulk operation summary result
+ */
+export interface BulkOperationResult extends ToolResult {
+  totalRequested: number;
+  successCount: number;
+  failureCount: number;
+  results: BulkRecordResult[];
+}
+
+/**
+ * Common entity reference for linking
+ */
+export const entityReferenceSchema = z.object({
+  entityType: z.enum(["LEAD", "CONTACT", "ACCOUNT", "OPPORTUNITY", "TICKET"]),
+  entityId: z.string().uuid(),
+});
+
+/**
+ * Date range schema for filtering
+ */
+export const dateRangeSchema = z.object({
+  startDate: z.string().optional().describe("Start date (ISO format or natural language, e.g., '2024-01-01' or 'last month')"),
+  endDate: z.string().optional().describe("End date (ISO format or natural language, e.g., '2024-12-31' or 'today')"),
+});
+
+/**
+ * Confirmation request for high-impact operations
+ */
+export interface ConfirmationRequired {
+  requiresConfirmation: true;
+  confirmationType: "destructive" | "bulk" | "status_change" | "irreversible";
+  message: string;
+  affectedCount?: number;
+  details?: string[];
+}
+
+/**
+ * Result that may require confirmation before proceeding
+ */
+export interface ConfirmableResult extends ToolResult {
+  confirmation?: ConfirmationRequired;
+  confirmed?: boolean;
+}
+
+/**
+ * High-impact status transitions that require confirmation
+ */
+export const destructiveStatusTransitions = {
+  lead: ["LOST", "CONVERTED"],
+  opportunity: ["CLOSED_LOST", "CLOSED_WON"],
+  ticket: ["CLOSED"],
+  renewal: ["CHURNED"],
+  account: ["CHURNED"],
+} as const;
+
+/**
+ * Check if a status transition is high-impact
+ */
+export function isDestructiveStatusChange(
+  entityType: keyof typeof destructiveStatusTransitions,
+  newStatus: string
+): boolean {
+  const destructiveStatuses = destructiveStatusTransitions[entityType];
+  return destructiveStatuses?.includes(newStatus as never) ?? false;
+}

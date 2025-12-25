@@ -19,13 +19,19 @@ export function createTaskTools(orgId: string, userId: string) {
 
 const createTaskTool = (orgId: string, userId: string) =>
   tool({
-    description: "Create a new task. Can be linked to a lead, contact, account, or opportunity.",
+    description: `Create a new task linked to a lead, contact, account, or opportunity.
+
+Examples:
+- "Remind me to call John tomorrow" → title: "Call John", dueDate: "tomorrow", taskType: "CALL"
+- "Create urgent task to send proposal" → title: "Send proposal", priority: "URGENT"
+- "Schedule follow-up for next week" → title: "Follow-up", dueDate: "next week", taskType: "FOLLOW_UP"
+- "Add meeting task for Dec 25" → title: "Meeting", dueDate: "2024-12-25", taskType: "MEETING"`,
     parameters: z.object({
-      title: z.string().describe("Task title (required)"),
-      description: z.string().optional().describe("Task description"),
-      dueDate: z.string().optional().describe("Due date (e.g., 'tomorrow', 'next week', or ISO date)"),
+      title: z.string().describe("Task title. Example: 'Call John Smith', 'Send proposal'"),
+      description: z.string().optional().describe("Task description/details"),
+      dueDate: z.string().optional().describe("Due date: 'tomorrow', 'next week', 'in 3 days', or '2024-12-25'"),
       priority: z.string().optional().describe("Priority: LOW, MEDIUM (default), HIGH, or URGENT"),
-      taskType: z.string().optional().describe("Task type: CALL, EMAIL, MEETING, FOLLOW_UP, ONBOARDING, RENEWAL, or OTHER"),
+      taskType: z.string().optional().describe("Type: CALL, EMAIL, MEETING, FOLLOW_UP, ONBOARDING, RENEWAL, or OTHER"),
       workspace: z.string().optional().describe("Workspace: sales (default), cs, or marketing"),
       leadId: z.string().optional().describe("Related lead ID (UUID)"),
       contactId: z.string().optional().describe("Related contact ID (UUID)"),

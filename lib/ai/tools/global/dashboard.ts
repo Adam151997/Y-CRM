@@ -7,6 +7,23 @@ import { tool } from "ai";
 import prisma from "@/lib/db";
 import { logToolExecution, handleToolError } from "../helpers";
 
+// Simple in-memory cache for dashboard stats (60 second TTL)
+const statsCache = new Map<string, { data: Record<string, unknown>; timestamp: number }>();
+const CACHE_TTL_MS = 60 * 1000; // 60 seconds
+
+function getCachedStats(key: string): Record<string, unknown> | null {
+  const cached = statsCache.get(key);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+    console.log(`[Dashboard] Cache hit for ${key}`);
+    return cached.data;
+  }
+  return null;
+}
+
+function setCachedStats(key: string, data: Record<string, unknown>): void {
+  statsCache.set(key, { data, timestamp: Date.now() });
+}
+
 export function createDashboardTools(orgId: string) {
   return {
     getDashboardStats: getDashboardStatsTool(orgId),
@@ -18,10 +35,20 @@ const getDashboardStatsTool = (orgId: string) =>
     description: "Get CRM dashboard statistics including leads, contacts, accounts, tickets, and pipeline value",
     parameters: z.object({
       workspace: z.string().optional().describe("Get stats for specific workspace: sales, cs, marketing, or all (default)"),
+      bypassCache: z.boolean().optional().describe("Force fresh data (default: false, uses 60s cache)"),
     }),
-    execute: async ({ workspace = "all" }) => {
-      logToolExecution("getDashboardStats", { workspace });
+    execute: async ({ workspace = "all", bypassCache = false }) => {
+      logToolExecution("getDashboardStats", { workspace, bypassCache });
       try {
+        // Check cache first
+        const cacheKey = `${orgId}:${workspace}`;
+        if (!bypassCache) {
+          const cached = getCachedStats(cacheKey);
+          if (cached) {
+            return { success: true, stats: cached, cached: true };
+          }
+        }
+
         const stats: Record<string, unknown> = {};
 
         if (workspace === "all" || workspace === "sales") {
@@ -78,7 +105,10 @@ const getDashboardStatsTool = (orgId: string) =>
 
         stats.tasks = { pending: pendingTasks };
 
-        return { success: true, stats };
+        // Cache the result
+        setCachedStats(cacheKey, stats);
+
+        return { success: true, stats, cached: false };
       } catch (error) {
         return { ...handleToolError(error, "getDashboardStats"), stats: null };
       }
