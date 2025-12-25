@@ -1,5 +1,6 @@
 /**
  * Bulk operations for sales entities (leads, contacts, accounts)
+ * Includes confirmation support for large or destructive operations
  */
 
 import { z } from "zod";
@@ -14,7 +15,13 @@ import {
   resolveAssignment,
 } from "../helpers";
 import { revalidateLeadCaches, revalidateContactCaches, revalidateAccountCaches } from "@/lib/cache-utils";
-import type { BulkOperationResult } from "../types";
+import type { BulkOperationResult, ConfirmationRequired } from "../types";
+
+/**
+ * Thresholds for requiring confirmation
+ */
+const BULK_CONFIRMATION_THRESHOLD = 10; // Confirm for 10+ records
+const STATUS_CHANGE_CONFIRMATION_THRESHOLD = 5; // Confirm for 5+ status changes
 
 /**
  * Schema for a single lead in bulk create
@@ -72,9 +79,30 @@ Example: Create 3 leads from a conference:
         leads: z.array(bulkLeadSchema).min(1).max(50).describe("Array of leads to create (1-50)"),
         assignTo: z.string().optional().describe("Assign all leads to this user (name, email, or 'me')"),
         skipDuplicates: z.boolean().optional().describe("Skip leads with duplicate emails (default: true)"),
+        confirmed: z.boolean().optional().describe("Set to true to confirm bulk operation (required for 10+ leads)"),
       }),
-      execute: async ({ leads, assignTo, skipDuplicates = true }) => {
-        logToolExecution("bulkCreateLeads", { count: leads.length, assignTo, skipDuplicates });
+      execute: async ({ leads, assignTo, skipDuplicates = true, confirmed }) => {
+        logToolExecution("bulkCreateLeads", { count: leads.length, assignTo, skipDuplicates, confirmed });
+
+        // Request confirmation for large bulk operations
+        if (leads.length >= BULK_CONFIRMATION_THRESHOLD && !confirmed) {
+          const confirmation: ConfirmationRequired = {
+            requiresConfirmation: true,
+            confirmationType: "bulk",
+            message: `About to create ${leads.length} leads. Please confirm this bulk operation.`,
+            affectedCount: leads.length,
+            details: [
+              `Creating ${leads.length} new lead records`,
+              assignTo ? `All will be assigned to ${assignTo}` : "No assignment specified",
+              skipDuplicates ? "Duplicate emails will be skipped" : "Duplicates will be created",
+            ],
+          };
+          return {
+            success: false,
+            message: "Confirmation required for bulk operation",
+            confirmation,
+          };
+        }
 
         try {
           // Resolve assignment if provided
@@ -375,10 +403,10 @@ Or by query:
         leadIds: z.array(z.string()).optional().describe("Array of lead IDs to update"),
         query: z.string().optional().describe("Search query to find leads to update (alternative to leadIds)"),
         status: z.enum(["NEW", "CONTACTED", "QUALIFIED", "CONVERTED", "LOST"]).describe("New status to set"),
-        reason: z.string().optional().describe("Reason for status change (especially for LOST)"),
+        confirmed: z.boolean().optional().describe("Set to true to confirm destructive status changes (LOST/CONVERTED) or large batches (5+)"),
       }),
-      execute: async ({ leadIds, query, status, reason }) => {
-        logToolExecution("batchUpdateLeadStatus", { leadIds, query, status });
+      execute: async ({ leadIds, query, status, confirmed }) => {
+        logToolExecution("batchUpdateLeadStatus", { leadIds, query, status, confirmed });
 
         try {
           let idsToUpdate: string[] = [];
@@ -410,14 +438,34 @@ Or by query:
             };
           }
 
-          const updateData: Record<string, unknown> = { status };
-          if (reason && status === "LOST") {
-            updateData.lostReason = reason;
+          // Request confirmation for destructive status changes or large batches
+          const isDestructive = status === "LOST" || status === "CONVERTED";
+          const needsConfirmation = (isDestructive || idsToUpdate.length >= STATUS_CHANGE_CONFIRMATION_THRESHOLD) && !confirmed;
+
+          if (needsConfirmation) {
+            const confirmation: ConfirmationRequired = {
+              requiresConfirmation: true,
+              confirmationType: isDestructive ? "destructive" : "status_change",
+              message: isDestructive
+                ? `About to mark ${idsToUpdate.length} lead(s) as ${status}. This is a significant status change.`
+                : `About to update status for ${idsToUpdate.length} leads to ${status}.`,
+              affectedCount: idsToUpdate.length,
+              details: [
+                `Updating ${idsToUpdate.length} lead(s) to ${status}`,
+                isDestructive ? `⚠️ ${status} is a terminal status` : "",
+              ].filter(Boolean) as string[],
+            };
+            return {
+              success: false,
+              message: "Confirmation required for status change",
+              confirmation,
+              leadsToUpdate: idsToUpdate.length,
+            };
           }
 
           const updated = await prisma.lead.updateMany({
             where: { id: { in: idsToUpdate }, orgId },
-            data: updateData,
+            data: { status },
           });
 
           await revalidateLeadCaches();
@@ -427,6 +475,7 @@ Or by query:
             message: `Updated ${updated.count} leads to status: ${status}.`,
             updatedCount: updated.count,
             status,
+            confirmed: true,
           };
         } catch (error) {
           return handleToolError(error, "batchUpdateLeadStatus");

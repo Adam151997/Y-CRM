@@ -230,3 +230,44 @@ export const dateRangeSchema = z.object({
   startDate: z.string().optional().describe("Start date (ISO format or natural language, e.g., '2024-01-01' or 'last month')"),
   endDate: z.string().optional().describe("End date (ISO format or natural language, e.g., '2024-12-31' or 'today')"),
 });
+
+/**
+ * Confirmation request for high-impact operations
+ */
+export interface ConfirmationRequired {
+  requiresConfirmation: true;
+  confirmationType: "destructive" | "bulk" | "status_change" | "irreversible";
+  message: string;
+  affectedCount?: number;
+  details?: string[];
+}
+
+/**
+ * Result that may require confirmation before proceeding
+ */
+export interface ConfirmableResult extends ToolResult {
+  confirmation?: ConfirmationRequired;
+  confirmed?: boolean;
+}
+
+/**
+ * High-impact status transitions that require confirmation
+ */
+export const destructiveStatusTransitions = {
+  lead: ["LOST", "CONVERTED"],
+  opportunity: ["CLOSED_LOST", "CLOSED_WON"],
+  ticket: ["CLOSED"],
+  renewal: ["CHURNED"],
+  account: ["CHURNED"],
+} as const;
+
+/**
+ * Check if a status transition is high-impact
+ */
+export function isDestructiveStatusChange(
+  entityType: keyof typeof destructiveStatusTransitions,
+  newStatus: string
+): boolean {
+  const destructiveStatuses = destructiveStatusTransitions[entityType];
+  return destructiveStatuses?.includes(newStatus as never) ?? false;
+}

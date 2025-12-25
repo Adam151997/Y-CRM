@@ -2,7 +2,7 @@
  * Global Tools (Available in All Workspaces)
  *
  * Tools for tasks, notes, dashboard, documents, semantic search, data export,
- * relationships, deduplication, and lookups
+ * relationships, deduplication, lookups, activity timeline, and analytics
  */
 
 import { createTaskTools } from "./tasks";
@@ -13,6 +13,9 @@ import { createSearchTools } from "./search";
 import { createExportTools } from "./export";
 import { createRelationshipTools } from "./relationships";
 import { createLookupTools } from "./lookups";
+import { createActivityTools } from "./activity";
+import { createAnalyticsTools } from "./analytics";
+import { createWorkflowTools } from "./workflows";
 
 /**
  * Create all global tools
@@ -27,6 +30,9 @@ export function createGlobalTools(orgId: string, userId: string) {
     ...createExportTools(orgId),
     ...createRelationshipTools(orgId, userId),
     ...createLookupTools(orgId),
+    ...createActivityTools(orgId),
+    ...createAnalyticsTools(orgId),
+    ...createWorkflowTools(orgId, userId),
   };
 }
 
@@ -39,3 +45,6 @@ export { createSearchTools } from "./search";
 export { createExportTools } from "./export";
 export { createRelationshipTools } from "./relationships";
 export { createLookupTools } from "./lookups";
+export { createActivityTools } from "./activity";
+export { createAnalyticsTools } from "./analytics";
+export { createWorkflowTools } from "./workflows";

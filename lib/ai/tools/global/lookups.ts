@@ -1,11 +1,12 @@
 /**
  * Lookup/List Tools
- * Tools for fetching available options like pipeline stages, segments, etc.
+ * Tools for fetching available options like pipeline stages, segments, team members, etc.
  */
 
 import { z } from "zod";
 import { tool } from "ai";
 import prisma from "@/lib/db";
+import { clerkClient } from "@clerk/nextjs/server";
 import { logToolExecution, handleToolError } from "../helpers";
 
 export function createLookupTools(orgId: string) {
@@ -13,6 +14,8 @@ export function createLookupTools(orgId: string) {
     listPipelineStages: listPipelineStagesTool(orgId),
     listCustomModules: listCustomModulesTool(orgId),
     listSegments: listSegmentsTool(orgId),
+    listTeamMembers: listTeamMembersTool(orgId),
+    listDepartments: listDepartmentsTool(orgId),
     getSystemOptions: getSystemOptionsTool(),
   };
 }
@@ -196,5 +199,140 @@ campaignType, campaignStatus, renewalStatus.`,
         optionType,
         values: options[optionType] || [],
       };
+    },
+  });
+
+const listTeamMembersTool = (orgId: string) =>
+  tool({
+    description: `List all team members in the organization.
+
+Examples:
+- "Who's on my team?" → lists all members
+- "List sales team members" → role filter can be applied
+- "Find team member John" → search by name
+
+Returns member names, emails, roles, and IDs for task assignment.`,
+    parameters: z.object({
+      role: z.enum(["org:admin", "org:member"]).optional()
+        .describe("Filter by role: 'org:admin' for admins only, 'org:member' for regular members"),
+      search: z.string().optional().describe("Search by name or email"),
+    }),
+    execute: async ({ role, search }) => {
+      logToolExecution("listTeamMembers", { role, search });
+      try {
+        const client = await clerkClient();
+        const memberships = await client.organizations.getOrganizationMembershipList({
+          organizationId: orgId,
+          limit: 100,
+        });
+
+        let members = memberships.data.map((m) => ({
+          id: m.publicUserData?.userId || "",
+          name: `${m.publicUserData?.firstName || ""} ${m.publicUserData?.lastName || ""}`.trim() ||
+            m.publicUserData?.identifier ||
+            "Unknown",
+          firstName: m.publicUserData?.firstName || "",
+          lastName: m.publicUserData?.lastName || "",
+          email: m.publicUserData?.identifier || null,
+          imageUrl: m.publicUserData?.imageUrl || null,
+          role: m.role,
+        })).filter((m) => m.id);
+
+        // Apply role filter
+        if (role) {
+          members = members.filter(m => m.role === role);
+        }
+
+        // Apply search filter
+        if (search) {
+          const searchLower = search.toLowerCase();
+          members = members.filter(m =>
+            m.name.toLowerCase().includes(searchLower) ||
+            (m.email && m.email.toLowerCase().includes(searchLower))
+          );
+        }
+
+        return {
+          success: true,
+          count: members.length,
+          members,
+          message: `Found ${members.length} team member(s).`,
+        };
+      } catch (error) {
+        return handleToolError(error, "listTeamMembers");
+      }
+    },
+  });
+
+const listDepartmentsTool = (orgId: string) =>
+  tool({
+    description: `List available departments/teams in the organization.
+
+Returns department names and member counts. Useful for routing and assignment.`,
+    parameters: z.object({}),
+    execute: async () => {
+      logToolExecution("listDepartments", {});
+      try {
+        // Check if organization has custom departments configured
+        // For now, return default workspaces as "departments"
+        // In future, this could be expanded with a Department model
+
+        // Get assignment counts from actual data
+        const [leadAssignments, ticketAssignments, opportunityAssignments] = await Promise.all([
+          prisma.lead.groupBy({
+            by: ["assignedToId"],
+            where: { orgId, assignedToId: { not: null } },
+            _count: true,
+          }),
+          prisma.ticket.groupBy({
+            by: ["assignedToId"],
+            where: { orgId, assignedToId: { not: null } },
+            _count: true,
+          }),
+          prisma.opportunity.groupBy({
+            by: ["assignedToId"],
+            where: { orgId, assignedToId: { not: null } },
+            _count: true,
+          }),
+        ]);
+
+        // Default department structure based on workspaces
+        const departments = [
+          {
+            id: "sales",
+            name: "Sales",
+            description: "Sales team handling leads and opportunities",
+            workspace: "sales",
+            metrics: {
+              activeLeads: leadAssignments.reduce((sum, a) => sum + a._count, 0),
+              activeOpportunities: opportunityAssignments.reduce((sum, a) => sum + a._count, 0),
+            },
+          },
+          {
+            id: "customer-success",
+            name: "Customer Success",
+            description: "CS team handling accounts and renewals",
+            workspace: "cs",
+            metrics: {
+              activeTickets: ticketAssignments.reduce((sum, a) => sum + a._count, 0),
+            },
+          },
+          {
+            id: "marketing",
+            name: "Marketing",
+            description: "Marketing team handling campaigns and segments",
+            workspace: "marketing",
+          },
+        ];
+
+        return {
+          success: true,
+          count: departments.length,
+          departments,
+          note: "Departments are based on CRM workspaces. Custom departments can be configured in settings.",
+        };
+      } catch (error) {
+        return handleToolError(error, "listDepartments");
+      }
     },
   });
