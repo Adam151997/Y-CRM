@@ -55,11 +55,10 @@ const createEmployeeTool = (orgId: string, userId: string) =>
           };
         }
 
-        // Parse join date
-        let joinDate: Date | undefined;
-        if (params.hireDate) {
-          joinDate = params.hireDate === "today" ? new Date() : new Date(params.hireDate);
-        }
+        // Parse join date (defaults to today if not provided)
+        const joinDate = params.hireDate
+          ? (params.hireDate === "today" ? new Date() : new Date(params.hireDate))
+          : new Date();
 
         const employee = await prisma.employee.create({
           data: {
