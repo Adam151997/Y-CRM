@@ -9,6 +9,7 @@ import { createContactTools } from "./contacts";
 import { createAccountTools } from "./accounts";
 import { createOpportunityTools } from "./opportunities";
 import { createBulkTools } from "./bulk";
+import { createInventoryTools } from "./inventory";
 
 /**
  * Create all sales tools
