@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -50,7 +50,7 @@ const STATUS_COLORS: Record<string, string> = {
   PAID: "bg-green-100 text-green-700",
 };
 
-export default function PayrollPage() {
+function PayrollContent() {
   const searchParams = useSearchParams();
 
   const [payrolls, setPayrolls] = useState<Payroll[]>([]);
@@ -238,5 +238,29 @@ export default function PayrollPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function PayrollPageFallback() {
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-4 w-64 mt-2" />
+        </div>
+        <Skeleton className="h-10 w-32" />
+      </div>
+      <Skeleton className="h-24 w-full" />
+      <Skeleton className="h-96 w-full" />
+    </div>
+  );
+}
+
+export default function PayrollPage() {
+  return (
+    <Suspense fallback={<PayrollPageFallback />}>
+      <PayrollContent />
+    </Suspense>
   );
 }

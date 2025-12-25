@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -56,7 +56,7 @@ const EMPLOYMENT_TYPE_LABELS: Record<string, string> = {
   INTERN: "Intern",
 };
 
-export default function EmployeesPage() {
+function EmployeesContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -262,5 +262,29 @@ export default function EmployeesPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function EmployeesPageFallback() {
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-4 w-64 mt-2" />
+        </div>
+        <Skeleton className="h-10 w-32" />
+      </div>
+      <Skeleton className="h-24 w-full" />
+      <Skeleton className="h-96 w-full" />
+    </div>
+  );
+}
+
+export default function EmployeesPage() {
+  return (
+    <Suspense fallback={<EmployeesPageFallback />}>
+      <EmployeesContent />
+    </Suspense>
   );
 }

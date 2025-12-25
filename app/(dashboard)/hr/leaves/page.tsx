@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,7 +22,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Calendar, Filter } from "lucide-react";
+import { Plus, Calendar } from "lucide-react";
 
 interface Leave {
   id: string;
@@ -59,7 +59,7 @@ const TYPE_LABELS: Record<string, string> = {
   OTHER: "Other",
 };
 
-export default function LeavesPage() {
+function LeavesContent() {
   const searchParams = useSearchParams();
 
   const [leaves, setLeaves] = useState<Leave[]>([]);
@@ -254,5 +254,29 @@ export default function LeavesPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function LeavesPageFallback() {
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-4 w-64 mt-2" />
+        </div>
+        <Skeleton className="h-10 w-32" />
+      </div>
+      <Skeleton className="h-24 w-full" />
+      <Skeleton className="h-96 w-full" />
+    </div>
+  );
+}
+
+export default function LeavesPage() {
+  return (
+    <Suspense fallback={<LeavesPageFallback />}>
+      <LeavesContent />
+    </Suspense>
   );
 }

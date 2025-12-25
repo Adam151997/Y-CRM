@@ -213,7 +213,7 @@ const searchPayrollsTool = (orgId: string) =>
         return {
           success: true,
           count: payrolls.length,
-          payrolls: payrolls.map((p) => ({
+          payrolls: payrolls.map((p: { id: string; employee: { firstName: string; lastName: string; employeeId: string; department: string | null }; payPeriod: string; grossPay: unknown; totalDeductions: unknown; netPay: unknown; currency: string; status: string }) => ({
             id: p.id,
             employee: `${p.employee.firstName} ${p.employee.lastName}`,
             employeeNumber: p.employee.employeeId,
@@ -387,12 +387,12 @@ const generatePayrollRunTool = (orgId: string, userId: string) =>
           where: {
             orgId,
             payPeriod,
-            employeeId: { in: employees.map((e) => e.id) },
+            employeeId: { in: employees.map((e: { id: string }) => e.id) },
           },
         });
 
-        const existingEmployeeIds = new Set(existing.map((p) => p.employeeId));
-        const toCreate = employees.filter((e) => !existingEmployeeIds.has(e.id));
+        const existingEmployeeIds = new Set(existing.map((p: { employeeId: string }) => p.employeeId));
+        const toCreate = employees.filter((e: { id: string }) => !existingEmployeeIds.has(e.id));
 
         if (toCreate.length === 0) {
           return {
@@ -410,7 +410,7 @@ const generatePayrollRunTool = (orgId: string, userId: string) =>
 
         // Create payrolls
         const created = await prisma.payroll.createMany({
-          data: toCreate.map((e) => {
+          data: toCreate.map((e: { id: string; salary: unknown; salaryType: string; currency: string }) => {
             const baseSalary = Number(e.salary) || 0;
             // Calculate monthly salary if annual
             const monthlySalary = e.salaryType === "ANNUAL" ? baseSalary / 12 : baseSalary;

@@ -157,7 +157,7 @@ export default async function HRDashboardPage() {
               <p className="text-sm text-muted-foreground">No pending requests</p>
             ) : (
               <div className="space-y-4">
-                {pendingLeaves.map((leave) => (
+                {pendingLeaves.map((leave: { id: string; type: string; startDate: Date; endDate: Date; employee: { firstName: string; lastName: string; department: string | null } }) => (
                   <div key={leave.id} className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium">
@@ -194,7 +194,7 @@ export default async function HRDashboardPage() {
               <p className="text-sm text-muted-foreground">No employees yet</p>
             ) : (
               <div className="space-y-4">
-                {recentEmployees.map((employee) => (
+                {recentEmployees.map((employee: { id: string; firstName: string; lastName: string; department: string | null; position: string | null; joinDate: Date | null; status: string }) => (
                   <div key={employee.id} className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium">
