@@ -135,7 +135,7 @@ Example: Create 3 leads from a conference:
             return { success: true, id: created.id };
           });
 
-          await revalidateLeadCaches(orgId);
+          await revalidateLeadCaches();
 
           const response: BulkOperationResult = {
             success: result.failureCount === 0,
@@ -250,7 +250,7 @@ Example: Create contacts for an account:
             return { success: true, id: created.id };
           });
 
-          await revalidateContactCaches(orgId);
+          await revalidateContactCaches();
 
           const response: BulkOperationResult = {
             success: result.failureCount === 0,
@@ -337,7 +337,7 @@ Example: Create accounts from a list:
             return { success: true, id: created.id };
           });
 
-          await revalidateAccountCaches(orgId);
+          await revalidateAccountCaches();
 
           const response: BulkOperationResult = {
             success: result.failureCount === 0,
@@ -420,7 +420,7 @@ Or by query:
             data: updateData,
           });
 
-          await revalidateLeadCaches(orgId);
+          await revalidateLeadCaches();
 
           return {
             success: true,
