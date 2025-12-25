@@ -250,9 +250,6 @@ const getEmployeeTool = (orgId: string) =>
             ],
           },
           include: {
-            manager: {
-              select: { id: true, firstName: true, lastName: true },
-            },
             _count: {
               select: { leaves: true, payrolls: true },
             },
@@ -261,6 +258,18 @@ const getEmployeeTool = (orgId: string) =>
 
         if (!employee) {
           return { success: false, message: "Employee not found" };
+        }
+
+        // Fetch manager name if managerId exists
+        let managerName: string | null = null;
+        if (employee.managerId) {
+          const manager = await prisma.employee.findFirst({
+            where: { id: employee.managerId },
+            select: { firstName: true, lastName: true },
+          });
+          if (manager) {
+            managerName = `${manager.firstName} ${manager.lastName}`;
+          }
         }
 
         return {
@@ -279,9 +288,7 @@ const getEmployeeTool = (orgId: string) =>
             salary: employee.salary ? Number(employee.salary) : null,
             salaryType: employee.salaryType,
             currency: employee.currency,
-            manager: employee.manager
-              ? `${employee.manager.firstName} ${employee.manager.lastName}`
-              : null,
+            manager: managerName,
             leaveCount: employee._count.leaves,
             payrollCount: employee._count.payrolls,
           },
