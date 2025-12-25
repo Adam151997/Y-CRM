@@ -1,6 +1,6 @@
 /**
  * Lookup/List Tools
- * Tools for fetching available options like pipeline stages, team members, etc.
+ * Tools for fetching available options like pipeline stages, segments, etc.
  */
 
 import { z } from "zod";
@@ -10,55 +10,12 @@ import { logToolExecution, handleToolError } from "../helpers";
 
 export function createLookupTools(orgId: string) {
   return {
-    listTeamMembers: listTeamMembersTool(orgId),
     listPipelineStages: listPipelineStagesTool(orgId),
     listCustomModules: listCustomModulesTool(orgId),
     listSegments: listSegmentsTool(orgId),
     getSystemOptions: getSystemOptionsTool(),
   };
 }
-
-const listTeamMembersTool = (orgId: string) =>
-  tool({
-    description: `List all team members in the organization. Useful for finding who to assign records to.
-
-Example response includes user IDs, names, and emails for assignment.`,
-    parameters: z.object({
-      role: z.enum(["ADMIN", "MEMBER"]).optional().describe("Filter by role"),
-      limit: z.number().min(1).max(100).default(50).describe("Maximum results (1-100)"),
-    }),
-    execute: async ({ role, limit }) => {
-      logToolExecution("listTeamMembers", { role, limit });
-      try {
-        const where: Record<string, unknown> = { orgId };
-        if (role) where.role = role;
-
-        const members = await prisma.membership.findMany({
-          where,
-          take: limit,
-          orderBy: { createdAt: "desc" },
-          include: {
-            user: {
-              select: { id: true, name: true, email: true },
-            },
-          },
-        });
-
-        return {
-          success: true,
-          count: members.length,
-          members: members.map(m => ({
-            userId: m.user.id,
-            name: m.user.name,
-            email: m.user.email,
-            role: m.role,
-          })),
-        };
-      } catch (error) {
-        return handleToolError(error, "listTeamMembers");
-      }
-    },
-  });
 
 const listPipelineStagesTool = (orgId: string) =>
   tool({
