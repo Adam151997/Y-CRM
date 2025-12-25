@@ -554,17 +554,23 @@ Example: "Onboard Acme Corp as new customer with $50k ARR"`,
             },
           });
 
-          // 2. Create health score
-          const healthScore = await tx.healthScore.create({
-            data: {
+          // 2. Create or update health score
+          const healthScore = await tx.accountHealth.upsert({
+            where: { accountId },
+            create: {
               orgId,
               accountId,
-              overallScore: 80, // Start healthy
-              usageScore: 70,
+              score: 80, // Start healthy
               engagementScore: 80,
               supportScore: 90,
-              trend: "STABLE",
-              lastCalculatedAt: new Date(),
+              relationshipScore: 70,
+              financialScore: 80,
+              adoptionScore: 70,
+              riskLevel: "LOW",
+            },
+            update: {
+              score: 80,
+              riskLevel: "LOW",
             },
           });
 
