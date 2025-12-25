@@ -455,8 +455,9 @@ Example: "Escalate ticket for Acme Corp - they're very unhappy"`,
             data: {
               ticketId,
               content: `ESCALATION: ${reason}`,
-              senderType: "INTERNAL",
-              senderId: userId,
+              authorType: "AI_AGENT",
+              authorId: userId,
+              isInternal: true,
             },
           });
 
