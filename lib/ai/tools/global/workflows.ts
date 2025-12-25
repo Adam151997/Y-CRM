@@ -96,6 +96,7 @@ Example: "Convert lead John Smith to an opportunity worth $50,000"`,
               data: {
                 orgId,
                 name: stageName,
+                module: "OPPORTUNITY",
                 order: 1,
                 probability: 20,
               },
@@ -317,8 +318,10 @@ Example: "Close opportunity as won for Acme Corp"`,
               data: {
                 orgId,
                 name: "CLOSED_WON",
+                module: "OPPORTUNITY",
                 order: 100,
                 probability: 100,
+                isWon: true,
               },
             });
           }
