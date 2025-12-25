@@ -584,7 +584,6 @@ Example: "Onboard Acme Corp as new customer with $50k ARR"`,
               contractValue,
               status: "UPCOMING",
               probability: 90,
-              assignedToId: csManagerId || account.assignedToId,
             },
           });
 
