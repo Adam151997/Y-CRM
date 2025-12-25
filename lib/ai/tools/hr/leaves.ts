@@ -241,7 +241,7 @@ const approveLeaveTool = (orgId: string, userId: string) =>
             status: newStatus,
             approvedById: userId,
             approvedAt: new Date(),
-            approverComments: comments,
+            ...(action === "reject" && comments ? { rejectionReason: comments } : {}),
           },
         });
 
