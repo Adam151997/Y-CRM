@@ -60,6 +60,10 @@ const createEmployeeTool = (orgId: string, userId: string) =>
           ? (params.hireDate === "today" ? new Date() : new Date(params.hireDate))
           : new Date();
 
+        // Generate employee ID
+        const employeeCount = await prisma.employee.count({ where: { orgId } });
+        const employeeId = `EMP-${String(employeeCount + 1).padStart(4, "0")}`;
+
         const employee = await prisma.employee.create({
           data: {
             orgId,
@@ -69,6 +73,7 @@ const createEmployeeTool = (orgId: string, userId: string) =>
             phone: params.phone,
             department: params.department,
             position: params.position,
+            employeeId,
             employmentType: (params.employmentType as "FULL_TIME" | "PART_TIME" | "CONTRACT" | "INTERN") || "FULL_TIME",
             salary: params.salary,
             salaryType: (params.salaryType as "HOURLY" | "MONTHLY" | "ANNUAL") || "MONTHLY",
