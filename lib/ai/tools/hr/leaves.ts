@@ -104,10 +104,10 @@ const createLeaveTool = (orgId: string, userId: string) =>
           data: {
             orgId,
             employeeId: resolvedEmployeeId,
-            leaveType: params.leaveType as "ANNUAL" | "SICK" | "PERSONAL" | "MATERNITY" | "PATERNITY" | "UNPAID" | "OTHER",
+            type: params.leaveType,
             startDate,
             endDate,
-            totalDays,
+            days: totalDays,
             reason: params.reason,
             status: "PENDING",
             createdById: userId,
@@ -155,7 +155,7 @@ const searchLeavesTool = (orgId: string) =>
         const where: Record<string, unknown> = { orgId };
 
         if (status) where.status = status;
-        if (leaveType) where.leaveType = leaveType;
+        if (leaveType) where.type = leaveType;
 
         if (employeeId) {
           where.employeeId = employeeId;
@@ -188,14 +188,14 @@ const searchLeavesTool = (orgId: string) =>
         return {
           success: true,
           count: leaves.length,
-          leaves: leaves.map((l) => ({
+          leaves: leaves.map((l: { id: string; employee: { firstName: string; lastName: string; employeeId: string }; type: string; startDate: Date; endDate: Date; days: unknown; status: string; reason: string | null }) => ({
             id: l.id,
             employee: `${l.employee.firstName} ${l.employee.lastName}`,
             employeeNumber: l.employee.employeeId,
-            leaveType: l.leaveType,
+            leaveType: l.type,
             startDate: l.startDate.toISOString().split("T")[0],
             endDate: l.endDate.toISOString().split("T")[0],
-            totalDays: Number(l.totalDays),
+            totalDays: Number(l.days),
             status: l.status,
             reason: l.reason,
           })),
@@ -324,7 +324,7 @@ const getLeaveBalanceTool = (orgId: string) =>
         // Aggregate by leave type
         const usedByType: Record<string, number> = {};
         for (const leave of leaves) {
-          usedByType[leave.leaveType] = (usedByType[leave.leaveType] || 0) + Number(leave.totalDays);
+          usedByType[leave.type] = (usedByType[leave.type] || 0) + Number(leave.days);
         }
 
         // Standard allocation (could be made configurable)
@@ -391,15 +391,15 @@ const getPendingLeavesTool = (orgId: string) =>
         return {
           success: true,
           count: leaves.length,
-          pendingLeaves: leaves.map((l) => ({
+          pendingLeaves: leaves.map((l: { id: string; employee: { firstName: string; lastName: string; employeeId: string; department: string | null }; type: string; startDate: Date; endDate: Date; days: unknown; reason: string | null; createdAt: Date }) => ({
             id: l.id,
             employee: `${l.employee.firstName} ${l.employee.lastName}`,
             employeeNumber: l.employee.employeeId,
             department: l.employee.department,
-            leaveType: l.leaveType,
+            leaveType: l.type,
             startDate: l.startDate.toISOString().split("T")[0],
             endDate: l.endDate.toISOString().split("T")[0],
-            totalDays: Number(l.totalDays),
+            totalDays: Number(l.days),
             reason: l.reason,
             requestedAt: l.createdAt.toISOString(),
           })),
