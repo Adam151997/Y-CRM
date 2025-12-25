@@ -247,10 +247,11 @@ Examples:
           const hotOpportunities = await prisma.opportunity.findMany({
             where: {
               orgId,
-              stage: { in: ["PROPOSAL", "NEGOTIATION"] },
+              stage: { name: { in: ["PROPOSAL", "NEGOTIATION"] } },
             },
             include: {
               account: { select: { name: true } },
+              stage: { select: { name: true } },
             },
             orderBy: { value: "desc" },
             take: 3,
@@ -260,7 +261,7 @@ Examples:
             suggestions.push({
               type: "hot_opportunity",
               priority: "high",
-              message: `Opportunity "${opp.name}" ($${opp.value?.toNumber().toLocaleString() || 0}) in ${opp.stage} stage`,
+              message: `Opportunity "${opp.name}" ($${opp.value?.toNumber().toLocaleString() || 0}) in ${opp.stage.name} stage`,
               action: "Push to close",
               entityType: "opportunity",
               entityId: opp.id,
