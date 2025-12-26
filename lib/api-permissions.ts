@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
-import { 
-  requirePermission, 
-  PermissionError, 
+import {
+  requirePermission,
+  PermissionError,
   getPermissionContext,
   filterToAllowedFields,
   filterArrayToAllowedFields,
   canAccessRecord,
+  getUserPermissions,
   type ActionType,
   type RecordVisibility,
 } from "@/lib/permissions";
@@ -155,6 +156,40 @@ export function checkRecordAccess(
   if (!canAccessRecord(visibility, userId, recordAssignedToId)) {
     return NextResponse.json(
       { error: "You don't have permission to access this record" },
+      { status: 403 }
+    );
+  }
+  return null;
+}
+
+/**
+ * Check if user is an admin
+ * Returns true if user has admin role
+ */
+export async function isUserAdmin(
+  userId: string,
+  orgId: string
+): Promise<boolean> {
+  const userPermissions = await getUserPermissions(userId, orgId);
+  return userPermissions.isAdmin;
+}
+
+/**
+ * Require admin access for an API route
+ * Returns 403 response if user is not admin
+ *
+ * @example
+ * const adminError = await requireAdminAccess(auth.userId, auth.orgId);
+ * if (adminError) return adminError;
+ */
+export async function requireAdminAccess(
+  userId: string,
+  orgId: string
+): Promise<NextResponse<{ error: string }> | null> {
+  const isAdmin = await isUserAdmin(userId, orgId);
+  if (!isAdmin) {
+    return NextResponse.json(
+      { error: "This action requires administrator access" },
       { status: 403 }
     );
   }

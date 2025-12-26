@@ -3,7 +3,7 @@ import { getApiAuthContext } from "@/lib/auth";
 import { clerkClient } from "@clerk/nextjs/server";
 import prisma from "@/lib/db";
 import { z } from "zod";
-import { checkRoutePermission } from "@/lib/api-permissions";
+import { requireAdminAccess } from "@/lib/api-permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -25,9 +25,9 @@ export async function PUT(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Check settings edit permission
-    const permissionError = await checkRoutePermission(auth.userId, auth.orgId, "settings", "edit");
-    if (permissionError) return permissionError;
+    // Only admins can change user roles
+    const adminError = await requireAdminAccess(auth.userId, auth.orgId);
+    if (adminError) return adminError;
 
     const { userId } = await params;
     const body = await request.json();
@@ -113,9 +113,9 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Check settings delete permission
-    const permissionError = await checkRoutePermission(auth.userId, auth.orgId, "settings", "delete");
-    if (permissionError) return permissionError;
+    // Only admins can remove team members
+    const adminError = await requireAdminAccess(auth.userId, auth.orgId);
+    if (adminError) return adminError;
 
     const { userId } = await params;
 

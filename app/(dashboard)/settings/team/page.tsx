@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { Users, UserPlus, Mail, Loader2, Trash2, Clock } from "lucide-react";
+import { usePermissions } from "@/hooks/use-permissions";
 
 interface Role {
   id: string;
@@ -64,6 +65,7 @@ interface PendingInvite {
 }
 
 export default function TeamManagementPage() {
+  const { isAdmin } = usePermissions();
   const [loading, setLoading] = useState(true);
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([]);
@@ -241,13 +243,14 @@ export default function TeamManagementPage() {
               Manage your team members and their roles
             </CardDescription>
           </div>
-          <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <UserPlus className="h-4 w-4 mr-2" />
-                Invite User
-              </Button>
-            </DialogTrigger>
+          {isAdmin && (
+            <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Invite User
+                </Button>
+              </DialogTrigger>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Invite Team Member</DialogTitle>
@@ -304,7 +307,8 @@ export default function TeamManagementPage() {
                 </Button>
               </DialogFooter>
             </DialogContent>
-          </Dialog>
+            </Dialog>
+          )}
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Team Members */}
@@ -331,7 +335,7 @@ export default function TeamManagementPage() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                {member.clerkUserId === currentUserId ? (
+                {member.clerkUserId === currentUserId || !isAdmin ? (
                   <Badge variant="secondary">{member.role?.name || "No Role"}</Badge>
                 ) : (
                   <>
