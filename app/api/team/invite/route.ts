@@ -3,7 +3,7 @@ import { getApiAuthContext } from "@/lib/auth";
 import { clerkClient } from "@clerk/nextjs/server";
 import prisma from "@/lib/db";
 import { z } from "zod";
-import { checkRoutePermission } from "@/lib/api-permissions";
+import { requireAdminAccess } from "@/lib/api-permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -23,9 +23,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Check settings create permission
-    const permissionError = await checkRoutePermission(auth.userId, auth.orgId, "settings", "create");
-    if (permissionError) return permissionError;
+    // Only admins can invite new team members
+    const adminError = await requireAdminAccess(auth.userId, auth.orgId);
+    if (adminError) return adminError;
 
     const body = await request.json();
     const validated = inviteSchema.parse(body);
