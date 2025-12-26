@@ -66,8 +66,8 @@ function LeavesContent() {
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
-  const [status, setStatus] = useState(searchParams.get("status") || "");
-  const [type, setType] = useState(searchParams.get("type") || "");
+  const [status, setStatus] = useState(searchParams.get("status") || "all");
+  const [type, setType] = useState(searchParams.get("type") || "all");
 
   useEffect(() => {
     fetchLeaves();
@@ -80,8 +80,8 @@ function LeavesContent() {
         page: page.toString(),
         limit: "20",
       });
-      if (status) params.set("status", status);
-      if (type) params.set("type", type);
+      if (status && status !== "all") params.set("status", status);
+      if (type && type !== "all") params.set("type", type);
 
       const response = await fetch(`/api/leaves?${params}`);
       const data = await response.json();
@@ -125,7 +125,7 @@ function LeavesContent() {
                 <SelectValue placeholder="All Statuses" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Statuses</SelectItem>
+                <SelectItem value="all">All Statuses</SelectItem>
                 <SelectItem value="PENDING">Pending</SelectItem>
                 <SelectItem value="APPROVED">Approved</SelectItem>
                 <SelectItem value="REJECTED">Rejected</SelectItem>
@@ -137,7 +137,7 @@ function LeavesContent() {
                 <SelectValue placeholder="All Types" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Types</SelectItem>
+                <SelectItem value="all">All Types</SelectItem>
                 <SelectItem value="ANNUAL">Annual</SelectItem>
                 <SelectItem value="SICK">Sick</SelectItem>
                 <SelectItem value="UNPAID">Unpaid</SelectItem>

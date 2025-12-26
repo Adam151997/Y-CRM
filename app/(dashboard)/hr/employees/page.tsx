@@ -65,7 +65,7 @@ function EmployeesContent() {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [query, setQuery] = useState(searchParams.get("query") || "");
-  const [status, setStatus] = useState(searchParams.get("status") || "");
+  const [status, setStatus] = useState(searchParams.get("status") || "all");
   const [department, setDepartment] = useState(searchParams.get("department") || "");
 
   useEffect(() => {
@@ -80,7 +80,7 @@ function EmployeesContent() {
         limit: "20",
       });
       if (query) params.set("query", query);
-      if (status) params.set("status", status);
+      if (status && status !== "all") params.set("status", status);
       if (department) params.set("department", department);
 
       const response = await fetch(`/api/employees?${params}`);
@@ -142,7 +142,7 @@ function EmployeesContent() {
                 <SelectValue placeholder="All Statuses" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Statuses</SelectItem>
+                <SelectItem value="all">All Statuses</SelectItem>
                 <SelectItem value="ACTIVE">Active</SelectItem>
                 <SelectItem value="ON_LEAVE">On Leave</SelectItem>
                 <SelectItem value="TERMINATED">Terminated</SelectItem>

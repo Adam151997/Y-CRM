@@ -57,7 +57,7 @@ function PayrollContent() {
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
-  const [status, setStatus] = useState(searchParams.get("status") || "");
+  const [status, setStatus] = useState(searchParams.get("status") || "all");
   const [payPeriod, setPayPeriod] = useState(searchParams.get("payPeriod") || "");
 
   useEffect(() => {
@@ -71,7 +71,7 @@ function PayrollContent() {
         page: page.toString(),
         limit: "20",
       });
-      if (status) params.set("status", status);
+      if (status && status !== "all") params.set("status", status);
       if (payPeriod) params.set("payPeriod", payPeriod);
 
       const response = await fetch(`/api/payroll?${params}`);
@@ -123,7 +123,7 @@ function PayrollContent() {
                 <SelectValue placeholder="All Statuses" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Statuses</SelectItem>
+                <SelectItem value="all">All Statuses</SelectItem>
                 <SelectItem value="DRAFT">Draft</SelectItem>
                 <SelectItem value="PENDING">Pending</SelectItem>
                 <SelectItem value="APPROVED">Approved</SelectItem>
