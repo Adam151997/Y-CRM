@@ -72,7 +72,7 @@ interface DynamicSidebarProps {
 export function DynamicSidebar({ onNavigate }: DynamicSidebarProps) {
   const pathname = usePathname();
   const { workspace } = useWorkspace();
-  const { can, loading: permissionsLoading } = usePermissions();
+  const { can, loading: permissionsLoading, isAdmin } = usePermissions();
   const [collapsed, setCollapsed] = useState(false);
   const [customModules, setCustomModules] = useState<CustomModule[]>([]);
   const [branding, setBranding] = useState<Branding>({ brandName: "Y CRM", brandLogo: null });
@@ -94,6 +94,28 @@ export function DynamicSidebar({ onNavigate }: DynamicSidebarProps) {
       })
     }));
   }, [navigation, can, permissionsLoading]);
+
+  // Filter global navigation items based on permissions
+  const filteredGlobalNavigation = useMemo(() => {
+    if (permissionsLoading) return GLOBAL_NAVIGATION;
+
+    return GLOBAL_NAVIGATION.filter(item => {
+      if (!item.requiresPermission) return true;
+      return can(item.requiresPermission, "view");
+    });
+  }, [can, permissionsLoading]);
+
+  // Check if user can access documents
+  const canAccessDocuments = useMemo(() => {
+    if (permissionsLoading) return true;
+    return can("documents", "view");
+  }, [can, permissionsLoading]);
+
+  // Check if user can access settings (admin only)
+  const canAccessSettings = useMemo(() => {
+    if (permissionsLoading) return true;
+    return isAdmin;
+  }, [isAdmin, permissionsLoading]);
 
   // Fetch branding
   useEffect(() => {
@@ -314,7 +336,7 @@ export function DynamicSidebar({ onNavigate }: DynamicSidebarProps) {
         <div className="my-2 mx-1 border-t border-border" />
 
         {/* Global Navigation (Reports) */}
-        {GLOBAL_NAVIGATION.map((item) => {
+        {filteredGlobalNavigation.map((item) => {
           const active = isGlobalActive(item.href);
           return (
             <Link
@@ -338,45 +360,49 @@ export function DynamicSidebar({ onNavigate }: DynamicSidebarProps) {
         })}
 
         {/* Documents */}
-        <Link
-          href="/documents"
-          prefetch={true}
-          onClick={handleNavClick}
-          className={cn(
-            "flex items-center px-2.5 py-1.5 text-sm font-medium rounded-md transition-colors",
-            isGlobalActive("/documents")
-              ? "bg-background text-foreground shadow-sm border border-border"
-              : "text-muted-foreground hover:bg-background/80 hover:text-foreground",
-            collapsed && "justify-center px-2"
-          )}
-          title={collapsed ? "Documents" : undefined}
-        >
-          <FileText className={cn("h-4 w-4 flex-shrink-0", !collapsed && "mr-2.5")} />
-          {!collapsed && <span className="truncate">Documents</span>}
-        </Link>
-      </nav>
-
-      {/* Bottom Section - Settings & User */}
-      <div className="border-t border-border">
-        {/* Settings Link */}
-        <div className="px-2 py-2">
+        {canAccessDocuments && (
           <Link
-            href="/settings"
+            href="/documents"
             prefetch={true}
             onClick={handleNavClick}
             className={cn(
               "flex items-center px-2.5 py-1.5 text-sm font-medium rounded-md transition-colors",
-              isGlobalActive("/settings")
+              isGlobalActive("/documents")
                 ? "bg-background text-foreground shadow-sm border border-border"
                 : "text-muted-foreground hover:bg-background/80 hover:text-foreground",
               collapsed && "justify-center px-2"
             )}
-            title={collapsed ? "Settings" : undefined}
+            title={collapsed ? "Documents" : undefined}
           >
-            <Settings className={cn("h-4 w-4 flex-shrink-0", !collapsed && "mr-2.5")} />
-            {!collapsed && <span className="truncate">Settings</span>}
+            <FileText className={cn("h-4 w-4 flex-shrink-0", !collapsed && "mr-2.5")} />
+            {!collapsed && <span className="truncate">Documents</span>}
           </Link>
-        </div>
+        )}
+      </nav>
+
+      {/* Bottom Section - Settings & User */}
+      <div className="border-t border-border">
+        {/* Settings Link - Admin only */}
+        {canAccessSettings && (
+          <div className="px-2 py-2">
+            <Link
+              href="/settings"
+              prefetch={true}
+              onClick={handleNavClick}
+              className={cn(
+                "flex items-center px-2.5 py-1.5 text-sm font-medium rounded-md transition-colors",
+                isGlobalActive("/settings")
+                  ? "bg-background text-foreground shadow-sm border border-border"
+                  : "text-muted-foreground hover:bg-background/80 hover:text-foreground",
+                collapsed && "justify-center px-2"
+              )}
+              title={collapsed ? "Settings" : undefined}
+            >
+              <Settings className={cn("h-4 w-4 flex-shrink-0", !collapsed && "mr-2.5")} />
+              {!collapsed && <span className="truncate">Settings</span>}
+            </Link>
+          </div>
+        )}
 
         {/* User Section */}
         <div className="p-3 border-t border-border">

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, createContext, useContext, ReactNode } from "react";
+import { WorkspaceType, WORKSPACE_MODULES } from "@/lib/workspace";
 
 // =============================================================================
 // Types
@@ -33,6 +34,9 @@ interface PermissionsContextValue {
   can: (module: string, action: ActionType) => boolean;
   canAccessField: (module: string, field: string, action: "view" | "edit") => boolean;
   getAllowedFields: (module: string, action: "view" | "edit") => string[] | null;
+  canAccessWorkspace: (workspace: WorkspaceType) => boolean;
+  getAccessibleWorkspaces: () => WorkspaceType[];
+  isAdmin: boolean;
 }
 
 // =============================================================================
@@ -120,6 +124,28 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
     [permissions]
   );
 
+  // Check if user can access a workspace (has access to ANY module in that workspace)
+  const canAccessWorkspace = useCallback(
+    (workspace: WorkspaceType): boolean => {
+      if (!permissions) return false;
+      if (permissions.isAdmin) return true;
+
+      const modules = WORKSPACE_MODULES[workspace] || [];
+      return modules.some((module) => can(module, "view"));
+    },
+    [permissions, can]
+  );
+
+  // Get list of workspaces the user can access
+  const getAccessibleWorkspaces = useCallback((): WorkspaceType[] => {
+    if (!permissions) return [];
+    if (permissions.isAdmin) return Object.keys(WORKSPACE_MODULES) as WorkspaceType[];
+
+    return (Object.keys(WORKSPACE_MODULES) as WorkspaceType[]).filter((workspace) =>
+      canAccessWorkspace(workspace)
+    );
+  }, [permissions, canAccessWorkspace]);
+
   return (
     <PermissionsContext.Provider
       value={{
@@ -130,6 +156,9 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
         can,
         canAccessField,
         getAllowedFields,
+        canAccessWorkspace,
+        getAccessibleWorkspaces,
+        isAdmin: permissions?.isAdmin || false,
       }}
     >
       {children}
@@ -143,7 +172,7 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
 
 export function usePermissions(): PermissionsContextValue {
   const context = useContext(PermissionsContext);
-  
+
   if (!context) {
     // Return safe defaults if used outside provider
     return {
@@ -154,6 +183,9 @@ export function usePermissions(): PermissionsContextValue {
       can: () => false,
       canAccessField: () => false,
       getAllowedFields: () => null,
+      canAccessWorkspace: () => false,
+      getAccessibleWorkspaces: () => [],
+      isAdmin: false,
     };
   }
 
@@ -236,6 +268,28 @@ export function usePermissionsStandalone() {
     [permissions]
   );
 
+  // Check if user can access a workspace (has access to ANY module in that workspace)
+  const canAccessWorkspace = useCallback(
+    (workspace: WorkspaceType): boolean => {
+      if (!permissions) return false;
+      if (permissions.isAdmin) return true;
+
+      const modules = WORKSPACE_MODULES[workspace] || [];
+      return modules.some((module) => can(module, "view"));
+    },
+    [permissions, can]
+  );
+
+  // Get list of workspaces the user can access
+  const getAccessibleWorkspaces = useCallback((): WorkspaceType[] => {
+    if (!permissions) return [];
+    if (permissions.isAdmin) return Object.keys(WORKSPACE_MODULES) as WorkspaceType[];
+
+    return (Object.keys(WORKSPACE_MODULES) as WorkspaceType[]).filter((workspace) =>
+      canAccessWorkspace(workspace)
+    );
+  }, [permissions, canAccessWorkspace]);
+
   return {
     permissions,
     loading,
@@ -244,6 +298,8 @@ export function usePermissionsStandalone() {
     can,
     canAccessField,
     getAllowedFields,
+    canAccessWorkspace,
+    getAccessibleWorkspaces,
     role: permissions?.role || null,
     isAdmin: permissions?.isAdmin || false,
   };

@@ -1,15 +1,20 @@
-﻿export { 
-  WorkspaceProvider, 
-  useWorkspace, 
-  useWorkspaceSafe, 
+﻿export {
+  WorkspaceProvider,
+  useWorkspace,
+  useWorkspaceSafe,
   detectWorkspaceFromPath,
   isGlobalRoutePath,
-  WORKSPACES 
+  WORKSPACES
 } from "./workspace-context";
 export type { WorkspaceType, WorkspaceConfig } from "./workspace-context";
-export { 
-  WORKSPACE_NAVIGATION, 
+export {
+  WORKSPACE_NAVIGATION,
   GLOBAL_NAVIGATION,
-  getWorkspaceNavigation 
+  getWorkspaceNavigation
 } from "./navigation-config";
 export type { NavItem, NavSection } from "./navigation-config";
+export {
+  WORKSPACE_MODULES,
+  getWorkspaceModules,
+  getModuleWorkspace,
+} from "./module-mapping";

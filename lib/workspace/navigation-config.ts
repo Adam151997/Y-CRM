@@ -42,12 +42,12 @@ const salesNavigation: NavSection[] = [
   {
     items: [
       { name: "Dashboard", href: "/sales", icon: LayoutDashboard },
-      { name: "AI Assistant", href: "/sales/assistant", icon: Sparkles, highlight: true },
-      { name: "Leads", href: "/sales/leads", icon: Users },
-      { name: "Opportunities", href: "/sales/opportunities", icon: Target },
-      { name: "Pipeline Board", href: "/sales/pipeline", icon: FolderKanban },
-      { name: "Contacts", href: "/sales/contacts", icon: UserCircle },
-      { name: "Accounts", href: "/sales/accounts", icon: Building2 },
+      { name: "AI Assistant", href: "/sales/assistant", icon: Sparkles, highlight: true, requiresPermission: "ai_assistant" },
+      { name: "Leads", href: "/sales/leads", icon: Users, requiresPermission: "leads" },
+      { name: "Opportunities", href: "/sales/opportunities", icon: Target, requiresPermission: "opportunities" },
+      { name: "Pipeline Board", href: "/sales/pipeline", icon: FolderKanban, requiresPermission: "opportunities" },
+      { name: "Contacts", href: "/sales/contacts", icon: UserCircle, requiresPermission: "contacts" },
+      { name: "Accounts", href: "/sales/accounts", icon: Building2, requiresPermission: "accounts" },
       { name: "Invoices", href: "/sales/invoices", icon: FileText, requiresPermission: "invoices" },
       { name: "Inventory", href: "/sales/inventory", icon: Package, requiresPermission: "inventory" },
       { name: "Tasks", href: "/sales/tasks", icon: CheckSquare, requiresPermission: "tasks" },
@@ -60,13 +60,13 @@ const csNavigation: NavSection[] = [
   {
     items: [
       { name: "Dashboard", href: "/cs", icon: LayoutDashboard },
-      { name: "AI Assistant", href: "/cs/assistant", icon: Sparkles, highlight: true },
-      { name: "Tickets", href: "/cs/tickets", icon: Ticket },
-      { name: "Health Scores", href: "/cs/health", icon: HeartPulse },
-      { name: "Renewals", href: "/cs/renewals", icon: RefreshCw },
-      { name: "Accounts", href: "/cs/accounts", icon: Building2 },
-      { name: "Playbooks", href: "/cs/playbooks", icon: BookOpen },
-      { name: "Tasks", href: "/cs/tasks", icon: CheckSquare },
+      { name: "AI Assistant", href: "/cs/assistant", icon: Sparkles, highlight: true, requiresPermission: "ai_assistant" },
+      { name: "Tickets", href: "/cs/tickets", icon: Ticket, requiresPermission: "tickets" },
+      { name: "Health Scores", href: "/cs/health", icon: HeartPulse, requiresPermission: "health_scores" },
+      { name: "Renewals", href: "/cs/renewals", icon: RefreshCw, requiresPermission: "renewals" },
+      { name: "Accounts", href: "/cs/accounts", icon: Building2, requiresPermission: "accounts" },
+      { name: "Playbooks", href: "/cs/playbooks", icon: BookOpen, requiresPermission: "playbooks" },
+      { name: "Tasks", href: "/cs/tasks", icon: CheckSquare, requiresPermission: "tasks" },
     ],
   },
 ];
@@ -76,10 +76,10 @@ const marketingNavigation: NavSection[] = [
   {
     items: [
       { name: "Dashboard", href: "/marketing", icon: LayoutDashboard },
-      { name: "AI Assistant", href: "/marketing/assistant", icon: Sparkles, highlight: true },
-      { name: "Campaigns", href: "/marketing/campaigns", icon: Megaphone },
-      { name: "Segments", href: "/marketing/segments", icon: UsersRound },
-      { name: "Forms", href: "/marketing/forms", icon: FileInput },
+      { name: "AI Assistant", href: "/marketing/assistant", icon: Sparkles, highlight: true, requiresPermission: "ai_assistant" },
+      { name: "Campaigns", href: "/marketing/campaigns", icon: Megaphone, requiresPermission: "campaigns" },
+      { name: "Segments", href: "/marketing/segments", icon: UsersRound, requiresPermission: "segments" },
+      { name: "Forms", href: "/marketing/forms", icon: FileInput, requiresPermission: "forms" },
     ],
   },
 ];
@@ -89,7 +89,7 @@ const hrNavigation: NavSection[] = [
   {
     items: [
       { name: "Dashboard", href: "/hr", icon: LayoutDashboard },
-      { name: "AI Assistant", href: "/hr/assistant", icon: Sparkles, highlight: true },
+      { name: "AI Assistant", href: "/hr/assistant", icon: Sparkles, highlight: true, requiresPermission: "ai_assistant" },
       { name: "Employees", href: "/hr/employees", icon: Users, requiresPermission: "employees" },
       { name: "Leaves", href: "/hr/leaves", icon: Calendar, requiresPermission: "leaves" },
       { name: "Payroll", href: "/hr/payroll", icon: DollarSign, requiresPermission: "payroll" },
@@ -113,5 +113,5 @@ export function getWorkspaceNavigation(workspace: WorkspaceType): NavSection[] {
 
 // Global navigation - available across all workspaces
 export const GLOBAL_NAVIGATION: NavItem[] = [
-  { name: "Reports", href: "/reports", icon: BarChart3 },
+  { name: "Reports", href: "/reports", icon: BarChart3, requiresPermission: "reports" },
 ];
