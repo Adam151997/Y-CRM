@@ -30,23 +30,32 @@ export interface UserPermissions {
 
 // Built-in modules
 export const BUILT_IN_MODULES = [
+  // Sales modules
   "leads",
   "contacts",
   "accounts",
   "opportunities",
-  "tasks",
-  "documents",
-  "tickets",
-  "campaigns",
   "invoices",
   "inventory",
-  "reports",
-  "settings",
-  "ai_assistant",
+  // CS modules
+  "tickets",
+  "health_scores",
+  "renewals",
+  "playbooks",
+  // Marketing modules
+  "campaigns",
+  "segments",
+  "forms",
   // HR modules
   "employees",
   "leaves",
   "payroll",
+  // Shared modules
+  "tasks",
+  "documents",
+  "reports",
+  "settings",
+  "ai_assistant",
 ] as const;
 
 // Modules that require admin-level access by default

@@ -15,8 +15,9 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useWorkspace, WORKSPACES, WorkspaceType } from "@/lib/workspace";
+import { usePermissions } from "@/hooks/use-permissions";
 
 interface WorkspaceSwitcherProps {
   variant?: "sidebar" | "header";
@@ -25,7 +26,24 @@ interface WorkspaceSwitcherProps {
 export function WorkspaceSwitcher({ variant = "sidebar" }: WorkspaceSwitcherProps) {
   const router = useRouter();
   const { workspace, config } = useWorkspace();
+  const { canAccessWorkspace, loading: permissionsLoading, isAdmin } = usePermissions();
   const [open, setOpen] = useState(false);
+
+  // Filter workspaces based on user permissions
+  const accessibleWorkspaces = useMemo(() => {
+    // While loading, show current workspace only to avoid flash
+    if (permissionsLoading) {
+      return [WORKSPACES[workspace]];
+    }
+
+    // Admins see all workspaces
+    if (isAdmin) {
+      return Object.values(WORKSPACES);
+    }
+
+    // Filter to only accessible workspaces
+    return Object.values(WORKSPACES).filter((ws) => canAccessWorkspace(ws.key));
+  }, [permissionsLoading, isAdmin, canAccessWorkspace, workspace]);
 
   const handleSelect = (selectedWorkspace: WorkspaceType) => {
     setOpen(false);
@@ -34,6 +52,11 @@ export function WorkspaceSwitcher({ variant = "sidebar" }: WorkspaceSwitcherProp
       router.push(`/${selectedWorkspace}`);
     }
   };
+
+  // Don't render switcher if user has access to only one workspace
+  if (accessibleWorkspaces.length <= 1 && !permissionsLoading) {
+    return null;
+  }
 
   // Header variant - compact horizontal style
   if (variant === "header") {
@@ -54,7 +77,7 @@ export function WorkspaceSwitcher({ variant = "sidebar" }: WorkspaceSwitcherProp
           <Command>
             <CommandList>
               <CommandGroup heading="Workspaces">
-                {Object.values(WORKSPACES).map((ws) => (
+                {accessibleWorkspaces.map((ws) => (
                   <CommandItem
                     key={ws.key}
                     value={ws.key}
@@ -96,7 +119,7 @@ export function WorkspaceSwitcher({ variant = "sidebar" }: WorkspaceSwitcherProp
         <Command>
           <CommandList>
             <CommandGroup heading="Workspaces">
-              {Object.values(WORKSPACES).map((ws) => (
+              {accessibleWorkspaces.map((ws) => (
                 <CommandItem
                   key={ws.key}
                   value={ws.key}
