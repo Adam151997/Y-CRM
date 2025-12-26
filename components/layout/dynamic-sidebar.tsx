@@ -111,11 +111,18 @@ export function DynamicSidebar({ onNavigate }: DynamicSidebarProps) {
     return can("documents", "view");
   }, [can, permissionsLoading]);
 
-  // Check if user can access settings (admin only)
+  // Check if user can access settings (based on permissions panel)
   const canAccessSettings = useMemo(() => {
     if (permissionsLoading) return true;
-    return isAdmin;
-  }, [isAdmin, permissionsLoading]);
+    return can("settings", "view");
+  }, [can, permissionsLoading]);
+
+  // Filter custom modules based on permissions
+  const filteredCustomModules = useMemo(() => {
+    if (permissionsLoading) return customModules;
+
+    return customModules.filter((module) => can(module.slug, "view"));
+  }, [customModules, can, permissionsLoading]);
 
   // Fetch branding
   useEffect(() => {
@@ -302,10 +309,10 @@ export function DynamicSidebar({ onNavigate }: DynamicSidebarProps) {
         ))}
 
         {/* Custom Modules */}
-        {customModules.length > 0 && (
+        {filteredCustomModules.length > 0 && (
           <>
             <div className="my-2 mx-1 border-t border-border" />
-            {customModules.map((module) => {
+            {filteredCustomModules.map((module) => {
               const moduleActive = pathname.startsWith(`/modules/${module.slug}`);
               const IconComponent = iconMap[module.icon] || Box;
               
