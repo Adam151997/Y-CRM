@@ -177,7 +177,7 @@ export default async function EmployeeDetailPage({ params }: EmployeeDetailPageP
                   <Mail className="h-4 w-4 text-muted-foreground" />
                   <div>
                     <p className="text-sm text-muted-foreground">Email</p>
-                    <a href={\`mailto:\${employee.email}\`} className="text-primary hover:underline">
+                    <a href={`mailto:${employee.email}`} className="text-primary hover:underline">
                       {employee.email}
                     </a>
                   </div>
@@ -187,7 +187,7 @@ export default async function EmployeeDetailPage({ params }: EmployeeDetailPageP
                     <Phone className="h-4 w-4 text-muted-foreground" />
                     <div>
                       <p className="text-sm text-muted-foreground">Phone</p>
-                      <a href={\`tel:\${employee.phone}\`} className="text-primary hover:underline">
+                      <a href={`tel:${employee.phone}`} className="text-primary hover:underline">
                         {employee.phone}
                       </a>
                     </div>
