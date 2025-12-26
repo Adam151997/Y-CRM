@@ -5,6 +5,7 @@ import prisma from "@/lib/db";
 import { createAuditLog } from "@/lib/audit";
 import { Prisma } from "@prisma/client";
 import { validateRelationships } from "@/lib/relationships";
+import { checkRoutePermission } from "@/lib/api-permissions";
 
 interface RouteParams {
   params: Promise<{ slug: string }>;
@@ -155,6 +156,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const { slug } = await params;
     const { searchParams } = new URL(request.url);
 
+    // Check view permission for this custom module
+    const permissionError = await checkRoutePermission(auth.userId, auth.orgId, slug, "view");
+    if (permissionError) return permissionError;
+
     // Get the module
     const module = await getModuleBySlug(auth.orgId, slug);
     if (!module) {
@@ -238,6 +243,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     const { slug } = await params;
+
+    // Check create permission for this custom module
+    const permissionError = await checkRoutePermission(auth.userId, auth.orgId, slug, "create");
+    if (permissionError) return permissionError;
+
     const body = await request.json();
 
     // Get the module with fields

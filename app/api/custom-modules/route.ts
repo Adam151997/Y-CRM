@@ -24,6 +24,7 @@ const createModuleSchema = z.object({
 /**
  * GET /api/custom-modules
  * List all custom modules for the organization
+ * No settings permission required - sidebar will filter based on individual module permissions
  */
 export async function GET(request: NextRequest) {
   try {
@@ -31,10 +32,6 @@ export async function GET(request: NextRequest) {
     if (!auth) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
-    // Check settings view permission
-    const permissionError = await checkRoutePermission(auth.userId, auth.orgId, "settings", "view");
-    if (permissionError) return permissionError;
 
     const { searchParams } = new URL(request.url);
     const activeOnly = searchParams.get("active") !== "false";
