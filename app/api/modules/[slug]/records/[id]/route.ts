@@ -4,6 +4,7 @@ import prisma from "@/lib/db";
 import { createAuditLog } from "@/lib/audit";
 import { Prisma } from "@prisma/client";
 import { getReferencingRecords, validateRelationships } from "@/lib/relationships";
+import { checkRoutePermission } from "@/lib/api-permissions";
 
 interface RouteParams {
   params: Promise<{ slug: string; id: string }>;
@@ -21,6 +22,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     const { slug, id } = await params;
+
+    // Check view permission for this custom module
+    const permissionError = await checkRoutePermission(auth.userId, auth.orgId, slug, "view");
+    if (permissionError) return permissionError;
 
     // Get the module
     const module = await prisma.customModule.findFirst({
@@ -75,6 +80,11 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     }
 
     const { slug, id } = await params;
+
+    // Check edit permission for this custom module
+    const permissionError = await checkRoutePermission(auth.userId, auth.orgId, slug, "edit");
+    if (permissionError) return permissionError;
+
     const body = await request.json();
 
     // Get the module
@@ -190,6 +200,10 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     }
 
     const { slug, id } = await params;
+
+    // Check delete permission for this custom module
+    const permissionError = await checkRoutePermission(auth.userId, auth.orgId, slug, "delete");
+    if (permissionError) return permissionError;
 
     // Get the module
     const module = await prisma.customModule.findFirst({
