@@ -7,7 +7,6 @@ import { UserButton } from "@clerk/nextjs";
 import {
   ChevronLeft,
   ChevronRight,
-  Mic,
   Settings,
   FileText,
   Box,
@@ -254,21 +253,6 @@ export function DynamicSidebar({ onNavigate }: DynamicSidebarProps) {
           </Button>
         </div>
       )}
-
-      {/* Voice Command Button */}
-      <div className="p-2 border-b border-border">
-        <Link href={`/${workspace}/assistant`} onClick={handleNavClick}>
-          <Button
-            className={cn(
-              "w-full h-9 bg-gradient-to-r from-[#FF5757] to-[#FF3D3D] hover:from-[#FF4040] hover:to-[#FF2020] text-white font-medium",
-              collapsed && "px-0"
-            )}
-          >
-            <Mic className="h-4 w-4" />
-            {!collapsed && <span className="ml-2 text-sm">Voice Command</span>}
-          </Button>
-        </Link>
-      </div>
 
       {/* Main Navigation */}
       <nav className="flex-1 px-2 py-2 space-y-0.5 overflow-y-auto">
