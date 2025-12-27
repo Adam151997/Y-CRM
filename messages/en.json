@@ -361,5 +361,42 @@
     "title": "Notifications",
     "markAllRead": "Mark all read",
     "noNotifications": "No notifications yet"
+  },
+  "modules": {
+    "leads": {
+      "title": "Leads",
+      "description": "Manage and track your sales leads",
+      "addLead": "Add Lead"
+    },
+    "contacts": {
+      "title": "Contacts",
+      "description": "Manage your business contacts",
+      "addContact": "Add Contact"
+    },
+    "accounts": {
+      "title": "Accounts",
+      "description": "Manage your customer accounts",
+      "addAccount": "Add Account"
+    },
+    "opportunities": {
+      "title": "Opportunities",
+      "description": "Track and manage your sales opportunities",
+      "addOpportunity": "Add Opportunity"
+    },
+    "tasks": {
+      "title": "Tasks",
+      "description": "Manage your tasks and activities",
+      "addTask": "Add Task"
+    },
+    "tickets": {
+      "title": "Tickets",
+      "description": "Manage customer support tickets",
+      "addTicket": "Add Ticket"
+    },
+    "invoices": {
+      "title": "Invoices",
+      "description": "Manage billing and invoices",
+      "addInvoice": "Add Invoice"
+    }
   }
 }

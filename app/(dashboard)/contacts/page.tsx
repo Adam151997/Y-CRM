@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { getAuthContext } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,8 @@ interface ContactsPageProps {
 
 export default async function ContactsPage({ searchParams }: ContactsPageProps) {
   const { orgId, userId } = await getAuthContext();
+  const t = await getTranslations("modules.contacts");
+  const tCommon = await getTranslations("common");
   const params = await searchParams;
 
   const page = parseInt(params.page || "1");
@@ -82,15 +85,15 @@ export default async function ContactsPage({ searchParams }: ContactsPageProps) 
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Contacts</h2>
+          <h2 className="text-2xl font-bold tracking-tight">{t("title")}</h2>
           <p className="text-muted-foreground">
-            Manage your business contacts and relationships
+            {t("description")}
           </p>
         </div>
         <Button asChild>
           <Link href="/contacts/new">
             <Plus className="h-4 w-4 mr-2" />
-            Add Contact
+            {t("addContact")}
           </Link>
         </Button>
       </div>
@@ -105,7 +108,7 @@ export default async function ContactsPage({ searchParams }: ContactsPageProps) 
       />
 
       {/* Table */}
-      <Suspense fallback={<div>Loading contacts...</div>}>
+      <Suspense fallback={<div>{tCommon("loading")}</div>}>
         <ContactsTable
           contacts={contacts}
           page={page}

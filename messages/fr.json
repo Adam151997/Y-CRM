@@ -361,5 +361,42 @@
     "title": "Notifications",
     "markAllRead": "Tout marquer comme lu",
     "noNotifications": "Aucune notification pour le moment"
+  },
+  "modules": {
+    "leads": {
+      "title": "Prospects",
+      "description": "Gérez et suivez vos prospects commerciaux",
+      "addLead": "Ajouter un Prospect"
+    },
+    "contacts": {
+      "title": "Contacts",
+      "description": "Gérez vos contacts professionnels",
+      "addContact": "Ajouter un Contact"
+    },
+    "accounts": {
+      "title": "Comptes",
+      "description": "Gérez les comptes de vos clients",
+      "addAccount": "Ajouter un Compte"
+    },
+    "opportunities": {
+      "title": "Opportunités",
+      "description": "Suivez et gérez vos opportunités de vente",
+      "addOpportunity": "Ajouter une Opportunité"
+    },
+    "tasks": {
+      "title": "Tâches",
+      "description": "Gérez vos tâches et activités",
+      "addTask": "Ajouter une Tâche"
+    },
+    "tickets": {
+      "title": "Tickets",
+      "description": "Gérez les tickets de support client",
+      "addTicket": "Ajouter un Ticket"
+    },
+    "invoices": {
+      "title": "Factures",
+      "description": "Gérez la facturation et les factures",
+      "addInvoice": "Ajouter une Facture"
+    }
   }
 }

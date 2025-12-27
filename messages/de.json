@@ -361,5 +361,42 @@
     "title": "Benachrichtigungen",
     "markAllRead": "Alle als gelesen markieren",
     "noNotifications": "Noch keine Benachrichtigungen"
+  },
+  "modules": {
+    "leads": {
+      "title": "Leads",
+      "description": "Verwalten und verfolgen Sie Ihre Verkaufsleads",
+      "addLead": "Lead hinzufügen"
+    },
+    "contacts": {
+      "title": "Kontakte",
+      "description": "Verwalten Sie Ihre Geschäftskontakte",
+      "addContact": "Kontakt hinzufügen"
+    },
+    "accounts": {
+      "title": "Konten",
+      "description": "Verwalten Sie Ihre Kundenkonten",
+      "addAccount": "Konto hinzufügen"
+    },
+    "opportunities": {
+      "title": "Verkaufschancen",
+      "description": "Verfolgen und verwalten Sie Ihre Verkaufschancen",
+      "addOpportunity": "Verkaufschance hinzufügen"
+    },
+    "tasks": {
+      "title": "Aufgaben",
+      "description": "Verwalten Sie Ihre Aufgaben und Aktivitäten",
+      "addTask": "Aufgabe hinzufügen"
+    },
+    "tickets": {
+      "title": "Tickets",
+      "description": "Verwalten Sie Kundensupport-Tickets",
+      "addTicket": "Ticket hinzufügen"
+    },
+    "invoices": {
+      "title": "Rechnungen",
+      "description": "Verwalten Sie Rechnungen und Abrechnung",
+      "addInvoice": "Rechnung hinzufügen"
+    }
   }
 }

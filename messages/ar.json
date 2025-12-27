@@ -361,5 +361,42 @@
     "title": "الإشعارات",
     "markAllRead": "تحديد الكل كمقروء",
     "noNotifications": "لا توجد إشعارات بعد"
+  },
+  "modules": {
+    "leads": {
+      "title": "العملاء المحتملون",
+      "description": "إدارة وتتبع العملاء المحتملين",
+      "addLead": "إضافة عميل محتمل"
+    },
+    "contacts": {
+      "title": "جهات الاتصال",
+      "description": "إدارة جهات الاتصال التجارية",
+      "addContact": "إضافة جهة اتصال"
+    },
+    "accounts": {
+      "title": "الحسابات",
+      "description": "إدارة حسابات العملاء",
+      "addAccount": "إضافة حساب"
+    },
+    "opportunities": {
+      "title": "الفرص",
+      "description": "تتبع وإدارة فرص المبيعات",
+      "addOpportunity": "إضافة فرصة"
+    },
+    "tasks": {
+      "title": "المهام",
+      "description": "إدارة المهام والأنشطة",
+      "addTask": "إضافة مهمة"
+    },
+    "tickets": {
+      "title": "التذاكر",
+      "description": "إدارة تذاكر دعم العملاء",
+      "addTicket": "إضافة تذكرة"
+    },
+    "invoices": {
+      "title": "الفواتير",
+      "description": "إدارة الفواتير والفوترة",
+      "addInvoice": "إضافة فاتورة"
+    }
   }
 }
