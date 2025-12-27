@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -52,6 +53,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 function PayrollContent() {
   const searchParams = useSearchParams();
+  const t = useTranslations("modules.payroll");
 
   const [payrolls, setPayrolls] = useState<Payroll[]>([]);
   const [loading, setLoading] = useState(true);
@@ -100,16 +102,16 @@ function PayrollContent() {
         <div>
           <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
             <DollarSign className="h-6 w-6" />
-            Payroll Management
+            {t("title")}
           </h2>
           <p className="text-muted-foreground">
-            Process and manage employee payroll
+            {t("description")}
           </p>
         </div>
         <Button asChild>
           <Link href="/hr/payroll/new">
             <Plus className="h-4 w-4 mr-2" />
-            Create Payroll
+            {t("addPayroll")}
           </Link>
         </Button>
       </div>

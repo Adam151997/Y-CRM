@@ -3,6 +3,7 @@
 import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -57,6 +58,7 @@ function formatCurrency(amount: number, currency: string = "USD"): string {
 function InventoryContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const t = useTranslations("modules.inventory");
   const [data, setData] = useState<InventoryData | null>(null);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
@@ -146,15 +148,15 @@ function InventoryContent() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Inventory</h1>
+          <h1 className="text-2xl font-bold">{t("title")}</h1>
           <p className="text-muted-foreground">
-            Manage products, track stock levels, and monitor inventory
+            {t("description")}
           </p>
         </div>
         <Button asChild>
           <Link href="/sales/inventory/new">
             <Plus className="h-4 w-4 mr-2" />
-            New Item
+            {t("addItem")}
           </Link>
         </Button>
       </div>

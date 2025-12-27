@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { getTranslations } from "next-intl/server";
 import { getAuthContext } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { getCachedLeadStages } from "@/lib/cache";
@@ -20,6 +21,7 @@ interface LeadsPageProps {
 
 export default async function LeadsPage({ searchParams }: LeadsPageProps) {
   const { orgId, userId } = await getAuthContext();
+  const t = await getTranslations("modules.leads");
   const params = await searchParams;
 
   const page = parseInt(params.page || "1");
@@ -77,9 +79,9 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Leads</h2>
+          <h2 className="text-2xl font-bold tracking-tight">{t("title")}</h2>
           <p className="text-muted-foreground">
-            Manage and track your sales leads
+            {t("description")}
           </p>
         </div>
         <AddLeadButton />

@@ -92,6 +92,24 @@
     "hr": "Ressources Humaines",
     "switchWorkspace": "Changer d'espace de travail"
   },
+  "dashboard": {
+    "sales": {
+      "title": "Tableau de bord Ventes",
+      "description": "Suivez votre pipeline, vos affaires et vos performances commerciales"
+    },
+    "cs": {
+      "title": "Tableau de bord Succès Client",
+      "description": "Surveillez la santé client, les tickets de support et le succès des comptes"
+    },
+    "marketing": {
+      "title": "Hub Marketing",
+      "description": "Campagnes, segments et génération de prospects"
+    },
+    "hr": {
+      "title": "Tableau de bord RH",
+      "description": "Gérez les employés, les demandes de congés et la paie"
+    }
+  },
   "settings": {
     "title": "Paramètres",
     "subtitle": "Gérez votre compte et les préférences de l'organisation",
@@ -312,5 +330,118 @@
     "deleted": "Supprimé avec succès",
     "imported": "Importé avec succès",
     "exported": "Exporté avec succès"
+  },
+  "search": {
+    "title": "Rechercher",
+    "placeholder": "Rechercher...",
+    "inputPlaceholder": "Rechercher prospects, contacts, comptes...",
+    "minChars": "Tapez au moins 2 caractères pour rechercher",
+    "searchAcross": "Rechercher dans les prospects, contacts, comptes et plus",
+    "searching": "Recherche en cours...",
+    "noResults": "Aucun résultat trouvé pour \"{query}\"",
+    "tryDifferent": "Essayez un autre terme de recherche",
+    "navigate": "naviguer",
+    "select": "sélectionner",
+    "close": "fermer",
+    "types": {
+      "lead": "Prospect",
+      "contact": "Contact",
+      "account": "Compte",
+      "opportunity": "Opportunité",
+      "task": "Tâche",
+      "ticket": "Ticket",
+      "document": "Document",
+      "invoice": "Facture",
+      "renewal": "Renouvellement",
+      "campaign": "Campagne",
+      "custom": "Personnalisé"
+    }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "markAllRead": "Tout marquer comme lu",
+    "noNotifications": "Aucune notification pour le moment"
+  },
+  "modules": {
+    "leads": {
+      "title": "Prospects",
+      "description": "Gérez et suivez vos prospects commerciaux",
+      "addLead": "Ajouter un Prospect"
+    },
+    "contacts": {
+      "title": "Contacts",
+      "description": "Gérez vos contacts professionnels",
+      "addContact": "Ajouter un Contact"
+    },
+    "accounts": {
+      "title": "Comptes",
+      "description": "Gérez les comptes de vos clients",
+      "addAccount": "Ajouter un Compte"
+    },
+    "opportunities": {
+      "title": "Opportunités",
+      "description": "Suivez et gérez vos opportunités de vente",
+      "addOpportunity": "Ajouter une Opportunité"
+    },
+    "tasks": {
+      "title": "Tâches",
+      "description": "Gérez vos tâches et activités",
+      "addTask": "Ajouter une Tâche"
+    },
+    "tickets": {
+      "title": "Tickets",
+      "description": "Gérez les tickets de support client",
+      "addTicket": "Ajouter un Ticket"
+    },
+    "invoices": {
+      "title": "Factures",
+      "description": "Gérez la facturation et les factures",
+      "addInvoice": "Ajouter une Facture"
+    },
+    "inventory": {
+      "title": "Inventaire",
+      "description": "Gérez les produits, suivez les niveaux de stock et surveillez l'inventaire",
+      "addItem": "Nouvel Article"
+    },
+    "renewals": {
+      "title": "Renouvellements",
+      "description": "Suivez et gérez les renouvellements de contrats",
+      "addRenewal": "Nouveau Renouvellement"
+    },
+    "playbooks": {
+      "title": "Playbooks",
+      "description": "Flux de travail standardisés pour la réussite client",
+      "addPlaybook": "Nouveau Playbook"
+    },
+    "campaigns": {
+      "title": "Campagnes",
+      "description": "Créez et gérez des campagnes marketing",
+      "addCampaign": "Nouvelle Campagne"
+    },
+    "segments": {
+      "title": "Segments",
+      "description": "Créez des segments d'audience dynamiques pour des campagnes ciblées",
+      "addSegment": "Nouveau Segment"
+    },
+    "forms": {
+      "title": "Formulaires",
+      "description": "Créez des formulaires de capture de leads pour votre site web",
+      "addForm": "Nouveau Formulaire"
+    },
+    "employees": {
+      "title": "Employés",
+      "description": "Gérez les dossiers et informations des employés",
+      "addEmployee": "Ajouter un Employé"
+    },
+    "leaves": {
+      "title": "Gestion des Congés",
+      "description": "Suivez et gérez les demandes de congés des employés",
+      "addLeave": "Demander un Congé"
+    },
+    "payroll": {
+      "title": "Gestion de la Paie",
+      "description": "Traitez et gérez la paie des employés",
+      "addPayroll": "Créer une Paie"
+    }
   }
 }

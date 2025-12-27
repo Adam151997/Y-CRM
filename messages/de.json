@@ -92,6 +92,24 @@
     "hr": "Personalwesen",
     "switchWorkspace": "Arbeitsbereich wechseln"
   },
+  "dashboard": {
+    "sales": {
+      "title": "Vertriebs-Dashboard",
+      "description": "Verfolgen Sie Ihre Pipeline, Deals und Vertriebsleistung"
+    },
+    "cs": {
+      "title": "Kundenerfolgs-Dashboard",
+      "description": "Überwachen Sie Kundengesundheit, Support-Tickets und Kontoerfolg"
+    },
+    "marketing": {
+      "title": "Marketing-Hub",
+      "description": "Kampagnen, Segmente und Lead-Generierung"
+    },
+    "hr": {
+      "title": "HR-Dashboard",
+      "description": "Verwalten Sie Mitarbeiter, Urlaubsanträge und Gehaltsabrechnung"
+    }
+  },
   "settings": {
     "title": "Einstellungen",
     "subtitle": "Verwalten Sie Ihr Konto und Ihre Organisationseinstellungen",
@@ -312,5 +330,118 @@
     "deleted": "Erfolgreich gelöscht",
     "imported": "Erfolgreich importiert",
     "exported": "Erfolgreich exportiert"
+  },
+  "search": {
+    "title": "Suche",
+    "placeholder": "Suchen...",
+    "inputPlaceholder": "Leads, Kontakte, Konten durchsuchen...",
+    "minChars": "Geben Sie mindestens 2 Zeichen ein",
+    "searchAcross": "Suchen Sie in Leads, Kontakten, Konten und mehr",
+    "searching": "Suche läuft...",
+    "noResults": "Keine Ergebnisse gefunden für \"{query}\"",
+    "tryDifferent": "Versuchen Sie einen anderen Suchbegriff",
+    "navigate": "navigieren",
+    "select": "auswählen",
+    "close": "schließen",
+    "types": {
+      "lead": "Lead",
+      "contact": "Kontakt",
+      "account": "Konto",
+      "opportunity": "Verkaufschance",
+      "task": "Aufgabe",
+      "ticket": "Ticket",
+      "document": "Dokument",
+      "invoice": "Rechnung",
+      "renewal": "Verlängerung",
+      "campaign": "Kampagne",
+      "custom": "Benutzerdefiniert"
+    }
+  },
+  "notifications": {
+    "title": "Benachrichtigungen",
+    "markAllRead": "Alle als gelesen markieren",
+    "noNotifications": "Noch keine Benachrichtigungen"
+  },
+  "modules": {
+    "leads": {
+      "title": "Leads",
+      "description": "Verwalten und verfolgen Sie Ihre Verkaufsleads",
+      "addLead": "Lead hinzufügen"
+    },
+    "contacts": {
+      "title": "Kontakte",
+      "description": "Verwalten Sie Ihre Geschäftskontakte",
+      "addContact": "Kontakt hinzufügen"
+    },
+    "accounts": {
+      "title": "Konten",
+      "description": "Verwalten Sie Ihre Kundenkonten",
+      "addAccount": "Konto hinzufügen"
+    },
+    "opportunities": {
+      "title": "Verkaufschancen",
+      "description": "Verfolgen und verwalten Sie Ihre Verkaufschancen",
+      "addOpportunity": "Verkaufschance hinzufügen"
+    },
+    "tasks": {
+      "title": "Aufgaben",
+      "description": "Verwalten Sie Ihre Aufgaben und Aktivitäten",
+      "addTask": "Aufgabe hinzufügen"
+    },
+    "tickets": {
+      "title": "Tickets",
+      "description": "Verwalten Sie Kundensupport-Tickets",
+      "addTicket": "Ticket hinzufügen"
+    },
+    "invoices": {
+      "title": "Rechnungen",
+      "description": "Verwalten Sie Rechnungen und Abrechnung",
+      "addInvoice": "Rechnung hinzufügen"
+    },
+    "inventory": {
+      "title": "Inventar",
+      "description": "Produkte verwalten, Lagerbestände verfolgen und Inventar überwachen",
+      "addItem": "Neuer Artikel"
+    },
+    "renewals": {
+      "title": "Verlängerungen",
+      "description": "Vertragsverlängerungen verfolgen und verwalten",
+      "addRenewal": "Neue Verlängerung"
+    },
+    "playbooks": {
+      "title": "Playbooks",
+      "description": "Standardisierte Workflows für Kundenerfolg",
+      "addPlaybook": "Neues Playbook"
+    },
+    "campaigns": {
+      "title": "Kampagnen",
+      "description": "Marketing-Kampagnen erstellen und verwalten",
+      "addCampaign": "Neue Kampagne"
+    },
+    "segments": {
+      "title": "Segmente",
+      "description": "Dynamische Zielgruppensegmente für gezielte Kampagnen erstellen",
+      "addSegment": "Neues Segment"
+    },
+    "forms": {
+      "title": "Formulare",
+      "description": "Lead-Erfassungsformulare für Ihre Website erstellen",
+      "addForm": "Neues Formular"
+    },
+    "employees": {
+      "title": "Mitarbeiter",
+      "description": "Mitarbeiterdaten und -informationen verwalten",
+      "addEmployee": "Mitarbeiter hinzufügen"
+    },
+    "leaves": {
+      "title": "Urlaubsverwaltung",
+      "description": "Urlaubsanträge der Mitarbeiter verfolgen und verwalten",
+      "addLeave": "Urlaub beantragen"
+    },
+    "payroll": {
+      "title": "Lohnbuchhaltung",
+      "description": "Mitarbeitergehälter verarbeiten und verwalten",
+      "addPayroll": "Gehaltsabrechnung erstellen"
+    }
   }
 }

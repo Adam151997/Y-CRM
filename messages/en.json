@@ -92,6 +92,24 @@
     "hr": "Human Resources",
     "switchWorkspace": "Switch Workspace"
   },
+  "dashboard": {
+    "sales": {
+      "title": "Sales Dashboard",
+      "description": "Track your pipeline, deals, and sales performance"
+    },
+    "cs": {
+      "title": "Customer Success Dashboard",
+      "description": "Monitor customer health, support tickets, and account success"
+    },
+    "marketing": {
+      "title": "Marketing Hub",
+      "description": "Campaigns, segments, and lead generation"
+    },
+    "hr": {
+      "title": "HR Dashboard",
+      "description": "Manage employees, leave requests, and payroll"
+    }
+  },
   "settings": {
     "title": "Settings",
     "subtitle": "Manage your account and organization preferences",
@@ -312,5 +330,118 @@
     "deleted": "Deleted successfully",
     "imported": "Imported successfully",
     "exported": "Exported successfully"
+  },
+  "search": {
+    "title": "Search",
+    "placeholder": "Search...",
+    "inputPlaceholder": "Search leads, contacts, accounts...",
+    "minChars": "Type at least 2 characters to search",
+    "searchAcross": "Search across leads, contacts, accounts, and more",
+    "searching": "Searching...",
+    "noResults": "No results found for \"{query}\"",
+    "tryDifferent": "Try a different search term",
+    "navigate": "navigate",
+    "select": "select",
+    "close": "close",
+    "types": {
+      "lead": "Lead",
+      "contact": "Contact",
+      "account": "Account",
+      "opportunity": "Opportunity",
+      "task": "Task",
+      "ticket": "Ticket",
+      "document": "Document",
+      "invoice": "Invoice",
+      "renewal": "Renewal",
+      "campaign": "Campaign",
+      "custom": "Custom"
+    }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "markAllRead": "Mark all read",
+    "noNotifications": "No notifications yet"
+  },
+  "modules": {
+    "leads": {
+      "title": "Leads",
+      "description": "Manage and track your sales leads",
+      "addLead": "Add Lead"
+    },
+    "contacts": {
+      "title": "Contacts",
+      "description": "Manage your business contacts",
+      "addContact": "Add Contact"
+    },
+    "accounts": {
+      "title": "Accounts",
+      "description": "Manage your customer accounts",
+      "addAccount": "Add Account"
+    },
+    "opportunities": {
+      "title": "Opportunities",
+      "description": "Track and manage your sales opportunities",
+      "addOpportunity": "Add Opportunity"
+    },
+    "tasks": {
+      "title": "Tasks",
+      "description": "Manage your tasks and activities",
+      "addTask": "Add Task"
+    },
+    "tickets": {
+      "title": "Tickets",
+      "description": "Manage customer support tickets",
+      "addTicket": "Add Ticket"
+    },
+    "invoices": {
+      "title": "Invoices",
+      "description": "Manage billing and invoices",
+      "addInvoice": "Add Invoice"
+    },
+    "inventory": {
+      "title": "Inventory",
+      "description": "Manage products, track stock levels, and monitor inventory",
+      "addItem": "New Item"
+    },
+    "renewals": {
+      "title": "Renewals",
+      "description": "Track and manage contract renewals",
+      "addRenewal": "New Renewal"
+    },
+    "playbooks": {
+      "title": "Playbooks",
+      "description": "Standardized workflows for customer success",
+      "addPlaybook": "New Playbook"
+    },
+    "campaigns": {
+      "title": "Campaigns",
+      "description": "Create and manage marketing campaigns",
+      "addCampaign": "New Campaign"
+    },
+    "segments": {
+      "title": "Segments",
+      "description": "Create dynamic audience segments for targeted campaigns",
+      "addSegment": "New Segment"
+    },
+    "forms": {
+      "title": "Forms",
+      "description": "Create lead capture forms for your website",
+      "addForm": "New Form"
+    },
+    "employees": {
+      "title": "Employees",
+      "description": "Manage employee records and information",
+      "addEmployee": "Add Employee"
+    },
+    "leaves": {
+      "title": "Leave Management",
+      "description": "Track and manage employee leave requests",
+      "addLeave": "Request Leave"
+    },
+    "payroll": {
+      "title": "Payroll Management",
+      "description": "Process and manage employee payroll",
+      "addPayroll": "Create Payroll"
+    }
   }
 }

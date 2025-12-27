@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { getAuthContext } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,6 +16,7 @@ interface PageProps {
 
 export default async function FormsPage({ searchParams }: PageProps) {
   const { orgId } = await getAuthContext();
+  const t = await getTranslations("modules.forms");
   const params = await searchParams;
   
   const page = parseInt(params.page || "1");
@@ -47,15 +49,15 @@ export default async function FormsPage({ searchParams }: PageProps) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Forms</h1>
+          <h1 className="text-2xl font-bold">{t("title")}</h1>
           <p className="text-muted-foreground">
-            Create lead capture forms for your website
+            {t("description")}
           </p>
         </div>
         <Button asChild>
           <Link href="/marketing/forms/new">
             <Plus className="h-4 w-4 mr-2" />
-            New Form
+            {t("addForm")}
           </Link>
         </Button>
       </div>

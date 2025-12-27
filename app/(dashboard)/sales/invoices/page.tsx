@@ -3,6 +3,7 @@
 import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, FileText, Clock, CheckCircle, AlertCircle, Download, Loader2, X } from "lucide-react";
@@ -50,6 +51,7 @@ interface InvoicesData {
 function InvoicesContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const t = useTranslations("modules.invoices");
   const [data, setData] = useState<InvoicesData | null>(null);
   const [loading, setLoading] = useState(true);
   const [accounts, setAccounts] = useState<{ id: string; name: string }[]>([]);
@@ -180,15 +182,15 @@ function InvoicesContent() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Invoices</h1>
+          <h1 className="text-2xl font-bold">{t("title")}</h1>
           <p className="text-muted-foreground">
-            Manage your invoices and track payments
+            {t("description")}
           </p>
         </div>
         <Button asChild>
           <Link href="/sales/invoices/new">
             <Plus className="h-4 w-4 mr-2" />
-            New Invoice
+            {t("addInvoice")}
           </Link>
         </Button>
       </div>

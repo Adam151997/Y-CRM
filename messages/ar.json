@@ -92,6 +92,24 @@
     "hr": "الموارد البشرية",
     "switchWorkspace": "تبديل مساحة العمل"
   },
+  "dashboard": {
+    "sales": {
+      "title": "لوحة تحكم المبيعات",
+      "description": "تتبع خط الأنابيب والصفقات وأداء المبيعات"
+    },
+    "cs": {
+      "title": "لوحة تحكم نجاح العملاء",
+      "description": "مراقبة صحة العملاء وتذاكر الدعم ونجاح الحسابات"
+    },
+    "marketing": {
+      "title": "مركز التسويق",
+      "description": "الحملات والشرائح وتوليد العملاء المحتملين"
+    },
+    "hr": {
+      "title": "لوحة تحكم الموارد البشرية",
+      "description": "إدارة الموظفين وطلبات الإجازة والرواتب"
+    }
+  },
   "settings": {
     "title": "الإعدادات",
     "subtitle": "إدارة حسابك وتفضيلات المؤسسة",
@@ -312,5 +330,118 @@
     "deleted": "تم الحذف بنجاح",
     "imported": "تم الاستيراد بنجاح",
     "exported": "تم التصدير بنجاح"
+  },
+  "search": {
+    "title": "بحث",
+    "placeholder": "بحث...",
+    "inputPlaceholder": "البحث في العملاء المحتملين، جهات الاتصال، الحسابات...",
+    "minChars": "اكتب حرفين على الأقل للبحث",
+    "searchAcross": "البحث في العملاء المحتملين، جهات الاتصال، الحسابات، والمزيد",
+    "searching": "جاري البحث...",
+    "noResults": "لم يتم العثور على نتائج لـ \"{query}\"",
+    "tryDifferent": "جرب مصطلح بحث مختلف",
+    "navigate": "تنقل",
+    "select": "اختيار",
+    "close": "إغلاق",
+    "types": {
+      "lead": "عميل محتمل",
+      "contact": "جهة اتصال",
+      "account": "حساب",
+      "opportunity": "فرصة",
+      "task": "مهمة",
+      "ticket": "تذكرة",
+      "document": "مستند",
+      "invoice": "فاتورة",
+      "renewal": "تجديد",
+      "campaign": "حملة",
+      "custom": "مخصص"
+    }
+  },
+  "notifications": {
+    "title": "الإشعارات",
+    "markAllRead": "تحديد الكل كمقروء",
+    "noNotifications": "لا توجد إشعارات بعد"
+  },
+  "modules": {
+    "leads": {
+      "title": "العملاء المحتملون",
+      "description": "إدارة وتتبع العملاء المحتملين",
+      "addLead": "إضافة عميل محتمل"
+    },
+    "contacts": {
+      "title": "جهات الاتصال",
+      "description": "إدارة جهات الاتصال التجارية",
+      "addContact": "إضافة جهة اتصال"
+    },
+    "accounts": {
+      "title": "الحسابات",
+      "description": "إدارة حسابات العملاء",
+      "addAccount": "إضافة حساب"
+    },
+    "opportunities": {
+      "title": "الفرص",
+      "description": "تتبع وإدارة فرص المبيعات",
+      "addOpportunity": "إضافة فرصة"
+    },
+    "tasks": {
+      "title": "المهام",
+      "description": "إدارة المهام والأنشطة",
+      "addTask": "إضافة مهمة"
+    },
+    "tickets": {
+      "title": "التذاكر",
+      "description": "إدارة تذاكر دعم العملاء",
+      "addTicket": "إضافة تذكرة"
+    },
+    "invoices": {
+      "title": "الفواتير",
+      "description": "إدارة الفواتير والفوترة",
+      "addInvoice": "إضافة فاتورة"
+    },
+    "inventory": {
+      "title": "المخزون",
+      "description": "إدارة المنتجات وتتبع مستويات المخزون",
+      "addItem": "عنصر جديد"
+    },
+    "renewals": {
+      "title": "التجديدات",
+      "description": "تتبع وإدارة تجديدات العقود",
+      "addRenewal": "تجديد جديد"
+    },
+    "playbooks": {
+      "title": "دليل العمل",
+      "description": "سير عمل موحد لنجاح العملاء",
+      "addPlaybook": "دليل جديد"
+    },
+    "campaigns": {
+      "title": "الحملات",
+      "description": "إنشاء وإدارة الحملات التسويقية",
+      "addCampaign": "حملة جديدة"
+    },
+    "segments": {
+      "title": "الشرائح",
+      "description": "إنشاء شرائح جمهور ديناميكية للحملات المستهدفة",
+      "addSegment": "شريحة جديدة"
+    },
+    "forms": {
+      "title": "النماذج",
+      "description": "إنشاء نماذج لجمع العملاء المحتملين لموقعك",
+      "addForm": "نموذج جديد"
+    },
+    "employees": {
+      "title": "الموظفون",
+      "description": "إدارة سجلات ومعلومات الموظفين",
+      "addEmployee": "إضافة موظف"
+    },
+    "leaves": {
+      "title": "إدارة الإجازات",
+      "description": "تتبع وإدارة طلبات إجازات الموظفين",
+      "addLeave": "طلب إجازة"
+    },
+    "payroll": {
+      "title": "إدارة الرواتب",
+      "description": "معالجة وإدارة رواتب الموظفين",
+      "addPayroll": "إنشاء كشف رواتب"
+    }
   }
 }

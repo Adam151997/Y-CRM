@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -61,6 +62,7 @@ const TYPE_LABELS: Record<string, string> = {
 
 function LeavesContent() {
   const searchParams = useSearchParams();
+  const t = useTranslations("modules.leaves");
 
   const [leaves, setLeaves] = useState<Leave[]>([]);
   const [loading, setLoading] = useState(true);
@@ -102,16 +104,16 @@ function LeavesContent() {
         <div>
           <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
             <Calendar className="h-6 w-6" />
-            Leave Management
+            {t("title")}
           </h2>
           <p className="text-muted-foreground">
-            Track and manage employee leave requests
+            {t("description")}
           </p>
         </div>
         <Button asChild>
           <Link href="/hr/leaves/new">
             <Plus className="h-4 w-4 mr-2" />
-            Request Leave
+            {t("addLeave")}
           </Link>
         </Button>
       </div>
