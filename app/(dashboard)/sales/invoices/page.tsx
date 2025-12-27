@@ -105,7 +105,7 @@ function InvoicesContent() {
     draft: data?.invoices.filter(i => i.status === "DRAFT").length || 0,
     outstanding: data?.invoices
       .filter(i => ["SENT", "VIEWED", "PARTIALLY_PAID", "OVERDUE"].includes(i.status))
-      .reduce((sum, i) => sum + (typeof i.amountDue === 'number' ? i.amountDue : 0), 0) || 0,
+      .reduce((sum, i) => sum + (Number(i.amountDue) || 0), 0) || 0,
     overdue: data?.invoices.filter(i => i.status === "OVERDUE").length || 0,
   };
 
