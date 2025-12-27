@@ -53,7 +53,7 @@ const SAMPLE_HEADERS: Record<ImportModule, string> = {
   contacts: "First Name,Last Name,Email,Phone,Title,Department",
   accounts: "Name,Website,Phone,Industry,Type,Annual Revenue,Employee Count",
   tasks: "Title,Description,Due Date,Priority,Status,Task Type",
-  inventory: "SKU,Name,Description,Category,Unit Price,Cost Price,Quantity,Reorder Level",
+  inventory: "SKU,Name,Description,Category,Unit Price,Cost Price,Stock Level,Reorder Level",
   opportunities: "Name,Value,Currency,Probability,Expected Close Date,Stage",
   employees: "Employee ID,First Name,Last Name,Email,Phone,Department,Position,Employment Type,Salary,Currency,Join Date",
 };

@@ -98,7 +98,9 @@ const FIELD_MAPPINGS: Record<ImportModule, Record<string, string>> = {
     "unit price": "unitPrice",
     "cost_price": "costPrice",
     "cost price": "costPrice",
-    "quantity": "quantity",
+    "quantity": "stockLevel",
+    "stock_level": "stockLevel",
+    "stock level": "stockLevel",
     "reorder_level": "reorderLevel",
     "reorder level": "reorderLevel",
   },
@@ -163,7 +165,7 @@ function mapFields(row: Record<string, string>, module: ImportModule): Record<st
       if (mappedField === "annualRevenue" || mappedField === "value" || mappedField === "unitPrice" || mappedField === "costPrice" || mappedField === "salary") {
         const numValue = parseFloat(value.replace(/[^0-9.-]/g, ""));
         result[mappedField] = isNaN(numValue) ? null : numValue;
-      } else if (mappedField === "employeeCount" || mappedField === "probability" || mappedField === "quantity" || mappedField === "reorderLevel") {
+      } else if (mappedField === "employeeCount" || mappedField === "probability" || mappedField === "stockLevel" || mappedField === "reorderLevel") {
         const intValue = parseInt(value.replace(/[^0-9-]/g, ""), 10);
         result[mappedField] = isNaN(intValue) ? null : intValue;
       } else if (mappedField === "expectedCloseDate" || mappedField === "dueDate" || mappedField === "joinDate") {
@@ -324,7 +326,7 @@ async function importRecords(
               category: data.category as string | undefined,
               unitPrice: (data.unitPrice as number) ?? 0,
               costPrice: (data.costPrice as number) ?? 0,
-              quantity: (data.quantity as number) || 0,
+              stockLevel: (data.stockLevel as number) ?? 0,
               reorderLevel: (data.reorderLevel as number) ?? 0,
             },
           });
