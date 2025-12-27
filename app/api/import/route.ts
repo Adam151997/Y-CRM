@@ -338,7 +338,7 @@ async function importRecords(
             data: {
               orgId,
               name: data.name as string,
-              value: data.value as number | undefined,
+              value: (data.value as number) ?? 0,
               currency: (data.currency as string) || "USD",
               probability: data.probability as number | undefined,
               expectedCloseDate: data.expectedCloseDate as Date | undefined,
