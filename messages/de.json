@@ -115,10 +115,11 @@
     "language": {
       "title": "Sprachen",
       "description": "Wählen Sie Ihre bevorzugte Sprache für die Oberfläche",
+      "orgDescription": "Legen Sie die Anzeigesprache für alle Benutzer in Ihrer Organisation fest",
       "select": "Sprache auswählen",
       "current": "Aktuelle Sprache",
       "available": "Verfügbare Sprachen",
-      "switchSuccess": "Sprache erfolgreich geändert",
+      "switchSuccess": "Sprache erfolgreich geändert. Alle Benutzer sehen jetzt diese Sprache.",
       "switchError": "Sprache konnte nicht geändert werden"
     },
     "organization": {

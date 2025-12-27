@@ -115,10 +115,11 @@
     "language": {
       "title": "Langues",
       "description": "Choisissez votre langue préférée pour l'interface",
+      "orgDescription": "Définissez la langue d'affichage pour tous les utilisateurs de votre organisation",
       "select": "Sélectionner la langue",
       "current": "Langue actuelle",
       "available": "Langues disponibles",
-      "switchSuccess": "Langue modifiée avec succès",
+      "switchSuccess": "Langue modifiée avec succès. Tous les utilisateurs verront cette langue maintenant.",
       "switchError": "Échec du changement de langue"
     },
     "organization": {
