@@ -319,7 +319,7 @@ async function importRecords(
             data: {
               orgId,
               name: data.name as string,
-              sku: data.sku as string | undefined,
+              sku: (data.sku as string) || `SKU-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`,
               description: data.description as string | undefined,
               category: data.category as string | undefined,
               unitPrice: data.unitPrice as number | undefined,
