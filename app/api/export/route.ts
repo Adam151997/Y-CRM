@@ -13,7 +13,7 @@ import Papa from "papaparse";
 // Force dynamic to prevent static generation error
 export const dynamic = "force-dynamic";
 
-type ExportModule = "leads" | "contacts" | "accounts" | "opportunities" | "tasks" | "tickets" | "invoices";
+type ExportModule = "leads" | "contacts" | "accounts" | "opportunities" | "tasks" | "tickets" | "invoices" | "employees" | "leaves" | "payroll";
 
 // Map export module names to audit module names
 const AUDIT_MODULE_MAP: Record<ExportModule, AuditModule> = {
@@ -24,6 +24,9 @@ const AUDIT_MODULE_MAP: Record<ExportModule, AuditModule> = {
   tasks: "TASK",
   tickets: "TICKET",
   invoices: "INVOICE",
+  employees: "EMPLOYEE",
+  leaves: "LEAVE",
+  payroll: "PAYROLL",
 };
 
 const MODULE_CONFIGS: Record<ExportModule, {
@@ -57,6 +60,18 @@ const MODULE_CONFIGS: Record<ExportModule, {
   invoices: {
     fields: ["invoiceNumber", "status", "issueDate", "dueDate", "currency", "subtotal", "taxAmount", "discountAmount", "total", "amountPaid", "amountDue", "createdAt"],
     headers: ["Invoice Number", "Status", "Issue Date", "Due Date", "Currency", "Subtotal", "Tax Amount", "Discount Amount", "Total", "Amount Paid", "Amount Due", "Created At"],
+  },
+  employees: {
+    fields: ["employeeId", "firstName", "lastName", "email", "phone", "department", "position", "status", "employmentType", "salary", "currency", "joinDate", "createdAt"],
+    headers: ["Employee ID", "First Name", "Last Name", "Email", "Phone", "Department", "Position", "Status", "Employment Type", "Salary", "Currency", "Join Date", "Created At"],
+  },
+  leaves: {
+    fields: ["leaveType", "startDate", "endDate", "totalDays", "status", "reason", "createdAt"],
+    headers: ["Leave Type", "Start Date", "End Date", "Total Days", "Status", "Reason", "Created At"],
+  },
+  payroll: {
+    fields: ["payPeriodStart", "payPeriodEnd", "baseSalary", "overtime", "bonus", "commission", "taxDeduction", "insuranceDeduction", "retirementDeduction", "otherDeductions", "netPay", "currency", "status", "paymentMethod", "paidAt", "createdAt"],
+    headers: ["Pay Period Start", "Pay Period End", "Base Salary", "Overtime", "Bonus", "Commission", "Tax Deduction", "Insurance Deduction", "Retirement Deduction", "Other Deductions", "Net Pay", "Currency", "Status", "Payment Method", "Paid At", "Created At"],
   },
 };
 
@@ -104,6 +119,21 @@ async function fetchRecords(module: ExportModule, orgId: string, filters?: Recor
         where,
         orderBy: { createdAt: "desc" },
       });
+    case "employees":
+      return prisma.employee.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+      });
+    case "leaves":
+      return prisma.leave.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+      });
+    case "payroll":
+      return prisma.payroll.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+      });
     default:
       throw new Error(`Unknown module: ${module}`);
   }
@@ -148,7 +178,7 @@ export async function GET(request: NextRequest) {
 
     if (!module || !MODULE_CONFIGS[module]) {
       return NextResponse.json(
-        { error: "Invalid module. Valid options: leads, contacts, accounts, opportunities, tasks, tickets, invoices" },
+        { error: "Invalid module. Valid options: leads, contacts, accounts, opportunities, tasks, tickets, invoices, employees, leaves, payroll" },
         { status: 400 }
       );
     }
