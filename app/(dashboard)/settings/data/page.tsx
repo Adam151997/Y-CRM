@@ -196,7 +196,7 @@ export default function DataManagementPage() {
             <li>Accounts: Name</li>
             <li>Tasks: Title</li>
             <li>Inventory: Name</li>
-            <li>Employees: First Name, Last Name</li>
+            <li>Employees: First Name, Last Name, Email</li>
           </ul>
           <p>
             <strong>Tips:</strong>

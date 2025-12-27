@@ -230,8 +230,8 @@ async function importRecords(
         continue;
       }
 
-      if (module === "employees" && (!data.firstName || !data.lastName)) {
-        result.errors.push({ row: rowNum, error: "Missing required fields: firstName, lastName" });
+      if (module === "employees" && (!data.firstName || !data.lastName || !data.email)) {
+        result.errors.push({ row: rowNum, error: "Missing required fields: firstName, lastName, email" });
         result.failed++;
         continue;
       }
@@ -320,10 +320,10 @@ async function importRecords(
           await prisma.employee.create({
             data: {
               orgId,
-              employeeId: data.employeeId as string | undefined,
+              employeeId: (data.employeeId as string) || `EMP-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`,
               firstName: data.firstName as string,
               lastName: data.lastName as string,
-              email: data.email as string | undefined,
+              email: data.email as string,
               phone: data.phone as string | undefined,
               department: data.department as string | undefined,
               position: data.position as string | undefined,
