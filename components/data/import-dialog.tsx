@@ -23,7 +23,7 @@ import { Upload, FileSpreadsheet, CheckCircle2, XCircle, AlertCircle } from "luc
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-type ImportModule = "leads" | "contacts" | "accounts" | "tasks" | "inventory" | "opportunities" | "employees";
+type ImportModule = "leads" | "contacts" | "accounts" | "tasks" | "inventory" | "employees";
 
 interface ImportResult {
   success: boolean;
@@ -44,7 +44,6 @@ const MODULE_OPTIONS = [
   { value: "accounts", label: "Accounts" },
   { value: "tasks", label: "Tasks" },
   { value: "inventory", label: "Inventory" },
-  { value: "opportunities", label: "Opportunities" },
   { value: "employees", label: "Employees" },
 ];
 
@@ -54,7 +53,6 @@ const SAMPLE_HEADERS: Record<ImportModule, string> = {
   accounts: "Name,Website,Phone,Industry,Type,Annual Revenue,Employee Count",
   tasks: "Title,Description,Due Date,Priority,Status,Task Type",
   inventory: "SKU,Name,Description,Category,Unit Price,Cost Price,Stock Level,Reorder Level",
-  opportunities: "Name,Value,Currency,Probability,Expected Close Date,Stage",
   employees: "Employee ID,First Name,Last Name,Email,Phone,Department,Position,Employment Type,Salary,Currency,Join Date",
 };
 

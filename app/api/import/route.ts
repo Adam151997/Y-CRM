@@ -13,14 +13,13 @@ import Papa from "papaparse";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-type ImportModule = "leads" | "contacts" | "accounts" | "opportunities" | "tasks" | "inventory" | "employees";
+type ImportModule = "leads" | "contacts" | "accounts" | "tasks" | "inventory" | "employees";
 
 // Map import module names to audit module names
 const AUDIT_MODULE_MAP: Record<ImportModule, AuditModule> = {
   leads: "LEAD",
   contacts: "CONTACT",
   accounts: "ACCOUNT",
-  opportunities: "OPPORTUNITY",
   tasks: "TASK",
   inventory: "INVENTORY",
   employees: "EMPLOYEE",
@@ -71,15 +70,6 @@ const FIELD_MAPPINGS: Record<ImportModule, Record<string, string>> = {
     "annual_revenue": "annualRevenue",
     "employees": "employeeCount",
     "employee_count": "employeeCount",
-  },
-  opportunities: {
-    "name": "name",
-    "deal_name": "name",
-    "value": "value",
-    "amount": "value",
-    "probability": "probability",
-    "expected_close_date": "expectedCloseDate",
-    "close_date": "expectedCloseDate",
   },
   tasks: {
     "title": "title",
@@ -135,7 +125,6 @@ const VALID_VALUES: Record<string, Record<string, string[]>> = {
   accounts: {
     type: ["PROSPECT", "CUSTOMER", "PARTNER", "VENDOR"],
   },
-  opportunities: {},
   tasks: {
     priority: ["LOW", "MEDIUM", "HIGH", "URGENT"],
     status: ["PENDING", "IN_PROGRESS", "COMPLETED", "CANCELLED"],
@@ -241,12 +230,6 @@ async function importRecords(
         continue;
       }
 
-      if (module === "opportunities" && !data.name) {
-        result.errors.push({ row: rowNum, error: "Missing required field: name" });
-        result.failed++;
-        continue;
-      }
-
       if (module === "employees" && (!data.firstName || !data.lastName)) {
         result.errors.push({ row: rowNum, error: "Missing required fields: firstName, lastName" });
         result.failed++;
@@ -333,19 +316,6 @@ async function importRecords(
           });
           break;
 
-        case "opportunities":
-          await prisma.opportunity.create({
-            data: {
-              orgId,
-              name: data.name as string,
-              value: (data.value as number) ?? 0,
-              currency: (data.currency as string) || "USD",
-              probability: data.probability as number | undefined,
-              expectedCloseDate: data.expectedCloseDate as Date | undefined,
-            },
-          });
-          break;
-
         case "employees":
           await prisma.employee.create({
             data: {
@@ -414,7 +384,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
-    if (!module || !["leads", "contacts", "accounts", "opportunities", "tasks", "inventory", "employees"].includes(module)) {
+    if (!module || !["leads", "contacts", "accounts", "tasks", "inventory", "employees"].includes(module)) {
       return NextResponse.json({ error: "Invalid module" }, { status: 400 });
     }
 

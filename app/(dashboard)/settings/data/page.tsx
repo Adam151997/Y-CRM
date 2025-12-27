@@ -34,7 +34,6 @@ export default function DataManagementPage() {
                 <li>Accounts (name, website, industry, etc.)</li>
                 <li>Tasks (title, due date, priority, etc.)</li>
                 <li>Inventory (SKU, name, price, quantity, etc.)</li>
-                <li>Opportunities (name, value, probability, etc.)</li>
                 <li>Employees (name, email, department, salary, etc.)</li>
               </ul>
             </div>
@@ -197,7 +196,6 @@ export default function DataManagementPage() {
             <li>Accounts: Name</li>
             <li>Tasks: Title</li>
             <li>Inventory: Name</li>
-            <li>Opportunities: Name</li>
             <li>Employees: First Name, Last Name</li>
           </ul>
           <p>
