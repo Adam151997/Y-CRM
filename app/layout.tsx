@@ -4,9 +4,12 @@ import { ClerkProvider } from "@clerk/nextjs";
 import { Toaster } from "sonner";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale, getMessages } from "next-intl/server";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { QueryProvider } from "@/components/providers/query-provider";
 import { ServiceWorkerProvider } from "@/components/providers/service-worker-provider";
+import { isRtlLocale, type Locale } from "@/i18n/config";
 import "./globals.css";
 
 const inter = Inter({ 
@@ -88,28 +91,34 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const locale = await getLocale() as Locale;
+  const messages = await getMessages();
+  const dir = isRtlLocale(locale) ? "rtl" : "ltr";
+
   return (
     <ClerkProvider>
-      <html lang="en" suppressHydrationWarning>
+      <html lang={locale} dir={dir} suppressHydrationWarning>
         <body className={inter.className}>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-            disableTransitionOnChange
-          >
-            <QueryProvider>
-              <ServiceWorkerProvider>
-                {children}
-              </ServiceWorkerProvider>
-              <Toaster position="top-right" richColors closeButton />
-            </QueryProvider>
-          </ThemeProvider>
+          <NextIntlClientProvider messages={messages}>
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="system"
+              enableSystem
+              disableTransitionOnChange
+            >
+              <QueryProvider>
+                <ServiceWorkerProvider>
+                  {children}
+                </ServiceWorkerProvider>
+                <Toaster position="top-right" richColors closeButton />
+              </QueryProvider>
+            </ThemeProvider>
+          </NextIntlClientProvider>
           <Analytics />
           <SpeedInsights />
         </body>

@@ -2,87 +2,84 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
-import { User, Building, Layers, Plug, Box, Database, History, Palette, Users, Shield, Lock } from "lucide-react";
+import { User, Building, Layers, Plug, Box, Database, History, Palette, Users, Shield, Lock, LucideIcon } from "lucide-react";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useEffect } from "react";
 
-const settingsNav = [
+interface SettingsNavItem {
+  titleKey: string;
+  href: string;
+  icon: LucideIcon;
+  requiresSettingsPermission: boolean;
+}
+
+const settingsNavItems: SettingsNavItem[] = [
   {
-    title: "Profile",
+    titleKey: "profile.title",
     href: "/settings",
     icon: User,
-    description: "Manage your personal information",
-    requiresSettingsPermission: false, // Profile is accessible to everyone
+    requiresSettingsPermission: false,
   },
   {
-    title: "Organization",
+    titleKey: "organization.title",
     href: "/settings/organization",
     icon: Building,
-    description: "Manage your organization settings",
     requiresSettingsPermission: true,
   },
   {
-    title: "Branding",
+    titleKey: "branding.title",
     href: "/settings/branding",
     icon: Palette,
-    description: "Customize your CRM appearance",
     requiresSettingsPermission: true,
   },
   {
-    title: "Team",
+    titleKey: "team.title",
     href: "/settings/team",
     icon: Users,
-    description: "Manage team members",
     requiresSettingsPermission: true,
   },
   {
-    title: "Roles & Permissions",
+    titleKey: "roles.title",
     href: "/settings/roles",
     icon: Shield,
-    description: "Configure access control",
     requiresSettingsPermission: true,
   },
   {
-    title: "Integrations",
+    titleKey: "integrations.title",
     href: "/settings/integrations",
     icon: Plug,
-    description: "Connect external apps & manage API keys",
     requiresSettingsPermission: true,
   },
   {
-    title: "Custom Modules",
+    titleKey: "modules.title",
     href: "/settings/modules",
     icon: Box,
-    description: "Create custom data modules",
     requiresSettingsPermission: true,
   },
   {
-    title: "Custom Fields",
+    titleKey: "customFields.title",
     href: "/settings/custom-fields",
     icon: Layers,
-    description: "Configure custom fields for modules",
     requiresSettingsPermission: true,
   },
   {
-    title: "Pipeline Stages",
+    titleKey: "pipeline.title",
     href: "/settings/pipeline",
     icon: Layers,
-    description: "Configure pipeline stages",
     requiresSettingsPermission: true,
   },
   {
-    title: "Data Management",
+    titleKey: "data.title",
     href: "/settings/data",
     icon: Database,
-    description: "Import and export data",
     requiresSettingsPermission: true,
   },
   {
-    title: "Audit Log",
+    titleKey: "activity.title",
     href: "/settings/activity",
     icon: History,
-    description: "View all CRM changes",
     requiresSettingsPermission: true,
   },
 ];
@@ -95,6 +92,7 @@ export default function SettingsLayout({
   const pathname = usePathname();
   const router = useRouter();
   const { can, loading } = usePermissions();
+  const t = useTranslations("settings");
 
   const hasSettingsAccess = can("settings", "view");
 
@@ -103,7 +101,7 @@ export default function SettingsLayout({
     if (loading) return;
 
     // Find current nav item
-    const currentItem = settingsNav.find(
+    const currentItem = settingsNavItems.find(
       (item) =>
         pathname === item.href ||
         (item.href !== "/settings" && pathname.startsWith(item.href))
@@ -116,7 +114,7 @@ export default function SettingsLayout({
   }, [pathname, hasSettingsAccess, loading, router]);
 
   // Filter navigation items based on permissions
-  const visibleNavItems = settingsNav.filter((item) => {
+  const visibleNavItems = settingsNavItems.filter((item) => {
     if (!item.requiresSettingsPermission) return true;
     return hasSettingsAccess;
   });
@@ -124,9 +122,9 @@ export default function SettingsLayout({
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold tracking-tight">Settings</h2>
+        <h2 className="text-2xl font-bold tracking-tight">{t("title")}</h2>
         <p className="text-muted-foreground">
-          Manage your account and organization preferences
+          {t("subtitle")}
         </p>
       </div>
 
@@ -151,7 +149,7 @@ export default function SettingsLayout({
               >
                 <item.icon className="h-5 w-5" />
                 <div>
-                  <p className="font-medium">{item.title}</p>
+                  <p className="font-medium">{t(item.titleKey)}</p>
                 </div>
               </Link>
             );
@@ -162,10 +160,10 @@ export default function SettingsLayout({
             <div className="mt-4 p-3 bg-muted/50 rounded-lg border">
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Lock className="h-4 w-4" />
-                <span className="text-sm">Admin access required</span>
+                <span className="text-sm">{t("adminRequired")}</span>
               </div>
               <p className="text-xs text-muted-foreground mt-1">
-                Contact your administrator for access to organization settings.
+                {t("contactAdmin")}
               </p>
             </div>
           )}

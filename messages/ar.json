@@ -1,0 +1,312 @@
+{
+  "common": {
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "delete": "حذف",
+    "edit": "تعديل",
+    "create": "إنشاء",
+    "add": "إضافة",
+    "remove": "إزالة",
+    "close": "إغلاق",
+    "confirm": "تأكيد",
+    "submit": "إرسال",
+    "search": "بحث...",
+    "loading": "جاري التحميل...",
+    "noResults": "لا توجد نتائج",
+    "actions": "الإجراءات",
+    "view": "عرض",
+    "export": "تصدير",
+    "import": "استيراد",
+    "refresh": "تحديث",
+    "back": "رجوع",
+    "next": "التالي",
+    "previous": "السابق",
+    "all": "الكل",
+    "none": "لا شيء",
+    "select": "اختيار",
+    "selectAll": "تحديد الكل",
+    "clear": "مسح",
+    "apply": "تطبيق",
+    "reset": "إعادة تعيين",
+    "filter": "تصفية",
+    "sort": "ترتيب",
+    "ascending": "تصاعدي",
+    "descending": "تنازلي",
+    "yes": "نعم",
+    "no": "لا",
+    "ok": "موافق",
+    "error": "خطأ",
+    "success": "نجاح",
+    "warning": "تحذير",
+    "info": "معلومات",
+    "required": "مطلوب",
+    "optional": "اختياري",
+    "enabled": "مفعّل",
+    "disabled": "معطّل",
+    "active": "نشط",
+    "inactive": "غير نشط",
+    "new": "جديد",
+    "open": "مفتوح",
+    "closed": "مغلق",
+    "pending": "قيد الانتظار",
+    "completed": "مكتمل",
+    "inProgress": "قيد التنفيذ",
+    "today": "اليوم",
+    "yesterday": "أمس",
+    "tomorrow": "غداً",
+    "thisWeek": "هذا الأسبوع",
+    "thisMonth": "هذا الشهر",
+    "thisYear": "هذه السنة",
+    "custom": "مخصص"
+  },
+  "navigation": {
+    "dashboard": "لوحة التحكم",
+    "aiAssistant": "المساعد الذكي",
+    "leads": "العملاء المحتملون",
+    "opportunities": "الفرص",
+    "pipelineBoard": "لوحة المسار",
+    "contacts": "جهات الاتصال",
+    "accounts": "الحسابات",
+    "invoices": "الفواتير",
+    "inventory": "المخزون",
+    "tasks": "المهام",
+    "tickets": "التذاكر",
+    "healthScores": "درجات الصحة",
+    "renewals": "التجديدات",
+    "playbooks": "دليل العمل",
+    "campaigns": "الحملات",
+    "segments": "الشرائح",
+    "forms": "النماذج",
+    "employees": "الموظفون",
+    "leaves": "الإجازات",
+    "payroll": "الرواتب",
+    "reports": "التقارير",
+    "settings": "الإعدادات"
+  },
+  "workspaces": {
+    "sales": "المبيعات",
+    "cs": "نجاح العملاء",
+    "marketing": "التسويق",
+    "hr": "الموارد البشرية",
+    "switchWorkspace": "تبديل مساحة العمل"
+  },
+  "settings": {
+    "title": "الإعدادات",
+    "subtitle": "إدارة حسابك وتفضيلات المؤسسة",
+    "profile": {
+      "title": "الملف الشخصي",
+      "description": "إدارة معلوماتك الشخصية",
+      "information": "معلومات الملف الشخصي",
+      "managedByClerk": "يتم إدارة معلوماتك الشخصية من خلال Clerk",
+      "userId": "معرف المستخدم",
+      "emailVerified": "البريد الإلكتروني موثق",
+      "created": "تاريخ الإنشاء",
+      "lastSignIn": "آخر تسجيل دخول",
+      "never": "أبداً",
+      "manageInClerk": "إدارة الملف الشخصي في Clerk"
+    },
+    "preferences": {
+      "title": "التفضيلات",
+      "description": "تخصيص تجربتك",
+      "themeNote": "يتم إدارة تفضيلات السمة من خلال زر التبديل في الرأس."
+    },
+    "language": {
+      "title": "اللغة",
+      "description": "اختر لغتك المفضلة",
+      "select": "اختر اللغة",
+      "current": "اللغة الحالية",
+      "switchSuccess": "تم تغيير اللغة بنجاح",
+      "switchError": "فشل تغيير اللغة"
+    },
+    "organization": {
+      "title": "المؤسسة",
+      "description": "إدارة إعدادات المؤسسة"
+    },
+    "branding": {
+      "title": "العلامة التجارية",
+      "description": "تخصيص مظهر نظام إدارة العلاقات"
+    },
+    "team": {
+      "title": "الفريق",
+      "description": "إدارة أعضاء الفريق"
+    },
+    "roles": {
+      "title": "الأدوار والصلاحيات",
+      "description": "تكوين التحكم في الوصول"
+    },
+    "integrations": {
+      "title": "التكاملات",
+      "description": "ربط التطبيقات الخارجية وإدارة مفاتيح API"
+    },
+    "modules": {
+      "title": "الوحدات المخصصة",
+      "description": "إنشاء وحدات بيانات مخصصة"
+    },
+    "customFields": {
+      "title": "الحقول المخصصة",
+      "description": "تكوين الحقول المخصصة للوحدات"
+    },
+    "pipeline": {
+      "title": "مراحل المسار",
+      "description": "تكوين مراحل المسار"
+    },
+    "data": {
+      "title": "إدارة البيانات",
+      "description": "استيراد وتصدير البيانات"
+    },
+    "activity": {
+      "title": "سجل المراجعة",
+      "description": "عرض جميع تغييرات النظام"
+    },
+    "adminRequired": "مطلوب صلاحية المسؤول",
+    "contactAdmin": "تواصل مع المسؤول للوصول إلى إعدادات المؤسسة."
+  },
+  "forms": {
+    "labels": {
+      "name": "الاسم",
+      "email": "البريد الإلكتروني",
+      "phone": "الهاتف",
+      "company": "الشركة",
+      "title": "العنوان",
+      "description": "الوصف",
+      "status": "الحالة",
+      "priority": "الأولوية",
+      "dueDate": "تاريخ الاستحقاق",
+      "startDate": "تاريخ البدء",
+      "endDate": "تاريخ الانتهاء",
+      "assignedTo": "مسند إلى",
+      "createdBy": "أنشأه",
+      "createdAt": "تاريخ الإنشاء",
+      "updatedAt": "تاريخ التحديث",
+      "notes": "ملاحظات",
+      "tags": "الوسوم",
+      "value": "القيمة",
+      "amount": "المبلغ",
+      "currency": "العملة",
+      "source": "المصدر",
+      "type": "النوع",
+      "category": "الفئة",
+      "address": "العنوان",
+      "city": "المدينة",
+      "state": "المنطقة",
+      "country": "الدولة",
+      "zipCode": "الرمز البريدي",
+      "website": "الموقع الإلكتروني"
+    },
+    "placeholders": {
+      "search": "بحث...",
+      "enterName": "أدخل الاسم",
+      "enterEmail": "أدخل البريد الإلكتروني",
+      "enterPhone": "أدخل رقم الهاتف",
+      "enterDescription": "أدخل الوصف",
+      "selectOption": "اختر خياراً",
+      "selectDate": "اختر تاريخاً",
+      "typeToSearch": "اكتب للبحث..."
+    },
+    "validation": {
+      "required": "هذا الحقل مطلوب",
+      "email": "يرجى إدخال بريد إلكتروني صحيح",
+      "phone": "يرجى إدخال رقم هاتف صحيح",
+      "minLength": "يجب أن يكون {min} أحرف على الأقل",
+      "maxLength": "يجب ألا يتجاوز {max} حرفاً",
+      "min": "يجب أن يكون {min} على الأقل",
+      "max": "يجب ألا يتجاوز {max}",
+      "pattern": "تنسيق غير صحيح",
+      "url": "يرجى إدخال رابط صحيح"
+    }
+  },
+  "priority": {
+    "low": "منخفض",
+    "medium": "متوسط",
+    "high": "عالي",
+    "urgent": "عاجل"
+  },
+  "status": {
+    "new": "جديد",
+    "open": "مفتوح",
+    "inProgress": "قيد التنفيذ",
+    "pending": "قيد الانتظار",
+    "onHold": "معلق",
+    "resolved": "تم الحل",
+    "closed": "مغلق",
+    "cancelled": "ملغى",
+    "won": "مكسوب",
+    "lost": "مفقود",
+    "qualified": "مؤهل",
+    "unqualified": "غير مؤهل"
+  },
+  "dataTable": {
+    "noData": "لا توجد بيانات",
+    "showing": "عرض {from} إلى {to} من {total} نتيجة",
+    "rowsPerPage": "صفوف لكل صفحة",
+    "page": "صفحة",
+    "of": "من",
+    "goToPage": "انتقل إلى صفحة",
+    "firstPage": "الصفحة الأولى",
+    "lastPage": "الصفحة الأخيرة",
+    "nextPage": "الصفحة التالية",
+    "previousPage": "الصفحة السابقة",
+    "selected": "{count} محدد",
+    "selectRow": "تحديد الصف",
+    "selectAllRows": "تحديد كل الصفوف"
+  },
+  "dialogs": {
+    "confirmDelete": {
+      "title": "هل أنت متأكد؟",
+      "description": "لا يمكن التراجع عن هذا الإجراء. سيتم حذف العنصر نهائياً.",
+      "confirm": "حذف",
+      "cancel": "إلغاء"
+    },
+    "unsavedChanges": {
+      "title": "تغييرات غير محفوظة",
+      "description": "لديك تغييرات غير محفوظة. هل أنت متأكد أنك تريد المغادرة؟",
+      "confirm": "مغادرة",
+      "cancel": "البقاء"
+    }
+  },
+  "import": {
+    "title": "استيراد البيانات",
+    "selectModule": "اختر ما تريد استيراده",
+    "dragDrop": "اسحب وأفلت ملف CSV هنا",
+    "or": "أو",
+    "browse": "تصفح الملفات",
+    "csvOnly": "يتم دعم ملفات CSV فقط",
+    "importing": "جاري الاستيراد...",
+    "complete": "اكتمل الاستيراد",
+    "failed": "فشل الاستيراد",
+    "records": "تم استيراد {count} سجل بنجاح"
+  },
+  "export": {
+    "title": "تصدير البيانات",
+    "selectModule": "اختر ما تريد تصديره",
+    "format": "صيغة التصدير",
+    "exporting": "جاري التصدير...",
+    "complete": "اكتمل التصدير",
+    "failed": "فشل التصدير",
+    "download": "تحميل"
+  },
+  "theme": {
+    "toggle": "تبديل السمة",
+    "light": "فاتح",
+    "dark": "داكن",
+    "system": "النظام"
+  },
+  "errors": {
+    "generic": "حدث خطأ ما. يرجى المحاولة مرة أخرى.",
+    "notFound": "غير موجود",
+    "unauthorized": "غير مصرح لك بتنفيذ هذا الإجراء",
+    "forbidden": "تم رفض الوصول",
+    "serverError": "خطأ في الخادم. يرجى المحاولة لاحقاً.",
+    "networkError": "خطأ في الشبكة. يرجى التحقق من اتصالك.",
+    "validationError": "يرجى إصلاح الأخطاء أدناه",
+    "sessionExpired": "انتهت جلستك. يرجى تسجيل الدخول مرة أخرى."
+  },
+  "success": {
+    "saved": "تم الحفظ بنجاح",
+    "created": "تم الإنشاء بنجاح",
+    "updated": "تم التحديث بنجاح",
+    "deleted": "تم الحذف بنجاح",
+    "imported": "تم الاستيراد بنجاح",
+    "exported": "تم التصدير بنجاح"
+  }
+}
