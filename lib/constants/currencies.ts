@@ -16,6 +16,9 @@ export const CURRENCIES = [
   { value: "EGP", label: "EGP (£)", symbol: "E£" },
   { value: "KWD", label: "KWD (د.ك)", symbol: "د.ك" },
   { value: "QAR", label: "QAR (﷼)", symbol: "﷼" },
+  { value: "BHD", label: "BHD (ب.د)", symbol: "ب.د" },
+  { value: "OMR", label: "OMR (ر.ع)", symbol: "ر.ع" },
+  { value: "JOD", label: "JOD (د.ا)", symbol: "د.ا" },
 ] as const;
 
 export type CurrencyCode = (typeof CURRENCIES)[number]["value"];

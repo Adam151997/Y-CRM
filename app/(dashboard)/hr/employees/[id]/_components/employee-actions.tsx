@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { MoreHorizontal, Pencil, UserX, UserCheck, Calendar, DollarSign, Loader2 } from "lucide-react";
+import { CURRENCIES } from "@/lib/constants/currencies";
 
 interface Employee {
   id: string;
@@ -267,10 +268,11 @@ export function EmployeeActions({ employee }: EmployeeActionsProps) {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="USD">USD</SelectItem>
-                    <SelectItem value="EUR">EUR</SelectItem>
-                    <SelectItem value="GBP">GBP</SelectItem>
-                    <SelectItem value="CAD">CAD</SelectItem>
+                    {CURRENCIES.map((currency) => (
+                      <SelectItem key={currency.value} value={currency.value}>
+                        {currency.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
