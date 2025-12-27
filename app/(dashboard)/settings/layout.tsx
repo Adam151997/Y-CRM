@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { User, Building, Layers, Plug, Box, Database, History, Palette, Users, Shield, Bot, Lock } from "lucide-react";
+import { User, Building, Layers, Plug, Box, Database, History, Palette, Users, Shield, Lock } from "lucide-react";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useEffect } from "react";
 
@@ -47,14 +47,7 @@ const settingsNav = [
     title: "Integrations",
     href: "/settings/integrations",
     icon: Plug,
-    description: "Connect external apps",
-    requiresSettingsPermission: true,
-  },
-  {
-    title: "AI Tools",
-    href: "/settings/ai-tools",
-    icon: Bot,
-    description: "Manage AI & MCP integrations",
+    description: "Connect external apps & manage API keys",
     requiresSettingsPermission: true,
   },
   {

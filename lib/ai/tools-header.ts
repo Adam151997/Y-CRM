@@ -16,6 +16,3 @@ import {
   revalidateFormCaches,
   revalidateCustomModuleCaches,
 } from "@/lib/cache-utils";
-// Native integrations
-import { createGmailClient, createCalendarClient, hasGoogleConnection } from "@/lib/integrations/google";
-import { createSlackClient, hasSlackConnection } from "@/lib/integrations/slack";

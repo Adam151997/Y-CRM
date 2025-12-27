@@ -112,9 +112,6 @@ export type PrimaryAction =
   | "payroll"
   | "search"
   | "stats"
-  | "email"
-  | "calendar"
-  | "slack"
   | "report"
   | "custom-module"
   | null;
@@ -266,25 +263,6 @@ export function getToolsForIntent(
 
     case "stats":
       filtered.getDashboardStats = globalTools.getDashboardStats;
-      break;
-
-    case "email":
-      filtered.sendEmail = integrationTools.sendEmail;
-      filtered.searchEmails = integrationTools.searchEmails;
-      filtered.searchContacts = salesTools.searchContacts;
-      filtered.searchLeads = salesTools.searchLeads;
-      break;
-
-    case "calendar":
-      filtered.createCalendarEvent = integrationTools.createCalendarEvent;
-      filtered.getUpcomingEvents = integrationTools.getUpcomingEvents;
-      filtered.getTodayEvents = integrationTools.getTodayEvents;
-      filtered.searchContacts = salesTools.searchContacts;
-      break;
-
-    case "slack":
-      filtered.sendSlackMessage = integrationTools.sendSlackMessage;
-      filtered.listSlackChannels = integrationTools.listSlackChannels;
       break;
 
     case "report":
