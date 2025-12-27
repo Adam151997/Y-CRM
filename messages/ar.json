@@ -81,7 +81,9 @@
     "leaves": "الإجازات",
     "payroll": "الرواتب",
     "reports": "التقارير",
-    "settings": "الإعدادات"
+    "settings": "الإعدادات",
+    "documents": "المستندات",
+    "voiceCommand": "الأوامر الصوتية"
   },
   "workspaces": {
     "sales": "المبيعات",
@@ -111,10 +113,11 @@
       "themeNote": "يتم إدارة تفضيلات السمة من خلال زر التبديل في الرأس."
     },
     "language": {
-      "title": "اللغة",
-      "description": "اختر لغتك المفضلة",
+      "title": "اللغات",
+      "description": "اختر لغتك المفضلة للواجهة",
       "select": "اختر اللغة",
       "current": "اللغة الحالية",
+      "available": "اللغات المتاحة",
       "switchSuccess": "تم تغيير اللغة بنجاح",
       "switchError": "فشل تغيير اللغة"
     },

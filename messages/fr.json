@@ -81,7 +81,9 @@
     "leaves": "Congés",
     "payroll": "Paie",
     "reports": "Rapports",
-    "settings": "Paramètres"
+    "settings": "Paramètres",
+    "documents": "Documents",
+    "voiceCommand": "Commande Vocale"
   },
   "workspaces": {
     "sales": "Ventes",
@@ -111,10 +113,11 @@
       "themeNote": "Les préférences de thème sont gérées via le bouton de thème dans l'en-tête."
     },
     "language": {
-      "title": "Langue",
-      "description": "Choisissez votre langue préférée",
+      "title": "Langues",
+      "description": "Choisissez votre langue préférée pour l'interface",
       "select": "Sélectionner la langue",
       "current": "Langue actuelle",
+      "available": "Langues disponibles",
       "switchSuccess": "Langue modifiée avec succès",
       "switchError": "Échec du changement de langue"
     },

@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Check, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -25,9 +26,21 @@ interface WorkspaceSwitcherProps {
 
 export function WorkspaceSwitcher({ variant = "sidebar" }: WorkspaceSwitcherProps) {
   const router = useRouter();
+  const t = useTranslations("workspaces");
   const { workspace, config } = useWorkspace();
   const { canAccessWorkspace, loading: permissionsLoading, isAdmin } = usePermissions();
   const [open, setOpen] = useState(false);
+
+  // Map workspace keys to translation keys
+  const getTranslatedName = (key: WorkspaceType): string => {
+    const keyMap: Record<WorkspaceType, string> = {
+      sales: "sales",
+      cs: "cs",
+      marketing: "marketing",
+      hr: "hr",
+    };
+    return t(keyMap[key]);
+  };
 
   // Filter workspaces based on user permissions
   const accessibleWorkspaces = useMemo(() => {
@@ -69,14 +82,14 @@ export function WorkspaceSwitcher({ variant = "sidebar" }: WorkspaceSwitcherProp
             aria-expanded={open}
             className="h-9 px-3 gap-1.5 text-sm font-medium"
           >
-            <span>{config.name}</span>
+            <span>{getTranslatedName(workspace)}</span>
             <ChevronDown className="h-3.5 w-3.5 opacity-50" />
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-[220px] p-0" align="start">
           <Command>
             <CommandList>
-              <CommandGroup heading="Workspaces">
+              <CommandGroup heading={t("switchWorkspace")}>
                 {accessibleWorkspaces.map((ws) => (
                   <CommandItem
                     key={ws.key}
@@ -85,7 +98,7 @@ export function WorkspaceSwitcher({ variant = "sidebar" }: WorkspaceSwitcherProp
                     className="cursor-pointer"
                   >
                     <div className="flex-1">
-                      <p className="font-medium">{ws.name}</p>
+                      <p className="font-medium">{getTranslatedName(ws.key)}</p>
                       <p className="text-xs text-muted-foreground">{ws.description}</p>
                     </div>
                     {workspace === ws.key && (
@@ -111,14 +124,14 @@ export function WorkspaceSwitcher({ variant = "sidebar" }: WorkspaceSwitcherProp
           aria-expanded={open}
           className="w-full justify-between"
         >
-          <span className="truncate">{config.name}</span>
+          <span className="truncate">{getTranslatedName(workspace)}</span>
           <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[220px] p-0" align="start">
         <Command>
           <CommandList>
-            <CommandGroup heading="Workspaces">
+            <CommandGroup heading={t("switchWorkspace")}>
               {accessibleWorkspaces.map((ws) => (
                 <CommandItem
                   key={ws.key}
@@ -127,7 +140,7 @@ export function WorkspaceSwitcher({ variant = "sidebar" }: WorkspaceSwitcherProp
                   className="cursor-pointer"
                 >
                   <div className="flex-1">
-                    <p className="font-medium">{ws.name}</p>
+                    <p className="font-medium">{getTranslatedName(ws.key)}</p>
                     <p className="text-xs text-muted-foreground">{ws.description}</p>
                   </div>
                   {workspace === ws.key && (

@@ -9,7 +9,6 @@ import { getLocale, getMessages } from "next-intl/server";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { QueryProvider } from "@/components/providers/query-provider";
 import { ServiceWorkerProvider } from "@/components/providers/service-worker-provider";
-import { isRtlLocale, type Locale } from "@/i18n/config";
 import "./globals.css";
 
 const inter = Inter({ 
@@ -96,13 +95,12 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const locale = await getLocale() as Locale;
+  const locale = await getLocale();
   const messages = await getMessages();
-  const dir = isRtlLocale(locale) ? "rtl" : "ltr";
 
   return (
     <ClerkProvider>
-      <html lang={locale} dir={dir} suppressHydrationWarning>
+      <html lang={locale} dir="ltr" suppressHydrationWarning>
         <body className={inter.className}>
           <NextIntlClientProvider messages={messages}>
             <ThemeProvider

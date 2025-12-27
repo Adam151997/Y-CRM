@@ -5,7 +5,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ExternalLink } from "lucide-react";
-import { LanguageSwitcher } from "@/components/settings/language-switcher";
 
 export default async function ProfileSettingsPage() {
   const user = await currentUser();
@@ -109,9 +108,6 @@ export default async function ProfileSettingsPage() {
           </p>
         </CardContent>
       </Card>
-
-      {/* Language Settings */}
-      <LanguageSwitcher />
     </div>
   );
 }

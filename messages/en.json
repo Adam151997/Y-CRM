@@ -81,7 +81,9 @@
     "leaves": "Leaves",
     "payroll": "Payroll",
     "reports": "Reports",
-    "settings": "Settings"
+    "settings": "Settings",
+    "documents": "Documents",
+    "voiceCommand": "Voice Command"
   },
   "workspaces": {
     "sales": "Sales",
@@ -111,10 +113,11 @@
       "themeNote": "Theme preferences are managed via the theme toggle in the header."
     },
     "language": {
-      "title": "Language",
-      "description": "Choose your preferred language",
+      "title": "Languages",
+      "description": "Choose your preferred language for the interface",
       "select": "Select Language",
       "current": "Current Language",
+      "available": "Available Languages",
       "switchSuccess": "Language changed successfully",
       "switchError": "Failed to change language"
     },

@@ -81,7 +81,9 @@
     "leaves": "Urlaub",
     "payroll": "Gehaltsabrechnung",
     "reports": "Berichte",
-    "settings": "Einstellungen"
+    "settings": "Einstellungen",
+    "documents": "Dokumente",
+    "voiceCommand": "Sprachbefehl"
   },
   "workspaces": {
     "sales": "Vertrieb",
@@ -111,10 +113,11 @@
       "themeNote": "Theme-Einstellungen werden über den Theme-Umschalter in der Kopfzeile verwaltet."
     },
     "language": {
-      "title": "Sprache",
-      "description": "Wählen Sie Ihre bevorzugte Sprache",
+      "title": "Sprachen",
+      "description": "Wählen Sie Ihre bevorzugte Sprache für die Oberfläche",
       "select": "Sprache auswählen",
       "current": "Aktuelle Sprache",
+      "available": "Verfügbare Sprachen",
       "switchSuccess": "Sprache erfolgreich geändert",
       "switchError": "Sprache konnte nicht geändert werden"
     },

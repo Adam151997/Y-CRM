@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
-import { User, Building, Layers, Plug, Box, Database, History, Palette, Users, Shield, Lock, LucideIcon } from "lucide-react";
+import { User, Building, Layers, Plug, Box, Database, History, Palette, Users, Shield, Lock, Globe, LucideIcon } from "lucide-react";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useEffect } from "react";
 
@@ -75,6 +75,12 @@ const settingsNavItems: SettingsNavItem[] = [
     href: "/settings/data",
     icon: Database,
     requiresSettingsPermission: true,
+  },
+  {
+    titleKey: "language.title",
+    href: "/settings/languages",
+    icon: Globe,
+    requiresSettingsPermission: false,
   },
   {
     titleKey: "activity.title",

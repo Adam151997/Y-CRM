@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 import { UserButton } from "@clerk/nextjs";
 import {
@@ -72,6 +73,7 @@ export function DynamicSidebar({ onNavigate }: DynamicSidebarProps) {
   const pathname = usePathname();
   const { workspace } = useWorkspace();
   const { can, loading: permissionsLoading, isAdmin } = usePermissions();
+  const t = useTranslations("navigation");
   const [collapsed, setCollapsed] = useState(false);
   const [customModules, setCustomModules] = useState<CustomModule[]>([]);
   const [branding, setBranding] = useState<Branding>({ brandName: "Y CRM", brandLogo: null });
@@ -192,6 +194,37 @@ export function DynamicSidebar({ onNavigate }: DynamicSidebarProps) {
     return pathname === href || pathname.startsWith(`${href}/`);
   };
 
+  // Map navigation item names to translation keys
+  const getTranslatedName = (name: string): string => {
+    const nameToKey: Record<string, string> = {
+      "Dashboard": "dashboard",
+      "AI Assistant": "aiAssistant",
+      "Leads": "leads",
+      "Opportunities": "opportunities",
+      "Pipeline Board": "pipelineBoard",
+      "Contacts": "contacts",
+      "Accounts": "accounts",
+      "Invoices": "invoices",
+      "Inventory": "inventory",
+      "Tasks": "tasks",
+      "Tickets": "tickets",
+      "Health Scores": "healthScores",
+      "Renewals": "renewals",
+      "Playbooks": "playbooks",
+      "Campaigns": "campaigns",
+      "Segments": "segments",
+      "Forms": "forms",
+      "Employees": "employees",
+      "Leaves": "leaves",
+      "Payroll": "payroll",
+      "Reports": "reports",
+      "Documents": "documents",
+      "Settings": "settings",
+    };
+    const key = nameToKey[name];
+    return key ? t(key) : name;
+  };
+
   return (
     <div
       className={cn(
@@ -261,7 +294,8 @@ export function DynamicSidebar({ onNavigate }: DynamicSidebarProps) {
             {section.items.map((item) => {
               const active = isActive(item.href);
               const isHighlight = item.highlight;
-              
+              const translatedName = getTranslatedName(item.name);
+
               return (
                 <Link
                   key={item.href}
@@ -277,10 +311,10 @@ export function DynamicSidebar({ onNavigate }: DynamicSidebarProps) {
                       : "text-muted-foreground hover:bg-background/80 hover:text-foreground",
                     collapsed && "justify-center px-2"
                   )}
-                  title={collapsed ? item.name : undefined}
+                  title={collapsed ? translatedName : undefined}
                 >
                   <item.icon className={cn("h-4 w-4 flex-shrink-0", !collapsed && "mr-2.5")} />
-                  {!collapsed && <span className="truncate">{item.name}</span>}
+                  {!collapsed && <span className="truncate">{translatedName}</span>}
                   {!collapsed && item.badge && (
                     <span className="ml-auto text-xs bg-[#FF5757]/10 text-[#FF5757] px-1.5 py-0.5 rounded">
                       {item.badge}
@@ -329,6 +363,7 @@ export function DynamicSidebar({ onNavigate }: DynamicSidebarProps) {
         {/* Global Navigation (Reports) */}
         {filteredGlobalNavigation.map((item) => {
           const active = isGlobalActive(item.href);
+          const translatedName = getTranslatedName(item.name);
           return (
             <Link
               key={item.name}
@@ -342,10 +377,10 @@ export function DynamicSidebar({ onNavigate }: DynamicSidebarProps) {
                   : "text-muted-foreground hover:bg-background/80 hover:text-foreground",
                 collapsed && "justify-center px-2"
               )}
-              title={collapsed ? item.name : undefined}
+              title={collapsed ? translatedName : undefined}
             >
               <item.icon className={cn("h-4 w-4 flex-shrink-0", !collapsed && "mr-2.5")} />
-              {!collapsed && <span className="truncate">{item.name}</span>}
+              {!collapsed && <span className="truncate">{translatedName}</span>}
             </Link>
           );
         })}
@@ -363,10 +398,10 @@ export function DynamicSidebar({ onNavigate }: DynamicSidebarProps) {
                 : "text-muted-foreground hover:bg-background/80 hover:text-foreground",
               collapsed && "justify-center px-2"
             )}
-            title={collapsed ? "Documents" : undefined}
+            title={collapsed ? t("documents") : undefined}
           >
             <FileText className={cn("h-4 w-4 flex-shrink-0", !collapsed && "mr-2.5")} />
-            {!collapsed && <span className="truncate">Documents</span>}
+            {!collapsed && <span className="truncate">{t("documents")}</span>}
           </Link>
         )}
       </nav>
@@ -387,10 +422,10 @@ export function DynamicSidebar({ onNavigate }: DynamicSidebarProps) {
                   : "text-muted-foreground hover:bg-background/80 hover:text-foreground",
                 collapsed && "justify-center px-2"
               )}
-              title={collapsed ? "Settings" : undefined}
+              title={collapsed ? t("settings") : undefined}
             >
               <Settings className={cn("h-4 w-4 flex-shrink-0", !collapsed && "mr-2.5")} />
-              {!collapsed && <span className="truncate">Settings</span>}
+              {!collapsed && <span className="truncate">{t("settings")}</span>}
             </Link>
           </div>
         )}
