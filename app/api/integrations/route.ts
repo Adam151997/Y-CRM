@@ -9,6 +9,7 @@ import { getApiAuthContext } from "@/lib/auth";
 import { checkRoutePermission } from "@/lib/api-permissions";
 import { prisma } from "@/lib/prisma";
 import { encrypt } from "@/lib/encryption";
+import { Prisma } from "@prisma/client";
 
 /**
  * GET /api/integrations
@@ -139,7 +140,7 @@ export async function POST(request: NextRequest) {
         name,
         description: description || null,
         type,
-        config,
+        config: config as Prisma.InputJsonValue,
         events: events || [],
         isEnabled: true,
         createdById: authContext.userId,

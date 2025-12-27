@@ -10,6 +10,7 @@ import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { checkRoutePermission } from "@/lib/api-permissions";
 import { encrypt, safeDecrypt } from "@/lib/encryption";
+import { Prisma } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
@@ -103,15 +104,14 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     }
 
     // Build updated config
-    const config: Record<string, unknown> = {
-      ...(existing.config as Record<string, unknown>),
-    };
+    const existingConfig = existing.config as Record<string, unknown> || {};
+    const updatedConfig: Record<string, unknown> = { ...existingConfig };
 
-    if (url !== undefined) config.url = url;
-    if (headers !== undefined) config.headers = headers;
-    if (authType !== undefined) config.authType = authType;
+    if (url !== undefined) updatedConfig.url = url;
+    if (headers !== undefined) updatedConfig.headers = headers;
+    if (authType !== undefined) updatedConfig.authType = authType;
     if (authConfig !== undefined) {
-      config.authConfig = encrypt(JSON.stringify(authConfig));
+      updatedConfig.authConfig = encrypt(JSON.stringify(authConfig));
     }
 
     const integration = await prisma.regularIntegration.update({
@@ -121,7 +121,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         ...(description !== undefined && { description }),
         ...(events !== undefined && { events }),
         ...(isEnabled !== undefined && { isEnabled }),
-        config,
+        config: updatedConfig as Prisma.InputJsonValue,
       },
     });
 
