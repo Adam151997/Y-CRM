@@ -328,6 +328,7 @@ async function importRecords(
               costPrice: (data.costPrice as number) ?? 0,
               stockLevel: (data.stockLevel as number) ?? 0,
               reorderLevel: (data.reorderLevel as number) ?? 0,
+              createdById: userId,
             },
           });
           break;
