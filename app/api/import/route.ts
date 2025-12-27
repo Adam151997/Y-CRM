@@ -332,6 +332,7 @@ async function importRecords(
               currency: (data.currency as string) || "USD",
               joinDate: (data.joinDate as Date) || new Date(),
               status: (data.status as string) || "ACTIVE",
+              createdById: userId,
             },
           });
           break;
