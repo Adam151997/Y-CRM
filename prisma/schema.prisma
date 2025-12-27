@@ -99,6 +99,9 @@ model Organization {
   roles               Role[]
   userRoles           UserRole[]
 
+  // Relations - Integrations
+  regularIntegrations RegularIntegration[]
+
   @@index([slug])
 }
 
@@ -1594,4 +1597,88 @@ model APIKey {
   @@index([orgId])
   @@index([orgId, isActive])
   @@index([keyPrefix])
+}
+
+// =============================================================================
+// REGULAR INTEGRATIONS (Webhooks & API Connections)
+// =============================================================================
+
+model RegularIntegration {
+  id              String    @id @default(uuid())
+  orgId           String
+  org             Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  // Integration identification
+  name            String    // Display name: "Courier Webhook", "Zapier Integration"
+  description     String?
+
+  // Integration type
+  type            String    // webhook_outgoing, webhook_incoming, api
+
+  // Configuration (encrypted sensitive fields)
+  config          Json      // { url, headers, authType, authConfig (encrypted) }
+
+  // For webhooks - which events trigger this integration
+  events          String[]  // ["invoice.created", "lead.created", etc.]
+
+  // State
+  isEnabled       Boolean   @default(true)
+
+  // Stats
+  lastTriggeredAt DateTime?
+  successCount    Int       @default(0)
+  failureCount    Int       @default(0)
+  lastError       String?
+
+  // For incoming webhooks - unique URL token
+  webhookToken    String?   @unique
+
+  // Attribution
+  createdById     String    // Clerk user ID
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([orgId, name])
+  @@index([orgId])
+  @@index([orgId, isEnabled])
+  @@index([orgId, type])
+  @@index([webhookToken])
+}
+
+// Webhook delivery log for tracking outgoing webhook attempts
+model WebhookDelivery {
+  id              String    @id @default(uuid())
+  orgId           String
+
+  integrationId   String
+
+  // Event that triggered this delivery
+  eventType       String    // e.g., "invoice.created"
+  eventId         String?   // Reference to the entity that triggered the event
+
+  // Request details
+  requestUrl      String
+  requestHeaders  Json?
+  requestBody     Json?
+
+  // Response details
+  responseStatus  Int?
+  responseBody    String?   @db.Text
+
+  // Timing
+  attemptedAt     DateTime  @default(now())
+  duration        Int?      // Response time in ms
+
+  // Retry tracking
+  attemptNumber   Int       @default(1)
+  nextRetryAt     DateTime?
+
+  // Status
+  status          String    @default("PENDING") // PENDING, SUCCESS, FAILED, RETRYING
+  errorMessage    String?
+
+  @@index([integrationId])
+  @@index([orgId, eventType])
+  @@index([status, nextRetryAt])
 }
