@@ -54,6 +54,7 @@ model Organization {
   slug                String   @unique
   plan                String   @default("FREE") // FREE, PRO, ENTERPRISE
   settings            Json     @default("{}")
+  language            String   @default("en") // Organization-wide language: en, ar, de, es, fr
 
   // Rate limiting
   aiCallsThisMonth    Int      @default(0)

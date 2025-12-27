@@ -115,10 +115,11 @@
     "language": {
       "title": "Languages",
       "description": "Choose your preferred language for the interface",
+      "orgDescription": "Set the display language for all users in your organization",
       "select": "Select Language",
       "current": "Current Language",
       "available": "Available Languages",
-      "switchSuccess": "Language changed successfully",
+      "switchSuccess": "Language changed successfully. All users will now see this language.",
       "switchError": "Failed to change language"
     },
     "organization": {
