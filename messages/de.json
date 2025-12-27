@@ -312,5 +312,36 @@
     "deleted": "Erfolgreich gelöscht",
     "imported": "Erfolgreich importiert",
     "exported": "Erfolgreich exportiert"
+  },
+  "search": {
+    "title": "Suche",
+    "placeholder": "Suchen...",
+    "inputPlaceholder": "Leads, Kontakte, Konten durchsuchen...",
+    "minChars": "Geben Sie mindestens 2 Zeichen ein",
+    "searchAcross": "Suchen Sie in Leads, Kontakten, Konten und mehr",
+    "searching": "Suche läuft...",
+    "noResults": "Keine Ergebnisse gefunden für \"{query}\"",
+    "tryDifferent": "Versuchen Sie einen anderen Suchbegriff",
+    "navigate": "navigieren",
+    "select": "auswählen",
+    "close": "schließen",
+    "types": {
+      "lead": "Lead",
+      "contact": "Kontakt",
+      "account": "Konto",
+      "opportunity": "Verkaufschance",
+      "task": "Aufgabe",
+      "ticket": "Ticket",
+      "document": "Dokument",
+      "invoice": "Rechnung",
+      "renewal": "Verlängerung",
+      "campaign": "Kampagne",
+      "custom": "Benutzerdefiniert"
+    }
+  },
+  "notifications": {
+    "title": "Benachrichtigungen",
+    "markAllRead": "Alle als gelesen markieren",
+    "noNotifications": "Noch keine Benachrichtigungen"
   }
 }

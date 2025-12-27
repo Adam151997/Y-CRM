@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Bell, CheckCheck, Loader2, Wifi, WifiOff } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -17,6 +18,7 @@ import { useState } from "react";
 export function NotificationDropdown() {
   const { notifications, unreadCount, isConnected, markAsRead, markAllAsRead } = useNotifications();
   const [isOpen, setIsOpen] = useState(false);
+  const t = useTranslations("notifications");
 
   // Get entity link based on type
   const getEntityLink = (notification: { entityType?: string | null; entityId?: string | null }) => {
@@ -62,7 +64,7 @@ export function NotificationDropdown() {
       <DropdownMenuContent align="end" className="w-80">
         <DropdownMenuLabel className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span>Notifications</span>
+            <span>{t("title")}</span>
             {isConnected ? (
               <Wifi className="h-3 w-3 text-green-500" />
             ) : (
@@ -80,7 +82,7 @@ export function NotificationDropdown() {
               }}
             >
               <CheckCheck className="h-3 w-3 mr-1" />
-              Mark all read
+              {t("markAllRead")}
             </Button>
           )}
         </DropdownMenuLabel>
@@ -88,7 +90,7 @@ export function NotificationDropdown() {
 
         {notifications.length === 0 ? (
           <div className="py-8 text-center text-sm text-muted-foreground">
-            No notifications yet
+            {t("noNotifications")}
           </div>
         ) : (
           <div className="max-h-[400px] overflow-y-auto">

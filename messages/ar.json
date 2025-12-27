@@ -312,5 +312,36 @@
     "deleted": "تم الحذف بنجاح",
     "imported": "تم الاستيراد بنجاح",
     "exported": "تم التصدير بنجاح"
+  },
+  "search": {
+    "title": "بحث",
+    "placeholder": "بحث...",
+    "inputPlaceholder": "البحث في العملاء المحتملين، جهات الاتصال، الحسابات...",
+    "minChars": "اكتب حرفين على الأقل للبحث",
+    "searchAcross": "البحث في العملاء المحتملين، جهات الاتصال، الحسابات، والمزيد",
+    "searching": "جاري البحث...",
+    "noResults": "لم يتم العثور على نتائج لـ \"{query}\"",
+    "tryDifferent": "جرب مصطلح بحث مختلف",
+    "navigate": "تنقل",
+    "select": "اختيار",
+    "close": "إغلاق",
+    "types": {
+      "lead": "عميل محتمل",
+      "contact": "جهة اتصال",
+      "account": "حساب",
+      "opportunity": "فرصة",
+      "task": "مهمة",
+      "ticket": "تذكرة",
+      "document": "مستند",
+      "invoice": "فاتورة",
+      "renewal": "تجديد",
+      "campaign": "حملة",
+      "custom": "مخصص"
+    }
+  },
+  "notifications": {
+    "title": "الإشعارات",
+    "markAllRead": "تحديد الكل كمقروء",
+    "noNotifications": "لا توجد إشعارات بعد"
   }
 }

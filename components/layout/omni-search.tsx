@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import {
   Search,
   Users,
@@ -52,6 +53,7 @@ const typeConfig = {
 
 export function OmniSearch() {
   const router = useRouter();
+  const t = useTranslations("search");
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -59,6 +61,24 @@ export function OmniSearch() {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<NodeJS.Timeout>();
+
+  // Translation helper for type labels
+  const getTypeLabel = (type: string): string => {
+    const typeKeys: Record<string, string> = {
+      lead: "types.lead",
+      contact: "types.contact",
+      account: "types.account",
+      opportunity: "types.opportunity",
+      task: "types.task",
+      ticket: "types.ticket",
+      document: "types.document",
+      invoice: "types.invoice",
+      renewal: "types.renewal",
+      campaign: "types.campaign",
+      custom: "types.custom",
+    };
+    return t(typeKeys[type] || type);
+  };
 
   // Keyboard shortcut to open search (Cmd/Ctrl + K)
   useEffect(() => {
@@ -163,7 +183,7 @@ export function OmniSearch() {
         className="hidden md:flex items-center gap-2 h-9 px-3 rounded-md bg-secondary/50 border border-transparent hover:border-border hover:bg-background text-sm text-muted-foreground transition-colors w-64"
       >
         <Search className="h-4 w-4" />
-        <span className="flex-1 text-left">Search...</span>
+        <span className="flex-1 text-left">{t("placeholder")}</span>
         <kbd className="hidden lg:inline-flex h-5 items-center gap-1 rounded border bg-muted px-1.5 text-[10px] font-medium text-muted-foreground">
           <Command className="h-3 w-3" />K
         </kbd>
@@ -181,9 +201,9 @@ export function OmniSearch() {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="p-0 gap-0 max-w-lg overflow-hidden">
           <VisuallyHidden>
-            <DialogTitle>Search</DialogTitle>
+            <DialogTitle>{t("title")}</DialogTitle>
           </VisuallyHidden>
-          
+
           {/* Search input */}
           <div className="flex items-center gap-2 px-4 border-b">
             <Search className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -192,7 +212,7 @@ export function OmniSearch() {
               value={query}
               onChange={(e) => handleInputChange(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Search leads, contacts, accounts..."
+              placeholder={t("inputPlaceholder")}
               className="h-12 border-0 focus-visible:ring-0 px-0 text-base"
             />
             {query && (
@@ -215,19 +235,19 @@ export function OmniSearch() {
             {query.length < 2 ? (
               <div className="p-8 text-center text-muted-foreground">
                 <Search className="h-10 w-10 mx-auto mb-3 opacity-50" />
-                <p className="text-sm">Type at least 2 characters to search</p>
-                <p className="text-xs mt-1">Search across leads, contacts, accounts, and more</p>
+                <p className="text-sm">{t("minChars")}</p>
+                <p className="text-xs mt-1">{t("searchAcross")}</p>
               </div>
             ) : loading ? (
               <div className="p-8 text-center text-muted-foreground">
                 <Loader2 className="h-8 w-8 mx-auto mb-3 animate-spin" />
-                <p className="text-sm">Searching...</p>
+                <p className="text-sm">{t("searching")}</p>
               </div>
             ) : results.length === 0 ? (
               <div className="p-8 text-center text-muted-foreground">
                 <Search className="h-10 w-10 mx-auto mb-3 opacity-50" />
-                <p className="text-sm">No results found for "{query}"</p>
-                <p className="text-xs mt-1">Try a different search term</p>
+                <p className="text-sm">{t("noResults", { query })}</p>
+                <p className="text-xs mt-1">{t("tryDifferent")}</p>
               </div>
             ) : (
               <div className="py-2">
@@ -238,7 +258,7 @@ export function OmniSearch() {
                   return (
                     <div key={type}>
                       <div className="px-4 py-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                        {config?.label || type}
+                        {getTypeLabel(type)}
                       </div>
                       {items.map((result) => {
                         const globalIndex = flatResults.findIndex((r) => r.id === result.id);
@@ -288,15 +308,15 @@ export function OmniSearch() {
             <div className="px-4 py-2 border-t bg-muted/30 text-xs text-muted-foreground flex items-center gap-4">
               <span className="flex items-center gap-1">
                 <kbd className="px-1.5 py-0.5 rounded bg-muted border text-[10px]">↑↓</kbd>
-                navigate
+                {t("navigate")}
               </span>
               <span className="flex items-center gap-1">
                 <kbd className="px-1.5 py-0.5 rounded bg-muted border text-[10px]">↵</kbd>
-                select
+                {t("select")}
               </span>
               <span className="flex items-center gap-1">
                 <kbd className="px-1.5 py-0.5 rounded bg-muted border text-[10px]">esc</kbd>
-                close
+                {t("close")}
               </span>
             </div>
           )}

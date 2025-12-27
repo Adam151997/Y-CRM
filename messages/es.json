@@ -312,5 +312,36 @@
     "deleted": "Eliminado con éxito",
     "imported": "Importado con éxito",
     "exported": "Exportado con éxito"
+  },
+  "search": {
+    "title": "Buscar",
+    "placeholder": "Buscar...",
+    "inputPlaceholder": "Buscar prospectos, contactos, cuentas...",
+    "minChars": "Escribe al menos 2 caracteres para buscar",
+    "searchAcross": "Buscar en prospectos, contactos, cuentas y más",
+    "searching": "Buscando...",
+    "noResults": "No se encontraron resultados para \"{query}\"",
+    "tryDifferent": "Intenta con un término de búsqueda diferente",
+    "navigate": "navegar",
+    "select": "seleccionar",
+    "close": "cerrar",
+    "types": {
+      "lead": "Prospecto",
+      "contact": "Contacto",
+      "account": "Cuenta",
+      "opportunity": "Oportunidad",
+      "task": "Tarea",
+      "ticket": "Ticket",
+      "document": "Documento",
+      "invoice": "Factura",
+      "renewal": "Renovación",
+      "campaign": "Campaña",
+      "custom": "Personalizado"
+    }
+  },
+  "notifications": {
+    "title": "Notificaciones",
+    "markAllRead": "Marcar todo como leído",
+    "noNotifications": "No hay notificaciones aún"
   }
 }
