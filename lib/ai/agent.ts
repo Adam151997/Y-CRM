@@ -111,17 +111,7 @@ function detectPrimaryAction(message: string): PrimaryAction {
   
   // Stats patterns
   if (lower.match(/\b(dashboard|stats|statistics|overview|summary)/)) return "stats";
-  
-  // Email patterns
-  if (lower.match(/\b(send|compose|write)\s+(an?\s+)?(email|mail)/)) return "email";
-  
-  // Calendar patterns
-  if (lower.match(/\b(schedule|create|add)\s+(a\s+)?(meeting|event|calendar)/)) return "calendar";
-  
-  // Slack patterns
-  if (lower.match(/\b(send|post)\s+(a\s+)?(slack|message\s+to\s+slack)/)) return "slack";
-  if (lower.includes("slack")) return "slack";
-  
+
   return null;
 }
 
