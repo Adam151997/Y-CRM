@@ -322,10 +322,10 @@ async function importRecords(
               sku: (data.sku as string) || `SKU-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`,
               description: data.description as string | undefined,
               category: data.category as string | undefined,
-              unitPrice: data.unitPrice as number | undefined,
-              costPrice: data.costPrice as number | undefined,
+              unitPrice: (data.unitPrice as number) ?? 0,
+              costPrice: (data.costPrice as number) ?? 0,
               quantity: (data.quantity as number) || 0,
-              reorderLevel: data.reorderLevel as number | undefined,
+              reorderLevel: (data.reorderLevel as number) ?? 0,
             },
           });
           break;
