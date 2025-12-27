@@ -46,13 +46,7 @@ export async function GET() {
         failureCount: true,
         createdAt: true,
         updatedAt: true,
-        createdBy: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-          },
-        },
+        createdById: true,
       },
     });
 

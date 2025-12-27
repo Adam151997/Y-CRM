@@ -85,10 +85,7 @@ interface Integration {
   successCount: number;
   failureCount: number;
   createdAt: string;
-  createdBy?: {
-    firstName: string | null;
-    lastName: string | null;
-  };
+  createdById: string;
 }
 
 interface APIKey {
