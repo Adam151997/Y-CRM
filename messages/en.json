@@ -397,6 +397,51 @@
       "title": "Invoices",
       "description": "Manage billing and invoices",
       "addInvoice": "Add Invoice"
+    },
+    "inventory": {
+      "title": "Inventory",
+      "description": "Manage products, track stock levels, and monitor inventory",
+      "addItem": "New Item"
+    },
+    "renewals": {
+      "title": "Renewals",
+      "description": "Track and manage contract renewals",
+      "addRenewal": "New Renewal"
+    },
+    "playbooks": {
+      "title": "Playbooks",
+      "description": "Standardized workflows for customer success",
+      "addPlaybook": "New Playbook"
+    },
+    "campaigns": {
+      "title": "Campaigns",
+      "description": "Create and manage marketing campaigns",
+      "addCampaign": "New Campaign"
+    },
+    "segments": {
+      "title": "Segments",
+      "description": "Create dynamic audience segments for targeted campaigns",
+      "addSegment": "New Segment"
+    },
+    "forms": {
+      "title": "Forms",
+      "description": "Create lead capture forms for your website",
+      "addForm": "New Form"
+    },
+    "employees": {
+      "title": "Employees",
+      "description": "Manage employee records and information",
+      "addEmployee": "Add Employee"
+    },
+    "leaves": {
+      "title": "Leave Management",
+      "description": "Track and manage employee leave requests",
+      "addLeave": "Request Leave"
+    },
+    "payroll": {
+      "title": "Payroll Management",
+      "description": "Process and manage employee payroll",
+      "addPayroll": "Create Payroll"
     }
   }
 }

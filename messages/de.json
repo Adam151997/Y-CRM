@@ -397,6 +397,51 @@
       "title": "Rechnungen",
       "description": "Verwalten Sie Rechnungen und Abrechnung",
       "addInvoice": "Rechnung hinzufügen"
+    },
+    "inventory": {
+      "title": "Inventar",
+      "description": "Produkte verwalten, Lagerbestände verfolgen und Inventar überwachen",
+      "addItem": "Neuer Artikel"
+    },
+    "renewals": {
+      "title": "Verlängerungen",
+      "description": "Vertragsverlängerungen verfolgen und verwalten",
+      "addRenewal": "Neue Verlängerung"
+    },
+    "playbooks": {
+      "title": "Playbooks",
+      "description": "Standardisierte Workflows für Kundenerfolg",
+      "addPlaybook": "Neues Playbook"
+    },
+    "campaigns": {
+      "title": "Kampagnen",
+      "description": "Marketing-Kampagnen erstellen und verwalten",
+      "addCampaign": "Neue Kampagne"
+    },
+    "segments": {
+      "title": "Segmente",
+      "description": "Dynamische Zielgruppensegmente für gezielte Kampagnen erstellen",
+      "addSegment": "Neues Segment"
+    },
+    "forms": {
+      "title": "Formulare",
+      "description": "Lead-Erfassungsformulare für Ihre Website erstellen",
+      "addForm": "Neues Formular"
+    },
+    "employees": {
+      "title": "Mitarbeiter",
+      "description": "Mitarbeiterdaten und -informationen verwalten",
+      "addEmployee": "Mitarbeiter hinzufügen"
+    },
+    "leaves": {
+      "title": "Urlaubsverwaltung",
+      "description": "Urlaubsanträge der Mitarbeiter verfolgen und verwalten",
+      "addLeave": "Urlaub beantragen"
+    },
+    "payroll": {
+      "title": "Lohnbuchhaltung",
+      "description": "Mitarbeitergehälter verarbeiten und verwalten",
+      "addPayroll": "Gehaltsabrechnung erstellen"
     }
   }
 }

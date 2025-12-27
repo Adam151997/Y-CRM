@@ -397,6 +397,51 @@
       "title": "الفواتير",
       "description": "إدارة الفواتير والفوترة",
       "addInvoice": "إضافة فاتورة"
+    },
+    "inventory": {
+      "title": "المخزون",
+      "description": "إدارة المنتجات وتتبع مستويات المخزون",
+      "addItem": "عنصر جديد"
+    },
+    "renewals": {
+      "title": "التجديدات",
+      "description": "تتبع وإدارة تجديدات العقود",
+      "addRenewal": "تجديد جديد"
+    },
+    "playbooks": {
+      "title": "دليل العمل",
+      "description": "سير عمل موحد لنجاح العملاء",
+      "addPlaybook": "دليل جديد"
+    },
+    "campaigns": {
+      "title": "الحملات",
+      "description": "إنشاء وإدارة الحملات التسويقية",
+      "addCampaign": "حملة جديدة"
+    },
+    "segments": {
+      "title": "الشرائح",
+      "description": "إنشاء شرائح جمهور ديناميكية للحملات المستهدفة",
+      "addSegment": "شريحة جديدة"
+    },
+    "forms": {
+      "title": "النماذج",
+      "description": "إنشاء نماذج لجمع العملاء المحتملين لموقعك",
+      "addForm": "نموذج جديد"
+    },
+    "employees": {
+      "title": "الموظفون",
+      "description": "إدارة سجلات ومعلومات الموظفين",
+      "addEmployee": "إضافة موظف"
+    },
+    "leaves": {
+      "title": "إدارة الإجازات",
+      "description": "تتبع وإدارة طلبات إجازات الموظفين",
+      "addLeave": "طلب إجازة"
+    },
+    "payroll": {
+      "title": "إدارة الرواتب",
+      "description": "معالجة وإدارة رواتب الموظفين",
+      "addPayroll": "إنشاء كشف رواتب"
     }
   }
 }

@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { getAuthContext } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,6 +35,7 @@ const triggerIcons: Record<string, React.ReactNode> = {
 
 export default async function PlaybooksPage() {
   const { orgId } = await getAuthContext();
+  const t = await getTranslations("modules.playbooks");
 
   // Fetch playbooks with run counts
   const playbooks = await prisma.playbook.findMany({
@@ -65,15 +67,15 @@ export default async function PlaybooksPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Playbooks</h1>
+          <h1 className="text-2xl font-bold">{t("title")}</h1>
           <p className="text-muted-foreground">
-            Standardized workflows for customer success
+            {t("description")}
           </p>
         </div>
         <Button asChild>
           <Link href="/cs/playbooks/new">
             <Plus className="h-4 w-4 mr-2" />
-            New Playbook
+            {t("addPlaybook")}
           </Link>
         </Button>
       </div>

@@ -397,6 +397,51 @@
       "title": "Facturas",
       "description": "Gestiona la facturación y las facturas",
       "addInvoice": "Añadir Factura"
+    },
+    "inventory": {
+      "title": "Inventario",
+      "description": "Gestiona productos, rastrea niveles de stock y monitorea inventario",
+      "addItem": "Nuevo Artículo"
+    },
+    "renewals": {
+      "title": "Renovaciones",
+      "description": "Rastrea y gestiona renovaciones de contratos",
+      "addRenewal": "Nueva Renovación"
+    },
+    "playbooks": {
+      "title": "Playbooks",
+      "description": "Flujos de trabajo estandarizados para el éxito del cliente",
+      "addPlaybook": "Nuevo Playbook"
+    },
+    "campaigns": {
+      "title": "Campañas",
+      "description": "Crea y gestiona campañas de marketing",
+      "addCampaign": "Nueva Campaña"
+    },
+    "segments": {
+      "title": "Segmentos",
+      "description": "Crea segmentos de audiencia dinámicos para campañas dirigidas",
+      "addSegment": "Nuevo Segmento"
+    },
+    "forms": {
+      "title": "Formularios",
+      "description": "Crea formularios de captura de leads para tu sitio web",
+      "addForm": "Nuevo Formulario"
+    },
+    "employees": {
+      "title": "Empleados",
+      "description": "Gestiona registros e información de empleados",
+      "addEmployee": "Añadir Empleado"
+    },
+    "leaves": {
+      "title": "Gestión de Permisos",
+      "description": "Rastrea y gestiona solicitudes de permisos de empleados",
+      "addLeave": "Solicitar Permiso"
+    },
+    "payroll": {
+      "title": "Gestión de Nóminas",
+      "description": "Procesa y gestiona nóminas de empleados",
+      "addPayroll": "Crear Nómina"
     }
   }
 }

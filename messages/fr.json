@@ -397,6 +397,51 @@
       "title": "Factures",
       "description": "Gérez la facturation et les factures",
       "addInvoice": "Ajouter une Facture"
+    },
+    "inventory": {
+      "title": "Inventaire",
+      "description": "Gérez les produits, suivez les niveaux de stock et surveillez l'inventaire",
+      "addItem": "Nouvel Article"
+    },
+    "renewals": {
+      "title": "Renouvellements",
+      "description": "Suivez et gérez les renouvellements de contrats",
+      "addRenewal": "Nouveau Renouvellement"
+    },
+    "playbooks": {
+      "title": "Playbooks",
+      "description": "Flux de travail standardisés pour la réussite client",
+      "addPlaybook": "Nouveau Playbook"
+    },
+    "campaigns": {
+      "title": "Campagnes",
+      "description": "Créez et gérez des campagnes marketing",
+      "addCampaign": "Nouvelle Campagne"
+    },
+    "segments": {
+      "title": "Segments",
+      "description": "Créez des segments d'audience dynamiques pour des campagnes ciblées",
+      "addSegment": "Nouveau Segment"
+    },
+    "forms": {
+      "title": "Formulaires",
+      "description": "Créez des formulaires de capture de leads pour votre site web",
+      "addForm": "Nouveau Formulaire"
+    },
+    "employees": {
+      "title": "Employés",
+      "description": "Gérez les dossiers et informations des employés",
+      "addEmployee": "Ajouter un Employé"
+    },
+    "leaves": {
+      "title": "Gestion des Congés",
+      "description": "Suivez et gérez les demandes de congés des employés",
+      "addLeave": "Demander un Congé"
+    },
+    "payroll": {
+      "title": "Gestion de la Paie",
+      "description": "Traitez et gérez la paie des employés",
+      "addPayroll": "Créer une Paie"
     }
   }
 }

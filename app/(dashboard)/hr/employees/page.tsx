@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,6 +60,7 @@ const EMPLOYMENT_TYPE_LABELS: Record<string, string> = {
 function EmployeesContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const t = useTranslations("modules.employees");
 
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
@@ -107,16 +109,16 @@ function EmployeesContent() {
         <div>
           <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
             <Users className="h-6 w-6" />
-            Employees
+            {t("title")}
           </h2>
           <p className="text-muted-foreground">
-            Manage employee records and information
+            {t("description")}
           </p>
         </div>
         <Button asChild>
           <Link href="/hr/employees/new">
             <Plus className="h-4 w-4 mr-2" />
-            Add Employee
+            {t("addEmployee")}
           </Link>
         </Button>
       </div>
