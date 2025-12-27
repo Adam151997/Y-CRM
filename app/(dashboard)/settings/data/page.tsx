@@ -67,6 +67,9 @@ export default function DataManagementPage() {
                 <li>Opportunities</li>
                 <li>Tasks</li>
                 <li>Support Tickets</li>
+                <li>Employees</li>
+                <li>Leaves</li>
+                <li>Payroll</li>
               </ul>
             </div>
             <ExportDialog
@@ -93,7 +96,7 @@ export default function DataManagementPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
+          <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             <ExportDialog
               module="leads"
               trigger={
@@ -139,6 +142,30 @@ export default function DataManagementPage() {
               trigger={
                 <Button variant="outline" size="sm" className="w-full">
                   Tickets
+                </Button>
+              }
+            />
+            <ExportDialog
+              module="employees"
+              trigger={
+                <Button variant="outline" size="sm" className="w-full">
+                  Employees
+                </Button>
+              }
+            />
+            <ExportDialog
+              module="leaves"
+              trigger={
+                <Button variant="outline" size="sm" className="w-full">
+                  Leaves
+                </Button>
+              }
+            />
+            <ExportDialog
+              module="payroll"
+              trigger={
+                <Button variant="outline" size="sm" className="w-full">
+                  Payroll
                 </Button>
               }
             />
