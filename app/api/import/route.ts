@@ -330,7 +330,7 @@ async function importRecords(
               employmentType: (data.employmentType as string) || "FULL_TIME",
               salary: data.salary as number | undefined,
               currency: (data.currency as string) || "USD",
-              joinDate: data.joinDate as Date | undefined,
+              joinDate: (data.joinDate as Date) || new Date(),
               status: (data.status as string) || "ACTIVE",
             },
           });
