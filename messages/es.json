@@ -92,6 +92,24 @@
     "hr": "Recursos Humanos",
     "switchWorkspace": "Cambiar espacio de trabajo"
   },
+  "dashboard": {
+    "sales": {
+      "title": "Panel de Ventas",
+      "description": "Sigue tu pipeline, negocios y rendimiento de ventas"
+    },
+    "cs": {
+      "title": "Panel de Éxito del Cliente",
+      "description": "Monitorea la salud del cliente, tickets de soporte y éxito de cuentas"
+    },
+    "marketing": {
+      "title": "Centro de Marketing",
+      "description": "Campañas, segmentos y generación de prospectos"
+    },
+    "hr": {
+      "title": "Panel de RR.HH.",
+      "description": "Gestiona empleados, solicitudes de permisos y nómina"
+    }
+  },
   "settings": {
     "title": "Configuración",
     "subtitle": "Administra tu cuenta y las preferencias de la organización",

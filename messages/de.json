@@ -92,6 +92,24 @@
     "hr": "Personalwesen",
     "switchWorkspace": "Arbeitsbereich wechseln"
   },
+  "dashboard": {
+    "sales": {
+      "title": "Vertriebs-Dashboard",
+      "description": "Verfolgen Sie Ihre Pipeline, Deals und Vertriebsleistung"
+    },
+    "cs": {
+      "title": "Kundenerfolgs-Dashboard",
+      "description": "Überwachen Sie Kundengesundheit, Support-Tickets und Kontoerfolg"
+    },
+    "marketing": {
+      "title": "Marketing-Hub",
+      "description": "Kampagnen, Segmente und Lead-Generierung"
+    },
+    "hr": {
+      "title": "HR-Dashboard",
+      "description": "Verwalten Sie Mitarbeiter, Urlaubsanträge und Gehaltsabrechnung"
+    }
+  },
   "settings": {
     "title": "Einstellungen",
     "subtitle": "Verwalten Sie Ihr Konto und Ihre Organisationseinstellungen",

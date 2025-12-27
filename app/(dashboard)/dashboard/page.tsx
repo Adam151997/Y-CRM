@@ -1,17 +1,19 @@
 import { Suspense } from "react";
+import { getTranslations } from "next-intl/server";
 import { getAuthContext } from "@/lib/auth";
 import { DashboardGrid } from "@/components/dashboard/dashboard-grid";
 
 export default async function SalesDashboardPage() {
   await getAuthContext(); // Ensure user is authenticated
+  const t = await getTranslations("dashboard");
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h2 className="text-2xl font-bold tracking-tight">Sales Dashboard</h2>
+        <h2 className="text-2xl font-bold tracking-tight">{t("sales.title")}</h2>
         <p className="text-muted-foreground">
-          Track your pipeline, deals, and sales performance
+          {t("sales.description")}
         </p>
       </div>
 

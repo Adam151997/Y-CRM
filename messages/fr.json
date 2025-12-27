@@ -92,6 +92,24 @@
     "hr": "Ressources Humaines",
     "switchWorkspace": "Changer d'espace de travail"
   },
+  "dashboard": {
+    "sales": {
+      "title": "Tableau de bord Ventes",
+      "description": "Suivez votre pipeline, vos affaires et vos performances commerciales"
+    },
+    "cs": {
+      "title": "Tableau de bord Succès Client",
+      "description": "Surveillez la santé client, les tickets de support et le succès des comptes"
+    },
+    "marketing": {
+      "title": "Hub Marketing",
+      "description": "Campagnes, segments et génération de prospects"
+    },
+    "hr": {
+      "title": "Tableau de bord RH",
+      "description": "Gérez les employés, les demandes de congés et la paie"
+    }
+  },
   "settings": {
     "title": "Paramètres",
     "subtitle": "Gérez votre compte et les préférences de l'organisation",

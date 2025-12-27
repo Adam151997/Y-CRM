@@ -92,6 +92,24 @@
     "hr": "Human Resources",
     "switchWorkspace": "Switch Workspace"
   },
+  "dashboard": {
+    "sales": {
+      "title": "Sales Dashboard",
+      "description": "Track your pipeline, deals, and sales performance"
+    },
+    "cs": {
+      "title": "Customer Success Dashboard",
+      "description": "Monitor customer health, support tickets, and account success"
+    },
+    "marketing": {
+      "title": "Marketing Hub",
+      "description": "Campaigns, segments, and lead generation"
+    },
+    "hr": {
+      "title": "HR Dashboard",
+      "description": "Manage employees, leave requests, and payroll"
+    }
+  },
   "settings": {
     "title": "Settings",
     "subtitle": "Manage your account and organization preferences",
