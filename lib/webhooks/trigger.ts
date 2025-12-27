@@ -4,6 +4,7 @@
  */
 
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 import { safeDecrypt } from "@/lib/encryption";
 import type { WebhookEventType } from "@/lib/integrations";
 
@@ -175,8 +176,8 @@ async function deliverWebhook(
         integrationId: integration.id,
         eventType: payload.event,
         requestUrl: url,
-        requestHeaders: headers,
-        requestBody: payload,
+        requestHeaders: headers as unknown as Prisma.InputJsonValue,
+        requestBody: payload as unknown as Prisma.InputJsonValue,
         responseStatus,
         responseBody: responseBody?.slice(0, 10000), // Limit stored response
         attemptedAt: new Date(),
