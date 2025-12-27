@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 import { UserButton } from "@clerk/nextjs";
 import { usePermissions } from "@/hooks/use-permissions";
@@ -55,49 +56,49 @@ const iconMap: Record<string, LucideIcon> = {
 
 const navigation = [
   {
-    name: "Dashboard",
+    nameKey: "dashboard",
     href: "/dashboard",
     icon: LayoutDashboard,
   },
   {
-    name: "AI Assistant",
+    nameKey: "aiAssistant",
     href: "/assistant",
     icon: Sparkles,
     highlight: true,
     requiresPermission: "ai_assistant",
   },
   {
-    name: "Leads",
+    nameKey: "leads",
     href: "/leads",
     icon: Users,
   },
   {
-    name: "Contacts",
+    nameKey: "contacts",
     href: "/contacts",
     icon: UserCircle,
   },
   {
-    name: "Accounts",
+    nameKey: "accounts",
     href: "/accounts",
     icon: Building2,
   },
   {
-    name: "Opportunities",
+    nameKey: "opportunities",
     href: "/opportunities",
     icon: Target,
   },
   {
-    name: "Tasks",
+    nameKey: "tasks",
     href: "/tasks",
     icon: CheckSquare,
   },
   {
-    name: "Pipeline",
+    nameKey: "pipelineBoard",
     href: "/pipeline",
     icon: FolderKanban,
   },
   {
-    name: "Reports",
+    nameKey: "reports",
     href: "/reports",
     icon: BarChart3,
   },
@@ -105,12 +106,12 @@ const navigation = [
 
 const secondaryNavigation = [
   {
-    name: "Documents",
+    nameKey: "documents",
     href: "/documents",
     icon: FileText,
   },
   {
-    name: "Settings",
+    nameKey: "settings",
     href: "/settings",
     icon: Settings,
   },
@@ -137,6 +138,8 @@ interface SidebarProps {
 export function Sidebar({ onNavigate }: SidebarProps) {
   const pathname = usePathname();
   const { can } = usePermissions();
+  const t = useTranslations("navigation");
+  const tCommon = useTranslations("common");
   const [collapsed, setCollapsed] = useState(false);
   const [customModules, setCustomModules] = useState<CustomModule[]>([]);
   const [branding, setBranding] = useState<Branding>({ brandName: "Y CRM", brandLogo: null });
@@ -277,7 +280,7 @@ export function Sidebar({ onNavigate }: SidebarProps) {
               )}
             >
               <Mic className="h-4 w-4" />
-              {!collapsed && <span className="ml-2">Voice Command</span>}
+              {!collapsed && <span className="ml-2">{t("voiceCommand")}</span>}
             </Button>
           </Link>
         </div>
@@ -288,10 +291,11 @@ export function Sidebar({ onNavigate }: SidebarProps) {
         {filteredNavigation.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
           const isHighlight = "highlight" in item && item.highlight;
-          
+          const itemName = t(item.nameKey);
+
           return (
             <Link
-              key={item.name}
+              key={item.nameKey}
               href={item.href}
               prefetch={true}
               onClick={handleNavClick}
@@ -304,10 +308,10 @@ export function Sidebar({ onNavigate }: SidebarProps) {
                   : "text-muted-foreground hover:bg-accent hover:text-foreground",
                 collapsed && "justify-center px-2"
               )}
-              title={collapsed ? item.name : undefined}
+              title={collapsed ? itemName : undefined}
             >
               <item.icon className={cn("h-5 w-5", !collapsed && "mr-3")} />
-              {!collapsed && item.name}
+              {!collapsed && itemName}
             </Link>
           );
         })}
@@ -347,9 +351,10 @@ export function Sidebar({ onNavigate }: SidebarProps) {
 
         {secondaryNavigation.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+          const itemName = t(item.nameKey);
           return (
             <Link
-              key={item.name}
+              key={item.nameKey}
               href={item.href}
               prefetch={true}
               onClick={handleNavClick}
@@ -360,10 +365,10 @@ export function Sidebar({ onNavigate }: SidebarProps) {
                   : "text-muted-foreground hover:bg-accent hover:text-foreground",
                 collapsed && "justify-center px-2"
               )}
-              title={collapsed ? item.name : undefined}
+              title={collapsed ? itemName : undefined}
             >
               <item.icon className={cn("h-5 w-5", !collapsed && "mr-3")} />
-              {!collapsed && item.name}
+              {!collapsed && itemName}
             </Link>
           );
         })}

@@ -4,6 +4,8 @@ import { ClerkProvider } from "@clerk/nextjs";
 import { Toaster } from "sonner";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale, getMessages } from "next-intl/server";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { QueryProvider } from "@/components/providers/query-provider";
 import { ServiceWorkerProvider } from "@/components/providers/service-worker-provider";
@@ -88,28 +90,33 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const locale = await getLocale();
+  const messages = await getMessages();
+
   return (
     <ClerkProvider>
-      <html lang="en" suppressHydrationWarning>
+      <html lang={locale} dir="ltr" suppressHydrationWarning>
         <body className={inter.className}>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-            disableTransitionOnChange
-          >
-            <QueryProvider>
-              <ServiceWorkerProvider>
-                {children}
-              </ServiceWorkerProvider>
-              <Toaster position="top-right" richColors closeButton />
-            </QueryProvider>
-          </ThemeProvider>
+          <NextIntlClientProvider messages={messages}>
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="system"
+              enableSystem
+              disableTransitionOnChange
+            >
+              <QueryProvider>
+                <ServiceWorkerProvider>
+                  {children}
+                </ServiceWorkerProvider>
+                <Toaster position="top-right" richColors closeButton />
+              </QueryProvider>
+            </ThemeProvider>
+          </NextIntlClientProvider>
           <Analytics />
           <SpeedInsights />
         </body>

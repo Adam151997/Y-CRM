@@ -1,0 +1,315 @@
+{
+  "common": {
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "create": "Créer",
+    "add": "Ajouter",
+    "remove": "Retirer",
+    "close": "Fermer",
+    "confirm": "Confirmer",
+    "submit": "Soumettre",
+    "search": "Rechercher...",
+    "loading": "Chargement...",
+    "noResults": "Aucun résultat trouvé",
+    "actions": "Actions",
+    "view": "Voir",
+    "export": "Exporter",
+    "import": "Importer",
+    "refresh": "Actualiser",
+    "back": "Retour",
+    "next": "Suivant",
+    "previous": "Précédent",
+    "all": "Tout",
+    "none": "Aucun",
+    "select": "Sélectionner",
+    "selectAll": "Tout sélectionner",
+    "clear": "Effacer",
+    "apply": "Appliquer",
+    "reset": "Réinitialiser",
+    "filter": "Filtrer",
+    "sort": "Trier",
+    "ascending": "Croissant",
+    "descending": "Décroissant",
+    "yes": "Oui",
+    "no": "Non",
+    "ok": "OK",
+    "error": "Erreur",
+    "success": "Succès",
+    "warning": "Avertissement",
+    "info": "Information",
+    "required": "Requis",
+    "optional": "Facultatif",
+    "enabled": "Activé",
+    "disabled": "Désactivé",
+    "active": "Actif",
+    "inactive": "Inactif",
+    "new": "Nouveau",
+    "open": "Ouvert",
+    "closed": "Fermé",
+    "pending": "En attente",
+    "completed": "Terminé",
+    "inProgress": "En cours",
+    "today": "Aujourd'hui",
+    "yesterday": "Hier",
+    "tomorrow": "Demain",
+    "thisWeek": "Cette semaine",
+    "thisMonth": "Ce mois",
+    "thisYear": "Cette année",
+    "custom": "Personnalisé"
+  },
+  "navigation": {
+    "dashboard": "Tableau de bord",
+    "aiAssistant": "Assistant IA",
+    "leads": "Prospects",
+    "opportunities": "Opportunités",
+    "pipelineBoard": "Tableau de Pipeline",
+    "contacts": "Contacts",
+    "accounts": "Comptes",
+    "invoices": "Factures",
+    "inventory": "Inventaire",
+    "tasks": "Tâches",
+    "tickets": "Tickets",
+    "healthScores": "Scores de Santé",
+    "renewals": "Renouvellements",
+    "playbooks": "Guides d'Action",
+    "campaigns": "Campagnes",
+    "segments": "Segments",
+    "forms": "Formulaires",
+    "employees": "Employés",
+    "leaves": "Congés",
+    "payroll": "Paie",
+    "reports": "Rapports",
+    "settings": "Paramètres",
+    "documents": "Documents",
+    "voiceCommand": "Commande Vocale"
+  },
+  "workspaces": {
+    "sales": "Ventes",
+    "cs": "Succès Client",
+    "marketing": "Marketing",
+    "hr": "Ressources Humaines",
+    "switchWorkspace": "Changer d'espace de travail"
+  },
+  "settings": {
+    "title": "Paramètres",
+    "subtitle": "Gérez votre compte et les préférences de l'organisation",
+    "profile": {
+      "title": "Profil",
+      "description": "Gérez vos informations personnelles",
+      "information": "Informations du profil",
+      "managedByClerk": "Vos informations personnelles sont gérées via Clerk",
+      "userId": "ID utilisateur",
+      "emailVerified": "Email vérifié",
+      "created": "Créé",
+      "lastSignIn": "Dernière connexion",
+      "never": "Jamais",
+      "manageInClerk": "Gérer le profil dans Clerk"
+    },
+    "preferences": {
+      "title": "Préférences",
+      "description": "Personnalisez votre expérience",
+      "themeNote": "Les préférences de thème sont gérées via le bouton de thème dans l'en-tête."
+    },
+    "language": {
+      "title": "Langues",
+      "description": "Choisissez votre langue préférée pour l'interface",
+      "select": "Sélectionner la langue",
+      "current": "Langue actuelle",
+      "available": "Langues disponibles",
+      "switchSuccess": "Langue modifiée avec succès",
+      "switchError": "Échec du changement de langue"
+    },
+    "organization": {
+      "title": "Organisation",
+      "description": "Gérez les paramètres de votre organisation"
+    },
+    "branding": {
+      "title": "Image de marque",
+      "description": "Personnalisez l'apparence de votre CRM"
+    },
+    "team": {
+      "title": "Équipe",
+      "description": "Gérer les membres de l'équipe"
+    },
+    "roles": {
+      "title": "Rôles et Permissions",
+      "description": "Configurer le contrôle d'accès"
+    },
+    "integrations": {
+      "title": "Intégrations",
+      "description": "Connecter des applications externes et gérer les clés API"
+    },
+    "modules": {
+      "title": "Modules Personnalisés",
+      "description": "Créer des modules de données personnalisés"
+    },
+    "customFields": {
+      "title": "Champs Personnalisés",
+      "description": "Configurer les champs personnalisés pour les modules"
+    },
+    "pipeline": {
+      "title": "Étapes du Pipeline",
+      "description": "Configurer les étapes du pipeline"
+    },
+    "data": {
+      "title": "Gestion des Données",
+      "description": "Importer et exporter des données"
+    },
+    "activity": {
+      "title": "Journal d'Audit",
+      "description": "Voir tous les changements du CRM"
+    },
+    "adminRequired": "Accès administrateur requis",
+    "contactAdmin": "Contactez votre administrateur pour accéder aux paramètres de l'organisation."
+  },
+  "forms": {
+    "labels": {
+      "name": "Nom",
+      "email": "Email",
+      "phone": "Téléphone",
+      "company": "Entreprise",
+      "title": "Titre",
+      "description": "Description",
+      "status": "Statut",
+      "priority": "Priorité",
+      "dueDate": "Date d'échéance",
+      "startDate": "Date de début",
+      "endDate": "Date de fin",
+      "assignedTo": "Assigné à",
+      "createdBy": "Créé par",
+      "createdAt": "Créé le",
+      "updatedAt": "Mis à jour le",
+      "notes": "Notes",
+      "tags": "Tags",
+      "value": "Valeur",
+      "amount": "Montant",
+      "currency": "Devise",
+      "source": "Source",
+      "type": "Type",
+      "category": "Catégorie",
+      "address": "Adresse",
+      "city": "Ville",
+      "state": "État/Province",
+      "country": "Pays",
+      "zipCode": "Code postal",
+      "website": "Site web"
+    },
+    "placeholders": {
+      "search": "Rechercher...",
+      "enterName": "Entrez le nom",
+      "enterEmail": "Entrez l'adresse email",
+      "enterPhone": "Entrez le numéro de téléphone",
+      "enterDescription": "Entrez la description",
+      "selectOption": "Sélectionnez une option",
+      "selectDate": "Sélectionnez une date",
+      "typeToSearch": "Tapez pour rechercher..."
+    },
+    "validation": {
+      "required": "Ce champ est requis",
+      "email": "Veuillez entrer une adresse email valide",
+      "phone": "Veuillez entrer un numéro de téléphone valide",
+      "minLength": "Doit contenir au moins {min} caractères",
+      "maxLength": "Doit contenir au maximum {max} caractères",
+      "min": "Doit être au moins {min}",
+      "max": "Doit être au maximum {max}",
+      "pattern": "Format invalide",
+      "url": "Veuillez entrer une URL valide"
+    }
+  },
+  "priority": {
+    "low": "Basse",
+    "medium": "Moyenne",
+    "high": "Haute",
+    "urgent": "Urgente"
+  },
+  "status": {
+    "new": "Nouveau",
+    "open": "Ouvert",
+    "inProgress": "En cours",
+    "pending": "En attente",
+    "onHold": "En pause",
+    "resolved": "Résolu",
+    "closed": "Fermé",
+    "cancelled": "Annulé",
+    "won": "Gagné",
+    "lost": "Perdu",
+    "qualified": "Qualifié",
+    "unqualified": "Non qualifié"
+  },
+  "dataTable": {
+    "noData": "Aucune donnée disponible",
+    "showing": "Affichage de {from} à {to} sur {total} résultats",
+    "rowsPerPage": "Lignes par page",
+    "page": "Page",
+    "of": "sur",
+    "goToPage": "Aller à la page",
+    "firstPage": "Première page",
+    "lastPage": "Dernière page",
+    "nextPage": "Page suivante",
+    "previousPage": "Page précédente",
+    "selected": "{count} sélectionné(s)",
+    "selectRow": "Sélectionner la ligne",
+    "selectAllRows": "Sélectionner toutes les lignes"
+  },
+  "dialogs": {
+    "confirmDelete": {
+      "title": "Êtes-vous sûr ?",
+      "description": "Cette action est irréversible. L'élément sera définitivement supprimé.",
+      "confirm": "Supprimer",
+      "cancel": "Annuler"
+    },
+    "unsavedChanges": {
+      "title": "Modifications non enregistrées",
+      "description": "Vous avez des modifications non enregistrées. Êtes-vous sûr de vouloir quitter ?",
+      "confirm": "Quitter",
+      "cancel": "Rester"
+    }
+  },
+  "import": {
+    "title": "Importer des données",
+    "selectModule": "Choisissez quoi importer",
+    "dragDrop": "Glissez et déposez votre fichier CSV ici",
+    "or": "ou",
+    "browse": "Parcourir les fichiers",
+    "csvOnly": "Seuls les fichiers CSV sont pris en charge",
+    "importing": "Importation...",
+    "complete": "Importation terminée",
+    "failed": "Échec de l'importation",
+    "records": "{count} enregistrements importés avec succès"
+  },
+  "export": {
+    "title": "Exporter des données",
+    "selectModule": "Choisissez quoi exporter",
+    "format": "Format d'exportation",
+    "exporting": "Exportation...",
+    "complete": "Exportation terminée",
+    "failed": "Échec de l'exportation",
+    "download": "Télécharger"
+  },
+  "theme": {
+    "toggle": "Changer de thème",
+    "light": "Clair",
+    "dark": "Sombre",
+    "system": "Système"
+  },
+  "errors": {
+    "generic": "Une erreur s'est produite. Veuillez réessayer.",
+    "notFound": "Non trouvé",
+    "unauthorized": "Vous n'êtes pas autorisé à effectuer cette action",
+    "forbidden": "Accès refusé",
+    "serverError": "Erreur serveur. Veuillez réessayer plus tard.",
+    "networkError": "Erreur réseau. Veuillez vérifier votre connexion.",
+    "validationError": "Veuillez corriger les erreurs ci-dessous",
+    "sessionExpired": "Votre session a expiré. Veuillez vous reconnecter."
+  },
+  "success": {
+    "saved": "Enregistré avec succès",
+    "created": "Créé avec succès",
+    "updated": "Mis à jour avec succès",
+    "deleted": "Supprimé avec succès",
+    "imported": "Importé avec succès",
+    "exported": "Exporté avec succès"
+  }
+}

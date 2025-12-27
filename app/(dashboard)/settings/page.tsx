@@ -1,4 +1,5 @@
 import { currentUser } from "@clerk/nextjs/server";
+import { getTranslations, getLocale } from "next-intl/server";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -7,20 +8,29 @@ import { ExternalLink } from "lucide-react";
 
 export default async function ProfileSettingsPage() {
   const user = await currentUser();
+  const t = await getTranslations("settings");
+  const locale = await getLocale();
 
   if (!user) {
-    return <div>Loading...</div>;
+    return <div>{t("loading") || "Loading..."}</div>;
   }
 
   const initials = `${user.firstName?.[0] || ""}${user.lastName?.[0] || ""}`.toUpperCase();
+
+  // Format dates based on locale
+  const dateFormatOptions: Intl.DateTimeFormatOptions = {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  };
 
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Profile Information</CardTitle>
+          <CardTitle>{t("profile.information")}</CardTitle>
           <CardDescription>
-            Your personal information is managed through Clerk
+            {t("profile.managedByClerk")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -43,35 +53,27 @@ export default async function ProfileSettingsPage() {
           {/* Details */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1">
-              <p className="text-sm text-muted-foreground">User ID</p>
+              <p className="text-sm text-muted-foreground">{t("profile.userId")}</p>
               <p className="font-mono text-sm">{user.id}</p>
             </div>
             <div className="space-y-1">
-              <p className="text-sm text-muted-foreground">Email Verified</p>
+              <p className="text-sm text-muted-foreground">{t("profile.emailVerified")}</p>
               <Badge variant={user.primaryEmailAddress?.verification?.status === "verified" ? "default" : "secondary"}>
                 {user.primaryEmailAddress?.verification?.status || "Unknown"}
               </Badge>
             </div>
             <div className="space-y-1">
-              <p className="text-sm text-muted-foreground">Created</p>
+              <p className="text-sm text-muted-foreground">{t("profile.created")}</p>
               <p className="text-sm">
-                {new Date(user.createdAt).toLocaleDateString("en-US", {
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                })}
+                {new Date(user.createdAt).toLocaleDateString(locale, dateFormatOptions)}
               </p>
             </div>
             <div className="space-y-1">
-              <p className="text-sm text-muted-foreground">Last Sign In</p>
+              <p className="text-sm text-muted-foreground">{t("profile.lastSignIn")}</p>
               <p className="text-sm">
                 {user.lastSignInAt
-                  ? new Date(user.lastSignInAt).toLocaleDateString("en-US", {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })
-                  : "Never"}
+                  ? new Date(user.lastSignInAt).toLocaleDateString(locale, dateFormatOptions)
+                  : t("profile.never")}
               </p>
             </div>
           </div>
@@ -84,8 +86,8 @@ export default async function ProfileSettingsPage() {
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                Manage Profile in Clerk
-                <ExternalLink className="h-4 w-4 ml-2" />
+                {t("profile.manageInClerk")}
+                <ExternalLink className="h-4 w-4 ms-2" />
               </a>
             </Button>
           </div>
@@ -95,14 +97,14 @@ export default async function ProfileSettingsPage() {
       {/* Preferences */}
       <Card>
         <CardHeader>
-          <CardTitle>Preferences</CardTitle>
+          <CardTitle>{t("preferences.title")}</CardTitle>
           <CardDescription>
-            Customize your experience
+            {t("preferences.description")}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
-            Theme preferences are managed via the theme toggle in the header.
+            {t("preferences.themeNote")}
           </p>
         </CardContent>
       </Card>

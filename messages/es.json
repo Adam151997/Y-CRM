@@ -1,0 +1,315 @@
+{
+  "common": {
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "create": "Crear",
+    "add": "Añadir",
+    "remove": "Quitar",
+    "close": "Cerrar",
+    "confirm": "Confirmar",
+    "submit": "Enviar",
+    "search": "Buscar...",
+    "loading": "Cargando...",
+    "noResults": "No se encontraron resultados",
+    "actions": "Acciones",
+    "view": "Ver",
+    "export": "Exportar",
+    "import": "Importar",
+    "refresh": "Actualizar",
+    "back": "Atrás",
+    "next": "Siguiente",
+    "previous": "Anterior",
+    "all": "Todos",
+    "none": "Ninguno",
+    "select": "Seleccionar",
+    "selectAll": "Seleccionar todo",
+    "clear": "Limpiar",
+    "apply": "Aplicar",
+    "reset": "Restablecer",
+    "filter": "Filtrar",
+    "sort": "Ordenar",
+    "ascending": "Ascendente",
+    "descending": "Descendente",
+    "yes": "Sí",
+    "no": "No",
+    "ok": "Aceptar",
+    "error": "Error",
+    "success": "Éxito",
+    "warning": "Advertencia",
+    "info": "Información",
+    "required": "Requerido",
+    "optional": "Opcional",
+    "enabled": "Habilitado",
+    "disabled": "Deshabilitado",
+    "active": "Activo",
+    "inactive": "Inactivo",
+    "new": "Nuevo",
+    "open": "Abierto",
+    "closed": "Cerrado",
+    "pending": "Pendiente",
+    "completed": "Completado",
+    "inProgress": "En progreso",
+    "today": "Hoy",
+    "yesterday": "Ayer",
+    "tomorrow": "Mañana",
+    "thisWeek": "Esta semana",
+    "thisMonth": "Este mes",
+    "thisYear": "Este año",
+    "custom": "Personalizado"
+  },
+  "navigation": {
+    "dashboard": "Panel de control",
+    "aiAssistant": "Asistente IA",
+    "leads": "Prospectos",
+    "opportunities": "Oportunidades",
+    "pipelineBoard": "Tablero de Pipeline",
+    "contacts": "Contactos",
+    "accounts": "Cuentas",
+    "invoices": "Facturas",
+    "inventory": "Inventario",
+    "tasks": "Tareas",
+    "tickets": "Tickets",
+    "healthScores": "Puntuaciones de Salud",
+    "renewals": "Renovaciones",
+    "playbooks": "Guías de Acción",
+    "campaigns": "Campañas",
+    "segments": "Segmentos",
+    "forms": "Formularios",
+    "employees": "Empleados",
+    "leaves": "Permisos",
+    "payroll": "Nómina",
+    "reports": "Informes",
+    "settings": "Configuración",
+    "documents": "Documentos",
+    "voiceCommand": "Comando de Voz"
+  },
+  "workspaces": {
+    "sales": "Ventas",
+    "cs": "Éxito del Cliente",
+    "marketing": "Marketing",
+    "hr": "Recursos Humanos",
+    "switchWorkspace": "Cambiar espacio de trabajo"
+  },
+  "settings": {
+    "title": "Configuración",
+    "subtitle": "Administra tu cuenta y las preferencias de la organización",
+    "profile": {
+      "title": "Perfil",
+      "description": "Administra tu información personal",
+      "information": "Información del perfil",
+      "managedByClerk": "Tu información personal se administra a través de Clerk",
+      "userId": "ID de usuario",
+      "emailVerified": "Correo verificado",
+      "created": "Creado",
+      "lastSignIn": "Último inicio de sesión",
+      "never": "Nunca",
+      "manageInClerk": "Administrar perfil en Clerk"
+    },
+    "preferences": {
+      "title": "Preferencias",
+      "description": "Personaliza tu experiencia",
+      "themeNote": "Las preferencias de tema se administran mediante el interruptor de tema en el encabezado."
+    },
+    "language": {
+      "title": "Idiomas",
+      "description": "Elige tu idioma preferido para la interfaz",
+      "select": "Seleccionar idioma",
+      "current": "Idioma actual",
+      "available": "Idiomas disponibles",
+      "switchSuccess": "Idioma cambiado con éxito",
+      "switchError": "Error al cambiar el idioma"
+    },
+    "organization": {
+      "title": "Organización",
+      "description": "Administra la configuración de tu organización"
+    },
+    "branding": {
+      "title": "Marca",
+      "description": "Personaliza la apariencia de tu CRM"
+    },
+    "team": {
+      "title": "Equipo",
+      "description": "Administrar miembros del equipo"
+    },
+    "roles": {
+      "title": "Roles y Permisos",
+      "description": "Configurar control de acceso"
+    },
+    "integrations": {
+      "title": "Integraciones",
+      "description": "Conectar aplicaciones externas y administrar claves API"
+    },
+    "modules": {
+      "title": "Módulos Personalizados",
+      "description": "Crear módulos de datos personalizados"
+    },
+    "customFields": {
+      "title": "Campos Personalizados",
+      "description": "Configurar campos personalizados para módulos"
+    },
+    "pipeline": {
+      "title": "Etapas del Pipeline",
+      "description": "Configurar etapas del pipeline"
+    },
+    "data": {
+      "title": "Gestión de Datos",
+      "description": "Importar y exportar datos"
+    },
+    "activity": {
+      "title": "Registro de Auditoría",
+      "description": "Ver todos los cambios del CRM"
+    },
+    "adminRequired": "Se requiere acceso de administrador",
+    "contactAdmin": "Contacta a tu administrador para acceder a la configuración de la organización."
+  },
+  "forms": {
+    "labels": {
+      "name": "Nombre",
+      "email": "Correo electrónico",
+      "phone": "Teléfono",
+      "company": "Empresa",
+      "title": "Título",
+      "description": "Descripción",
+      "status": "Estado",
+      "priority": "Prioridad",
+      "dueDate": "Fecha de vencimiento",
+      "startDate": "Fecha de inicio",
+      "endDate": "Fecha de fin",
+      "assignedTo": "Asignado a",
+      "createdBy": "Creado por",
+      "createdAt": "Creado el",
+      "updatedAt": "Actualizado el",
+      "notes": "Notas",
+      "tags": "Etiquetas",
+      "value": "Valor",
+      "amount": "Cantidad",
+      "currency": "Moneda",
+      "source": "Fuente",
+      "type": "Tipo",
+      "category": "Categoría",
+      "address": "Dirección",
+      "city": "Ciudad",
+      "state": "Estado/Provincia",
+      "country": "País",
+      "zipCode": "Código postal",
+      "website": "Sitio web"
+    },
+    "placeholders": {
+      "search": "Buscar...",
+      "enterName": "Ingresa el nombre",
+      "enterEmail": "Ingresa el correo electrónico",
+      "enterPhone": "Ingresa el número de teléfono",
+      "enterDescription": "Ingresa la descripción",
+      "selectOption": "Selecciona una opción",
+      "selectDate": "Selecciona una fecha",
+      "typeToSearch": "Escribe para buscar..."
+    },
+    "validation": {
+      "required": "Este campo es requerido",
+      "email": "Por favor ingresa un correo electrónico válido",
+      "phone": "Por favor ingresa un número de teléfono válido",
+      "minLength": "Debe tener al menos {min} caracteres",
+      "maxLength": "Debe tener como máximo {max} caracteres",
+      "min": "Debe ser al menos {min}",
+      "max": "Debe ser como máximo {max}",
+      "pattern": "Formato inválido",
+      "url": "Por favor ingresa una URL válida"
+    }
+  },
+  "priority": {
+    "low": "Baja",
+    "medium": "Media",
+    "high": "Alta",
+    "urgent": "Urgente"
+  },
+  "status": {
+    "new": "Nuevo",
+    "open": "Abierto",
+    "inProgress": "En progreso",
+    "pending": "Pendiente",
+    "onHold": "En espera",
+    "resolved": "Resuelto",
+    "closed": "Cerrado",
+    "cancelled": "Cancelado",
+    "won": "Ganado",
+    "lost": "Perdido",
+    "qualified": "Calificado",
+    "unqualified": "No calificado"
+  },
+  "dataTable": {
+    "noData": "No hay datos disponibles",
+    "showing": "Mostrando {from} a {to} de {total} resultados",
+    "rowsPerPage": "Filas por página",
+    "page": "Página",
+    "of": "de",
+    "goToPage": "Ir a la página",
+    "firstPage": "Primera página",
+    "lastPage": "Última página",
+    "nextPage": "Página siguiente",
+    "previousPage": "Página anterior",
+    "selected": "{count} seleccionado(s)",
+    "selectRow": "Seleccionar fila",
+    "selectAllRows": "Seleccionar todas las filas"
+  },
+  "dialogs": {
+    "confirmDelete": {
+      "title": "¿Estás seguro?",
+      "description": "Esta acción no se puede deshacer. El elemento se eliminará permanentemente.",
+      "confirm": "Eliminar",
+      "cancel": "Cancelar"
+    },
+    "unsavedChanges": {
+      "title": "Cambios sin guardar",
+      "description": "Tienes cambios sin guardar. ¿Estás seguro de que quieres salir?",
+      "confirm": "Salir",
+      "cancel": "Quedarse"
+    }
+  },
+  "import": {
+    "title": "Importar datos",
+    "selectModule": "Elige qué importar",
+    "dragDrop": "Arrastra y suelta tu archivo CSV aquí",
+    "or": "o",
+    "browse": "Explorar archivos",
+    "csvOnly": "Solo se admiten archivos CSV",
+    "importing": "Importando...",
+    "complete": "Importación completada",
+    "failed": "Error en la importación",
+    "records": "{count} registros importados con éxito"
+  },
+  "export": {
+    "title": "Exportar datos",
+    "selectModule": "Elige qué exportar",
+    "format": "Formato de exportación",
+    "exporting": "Exportando...",
+    "complete": "Exportación completada",
+    "failed": "Error en la exportación",
+    "download": "Descargar"
+  },
+  "theme": {
+    "toggle": "Cambiar tema",
+    "light": "Claro",
+    "dark": "Oscuro",
+    "system": "Sistema"
+  },
+  "errors": {
+    "generic": "Algo salió mal. Por favor intenta de nuevo.",
+    "notFound": "No encontrado",
+    "unauthorized": "No estás autorizado para realizar esta acción",
+    "forbidden": "Acceso denegado",
+    "serverError": "Error del servidor. Por favor intenta más tarde.",
+    "networkError": "Error de red. Por favor verifica tu conexión.",
+    "validationError": "Por favor corrige los errores a continuación",
+    "sessionExpired": "Tu sesión ha expirado. Por favor inicia sesión de nuevo."
+  },
+  "success": {
+    "saved": "Guardado con éxito",
+    "created": "Creado con éxito",
+    "updated": "Actualizado con éxito",
+    "deleted": "Eliminado con éxito",
+    "imported": "Importado con éxito",
+    "exported": "Exportado con éxito"
+  }
+}
