@@ -13,7 +13,7 @@ import Papa from "papaparse";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-type ImportModule = "leads" | "contacts" | "accounts" | "opportunities" | "tasks";
+type ImportModule = "leads" | "contacts" | "accounts" | "opportunities" | "tasks" | "inventory" | "employees";
 
 // Map import module names to audit module names
 const AUDIT_MODULE_MAP: Record<ImportModule, AuditModule> = {
@@ -22,6 +22,8 @@ const AUDIT_MODULE_MAP: Record<ImportModule, AuditModule> = {
   accounts: "ACCOUNT",
   opportunities: "OPPORTUNITY",
   tasks: "TASK",
+  inventory: "INVENTORY",
+  employees: "EMPLOYEE",
 };
 
 interface ImportResult {
@@ -87,6 +89,39 @@ const FIELD_MAPPINGS: Record<ImportModule, Record<string, string>> = {
     "status": "status",
     "task_type": "taskType",
   },
+  inventory: {
+    "sku": "sku",
+    "name": "name",
+    "description": "description",
+    "category": "category",
+    "unit_price": "unitPrice",
+    "unit price": "unitPrice",
+    "cost_price": "costPrice",
+    "cost price": "costPrice",
+    "quantity": "quantity",
+    "reorder_level": "reorderLevel",
+    "reorder level": "reorderLevel",
+  },
+  employees: {
+    "employee_id": "employeeId",
+    "employee id": "employeeId",
+    "first_name": "firstName",
+    "firstname": "firstName",
+    "first name": "firstName",
+    "last_name": "lastName",
+    "lastname": "lastName",
+    "last name": "lastName",
+    "email": "email",
+    "phone": "phone",
+    "department": "department",
+    "position": "position",
+    "employment_type": "employmentType",
+    "employment type": "employmentType",
+    "salary": "salary",
+    "currency": "currency",
+    "join_date": "joinDate",
+    "join date": "joinDate",
+  },
 };
 
 const VALID_VALUES: Record<string, Record<string, string[]>> = {
@@ -104,6 +139,11 @@ const VALID_VALUES: Record<string, Record<string, string[]>> = {
     status: ["PENDING", "IN_PROGRESS", "COMPLETED", "CANCELLED"],
     taskType: ["CALL", "EMAIL", "MEETING", "FOLLOW_UP", "OTHER"],
   },
+  inventory: {},
+  employees: {
+    status: ["ACTIVE", "INACTIVE", "ON_LEAVE", "TERMINATED"],
+    employmentType: ["FULL_TIME", "PART_TIME", "CONTRACT", "INTERN"],
+  },
 };
 
 function normalizeFieldName(field: string): string {
@@ -120,13 +160,13 @@ function mapFields(row: Record<string, string>, module: ImportModule): Record<st
     
     if (mappedField && value !== undefined && value !== "") {
       // Handle special field types
-      if (mappedField === "annualRevenue" || mappedField === "value") {
+      if (mappedField === "annualRevenue" || mappedField === "value" || mappedField === "unitPrice" || mappedField === "costPrice" || mappedField === "salary") {
         const numValue = parseFloat(value.replace(/[^0-9.-]/g, ""));
         result[mappedField] = isNaN(numValue) ? null : numValue;
-      } else if (mappedField === "employeeCount" || mappedField === "probability") {
+      } else if (mappedField === "employeeCount" || mappedField === "probability" || mappedField === "quantity" || mappedField === "reorderLevel") {
         const intValue = parseInt(value.replace(/[^0-9-]/g, ""), 10);
         result[mappedField] = isNaN(intValue) ? null : intValue;
-      } else if (mappedField === "expectedCloseDate" || mappedField === "dueDate") {
+      } else if (mappedField === "expectedCloseDate" || mappedField === "dueDate" || mappedField === "joinDate") {
         const dateValue = new Date(value);
         result[mappedField] = isNaN(dateValue.getTime()) ? null : dateValue;
       } else {
@@ -193,6 +233,24 @@ async function importRecords(
         continue;
       }
 
+      if (module === "inventory" && !data.name) {
+        result.errors.push({ row: rowNum, error: "Missing required field: name" });
+        result.failed++;
+        continue;
+      }
+
+      if (module === "opportunities" && !data.name) {
+        result.errors.push({ row: rowNum, error: "Missing required field: name" });
+        result.failed++;
+        continue;
+      }
+
+      if (module === "employees" && (!data.firstName || !data.lastName)) {
+        result.errors.push({ row: rowNum, error: "Missing required fields: firstName, lastName" });
+        result.failed++;
+        continue;
+      }
+
       // Create record based on module
       switch (module) {
         case "leads":
@@ -255,6 +313,55 @@ async function importRecords(
             },
           });
           break;
+
+        case "inventory":
+          await prisma.inventoryItem.create({
+            data: {
+              orgId,
+              name: data.name as string,
+              sku: data.sku as string | undefined,
+              description: data.description as string | undefined,
+              category: data.category as string | undefined,
+              unitPrice: data.unitPrice as number | undefined,
+              costPrice: data.costPrice as number | undefined,
+              quantity: (data.quantity as number) || 0,
+              reorderLevel: data.reorderLevel as number | undefined,
+            },
+          });
+          break;
+
+        case "opportunities":
+          await prisma.opportunity.create({
+            data: {
+              orgId,
+              name: data.name as string,
+              value: data.value as number | undefined,
+              currency: (data.currency as string) || "USD",
+              probability: data.probability as number | undefined,
+              expectedCloseDate: data.expectedCloseDate as Date | undefined,
+            },
+          });
+          break;
+
+        case "employees":
+          await prisma.employee.create({
+            data: {
+              orgId,
+              employeeId: data.employeeId as string | undefined,
+              firstName: data.firstName as string,
+              lastName: data.lastName as string,
+              email: data.email as string | undefined,
+              phone: data.phone as string | undefined,
+              department: data.department as string | undefined,
+              position: data.position as string | undefined,
+              employmentType: (data.employmentType as string) || "FULL_TIME",
+              salary: data.salary as number | undefined,
+              currency: (data.currency as string) || "USD",
+              joinDate: data.joinDate as Date | undefined,
+              status: (data.status as string) || "ACTIVE",
+            },
+          });
+          break;
       }
 
       result.imported++;
@@ -304,7 +411,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
-    if (!module || !["leads", "contacts", "accounts", "opportunities", "tasks"].includes(module)) {
+    if (!module || !["leads", "contacts", "accounts", "opportunities", "tasks", "inventory", "employees"].includes(module)) {
       return NextResponse.json({ error: "Invalid module" }, { status: 400 });
     }
 

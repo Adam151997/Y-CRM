@@ -33,6 +33,9 @@ export default function DataManagementPage() {
                 <li>Contacts (first name, last name, email, etc.)</li>
                 <li>Accounts (name, website, industry, etc.)</li>
                 <li>Tasks (title, due date, priority, etc.)</li>
+                <li>Inventory (SKU, name, price, quantity, etc.)</li>
+                <li>Opportunities (name, value, probability, etc.)</li>
+                <li>Employees (name, email, department, salary, etc.)</li>
               </ul>
             </div>
             <ImportDialog
@@ -193,6 +196,9 @@ export default function DataManagementPage() {
             <li>Contacts: First Name, Last Name</li>
             <li>Accounts: Name</li>
             <li>Tasks: Title</li>
+            <li>Inventory: Name</li>
+            <li>Opportunities: Name</li>
+            <li>Employees: First Name, Last Name</li>
           </ul>
           <p>
             <strong>Tips:</strong>
